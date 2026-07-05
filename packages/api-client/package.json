@@ -1,0 +1,23 @@
+{
+  "name": "@tech-full-stack/api-client",
+  "type": "module",
+  "version": "1.0.0",
+  "main": "./dist/index.js",
+  "scripts": {
+    "dev": "tsc --watch",
+    "build": "rm -rf dist && tsc",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@tech-full-stack/api": "workspace:^",
+    "@tech-full-stack/eslint-config": "workspace:^",
+    "@types/node": "^25.9.3",
+    "hono": "^4.12.25"
+  },
+  "devDependencies": {
+    "eslint": "^10.5.0",
+    "typescript": "~5.9.3"
+  }
+}
