@@ -1,6 +1,6 @@
 # @monorepo-fastify-vue/web
 
-Vue 3 + Vite frontend for the tasks app. During development, API requests to `/api` are proxied to the Hono server running on `http://localhost:8787`.
+Vue 3 + Vite frontend for the tasks app. During development, API requests to `/api` are proxied to the Fastify server running on `http://localhost:3000`.
 
 ## Tech Stack
 
@@ -8,7 +8,7 @@ Vue 3 + Vite frontend for the tasks app. During development, API requests to `/a
 - [Vite](https://vitejs.dev/)
 - [Vue Router](https://router.vuejs.org/) — client-side routing
 - [VeeValidate](https://vee-validate.logaretm.com/) + [Zod](https://zod.dev/) — form validation
-- [@monorepo-fastify-vue/api-client](../../packages/api-client/) — type-safe Hono RPC client
+- [@monorepo-fastify-vue/api-client](../../packages/api-client/) — API client (built for Hono's RPC client; being reworked to consume the Fastify API's OpenAPI spec, see root README)
 
 ## Scripts
 
@@ -27,7 +27,7 @@ Start from the repo root:
 pnpm dev
 ```
 
-The web app is available at [http://localhost:5173](http://localhost:5173). All `/api` requests are proxied to the API server at `http://localhost:8787`.
+The web app is available at [http://localhost:5173](http://localhost:5173). All `/api` requests are proxied to the API server at `http://localhost:3000`.
 
 ## Production Build
 

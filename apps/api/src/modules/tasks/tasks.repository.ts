@@ -1,43 +1,25 @@
-import type { insertTasksSchema, patchTasksSchema } from "./tasks.schema";
+import type { insertTasksSchema, patchTasksSchema } from "./tasks.schema.js";
 
 import { eq } from "drizzle-orm";
+import { db } from "../../db/index.js";
+import { tasks } from "./tasks.schema.js";
 
-import { db } from "@/api/db";
-
-import { tasks } from "./tasks.schema";
-
-export async function findMany() {
-  return db.query.tasks.findMany({
-    orderBy(fields, operators) {
-      return operators.desc(fields.createdAt);
-    },
-  });
+export function findMany() {
+  return db.select().from(tasks);
 }
 
-export async function findById(id: number) {
-  return db.query.tasks.findFirst({
-    where(fields, operators) {
-      return operators.eq(fields.id, id);
-    },
-  });
+export function findById(id: number) {
+  return db.select().from(tasks).where(eq(tasks.id, id)).then(rows => rows.at(0));
 }
 
-export async function insertOne(data: insertTasksSchema) {
-  const [inserted] = await db.insert(tasks).values(data).returning();
-  return inserted;
+export function insertOne(data: insertTasksSchema) {
+  return db.insert(tasks).values(data).returning().then(rows => rows[0]);
 }
 
-export async function updateById(id: number, data: patchTasksSchema) {
-  const [updated] = await db.update(tasks)
-    .set(data)
-    .where(eq(tasks.id, id))
-    .returning();
-  return updated;
+export function updateById(id: number, data: patchTasksSchema) {
+  return db.update(tasks).set(data).where(eq(tasks.id, id)).returning().then(rows => rows.at(0));
 }
 
-export async function deleteById(id: number) {
-  const [deleted] = await db.delete(tasks)
-    .where(eq(tasks.id, id))
-    .returning();
-  return deleted;
+export function deleteById(id: number) {
+  return db.delete(tasks).where(eq(tasks.id, id)).returning().then(rows => rows.at(0));
 }

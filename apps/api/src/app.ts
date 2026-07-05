@@ -1,45 +1,74 @@
-import { serveStatic } from "@hono/node-server/serve-static";
-import { apiReference } from "@scalar/hono-api-reference";
-import { Hono } from "hono";
+import type { FastifyError, FastifyInstance } from "fastify";
+import swagger from "@fastify/swagger";
+import swaggerUi from "@fastify/swagger-ui";
+import Fastify from "fastify";
+import {
+  hasZodFastifySchemaValidationErrors,
+  jsonSchemaTransform,
+  serializerCompiler,
+  validatorCompiler,
+} from "fastify-type-provider-zod";
 
-import { BASE_PATH } from "@/api/lib/constants";
-import createApp from "@/api/lib/create-app";
-import { logger } from "@/api/middleware/logger";
-import { rateLimiter } from "@/api/middleware/rate-limit";
-import { registerRoutes } from "@/api/modules";
+import { config } from "./config/index.js";
+import { tasksRoutes } from "./modules/tasks/tasks.routes.js";
+import dbPlugin from "./plugins/db.js";
+import sensiblePlugin from "./plugins/sensible.js";
 
-import configureOpenAPI from "./lib/configure-open-api";
+export function buildApp(): FastifyInstance {
+  const app = Fastify({
+    logger: { level: config.LOG_LEVEL },
+  });
 
-// API sub-app — all routes live under /api
-const apiApp = createApp();
-registerRoutes(apiApp);
-configureOpenAPI(apiApp);
+  app.setValidatorCompiler(validatorCompiler);
+  app.setSerializerCompiler(serializerCompiler);
 
-// Root app — assembles middleware, Scalar, API, and static files
-const app = new Hono();
+  app.register(sensiblePlugin);
+  app.register(dbPlugin);
 
-app.use("*", logger);
-app.use("*", rateLimiter({ limit: 100, windowMs: 60_000 }));
-
-app.get(
-  `${BASE_PATH}/scalar`,
-  apiReference({
-    theme: "kepler",
-    layout: "classic",
-    defaultHttpClient: {
-      targetKey: "javascript",
-      clientKey: "fetch",
+  app.register(swagger, {
+    openapi: {
+      info: { title: "Monorepo Fastify Vue API", version: "1.0.0" },
     },
-    spec: { url: `${BASE_PATH}/doc` },
-  }),
-);
+    transform: jsonSchemaTransform,
+  });
+  app.register(swaggerUi, { routePrefix: "/documentation" });
+  app.get("/openapi.json", async () => app.swagger());
 
-app.route("/", apiApp);
+  app.setErrorHandler<FastifyError>((error, request, reply) => {
+    if (hasZodFastifySchemaValidationErrors(error)) {
+      reply.code(422).send({
+        statusCode: 422,
+        error: "Unprocessable Entity",
+        message: "Validation failed",
+        details: error.validation,
+      });
+      return;
+    }
 
-// Serves the built Vue frontend in production; Vite handles this in dev
-app.use("*", serveStatic({ root: "./public" }));
+    const taskNotFound = error.name === "TaskNotFoundError";
+    if (taskNotFound) {
+      reply.code(404).send({
+        statusCode: 404,
+        error: "Not Found",
+        message: error.message,
+      });
+      return;
+    }
 
-// SPA fallback — any unmatched route returns index.html so Vue Router takes over
-app.get("*", serveStatic({ root: "./public", rewriteRequestPath: () => "/index.html" }));
+    const statusCode = error.statusCode ?? 500;
+    const message = statusCode >= 500 && config.NODE_ENV !== "development"
+      ? "Internal Server Error"
+      : error.message;
 
-export default app;
+    request.log.error({ err: error }, "request error");
+    reply.code(statusCode).send({
+      statusCode,
+      error: error.name,
+      message,
+    });
+  });
+
+  app.register(tasksRoutes, { prefix: "/api/v1/tasks" });
+
+  return app;
+}

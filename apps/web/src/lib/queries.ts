@@ -13,67 +13,45 @@ export const queryKeys = {
 export const tasksQueryOptions = queryOptions({
   ...queryKeys.LIST_TASKS,
   queryFn: async () => {
-    const response = await apiClient.api.v1.tasks.$get();
-    return response.json();
+    const { data, error } = await apiClient.GET("/api/v1/tasks/");
+    if (error)
+      throw new Error(formatApiError(error));
+    return data;
   },
 });
 
 export const createTaskQueryOptions = (id: string) => queryOptions({
   ...queryKeys.LIST_TASK(id),
   queryFn: async () => {
-    const response = await apiClient.api.v1.tasks[":id"].$get({
-      param: { id },
+    const { data, error } = await apiClient.GET("/api/v1/tasks/{id}", {
+      params: { path: { id: Number(id) } },
     });
-    const json = await response.json();
-    if ("message" in json) {
-      throw new Error(json.message);
-    }
-    if ("success" in json) {
-      const message = formatApiError(json);
-      throw new Error(message);
-    }
-    return json;
+    if (error)
+      throw new Error(formatApiError(error));
+    return data;
   },
 });
 
 export const createTask = async (task: insertTasksSchema) => {
-  await new Promise(resolve => setTimeout(resolve, 1000));
-  const response = await apiClient.api.v1.tasks.$post({
-    json: task,
-  });
-  const json = await response.json();
-  if ("success" in json) {
-    const message = formatApiError(json);
-    throw new Error(message);
-  }
-  return json;
+  const { data, error } = await apiClient.POST("/api/v1/tasks/", { body: task });
+  if (error)
+    throw new Error(formatApiError(error));
+  return data;
 };
 
 export const deleteTask = async (id: string) => {
-  const response = await apiClient.api.v1.tasks[":id"].$delete({
-    param: { id },
+  const { error } = await apiClient.DELETE("/api/v1/tasks/{id}", {
+    params: { path: { id: Number(id) } },
   });
-  if (response.status !== 204) {
-    const json = await response.json();
-    if ("message" in json) {
-      throw new Error(json.message);
-    }
-    const message = formatApiError(json);
-    throw new Error(message);
-  }
+  if (error)
+    throw new Error(formatApiError(error));
 };
 
 export const updateTask = async ({ id, task }: { id: string; task: patchTasksSchema }) => {
-  const response = await apiClient.api.v1.tasks[":id"].$patch({
-    param: { id },
-    json: task,
+  const { error } = await apiClient.PATCH("/api/v1/tasks/{id}", {
+    params: { path: { id: Number(id) } },
+    body: task,
   });
-  if (response.status !== 200) {
-    const json = await response.json();
-    if ("message" in json) {
-      throw new Error(json.message);
-    }
-    const message = formatApiError(json);
-    throw new Error(message);
-  }
+  if (error)
+    throw new Error(formatApiError(error));
 };

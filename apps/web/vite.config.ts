@@ -25,7 +25,7 @@ export default defineConfig({
   server: {
     proxy: {
       // eslint-disable-next-line node/no-process-env
-      "/api": process.env.API_PROXY_URL ?? "http://localhost:8787",
+      "/api": process.env.API_PROXY_URL ?? "http://localhost:3000",
     },
   },
 });

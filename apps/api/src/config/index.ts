@@ -1,11 +1,11 @@
 import { z } from "zod";
 
 const envSchema = z.object({
-  DATABASE_URL: z.string().min(1, "DATABASE_URL is required"),
-  PORT: z.coerce.number().default(8787),
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
-  JWT_SECRET: z.string().min(32, "JWT_SECRET must be at least 32 characters"),
-  JWT_EXPIRES_IN_DAYS: z.coerce.number().default(7),
+  PORT: z.coerce.number().default(3000),
+  HOST: z.string().default("0.0.0.0"),
+  DATABASE_URL: z.string().min(1, "DATABASE_URL is required"),
+  LOG_LEVEL: z.enum(["trace", "debug", "info", "warn", "error", "fatal", "silent"]).default("info"),
 });
 
 // eslint-disable-next-line node/no-process-env

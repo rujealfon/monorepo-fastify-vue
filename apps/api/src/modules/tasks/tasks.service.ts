@@ -1,39 +1,35 @@
-import type { insertTasksSchema, patchTasksSchema } from "./tasks.schema";
+import type { insertTasksSchema, patchTasksSchema } from "./tasks.schema.js";
+import { TaskNotFoundError } from "./tasks.errors.js";
+import * as tasksRepository from "./tasks.repository.js";
 
-import { eventBus, TaskEvents } from "@/api/events";
-
-import { TaskNotFoundError } from "./tasks.errors";
-import * as repository from "./tasks.repository";
-
-export async function listTasks() {
-  return repository.findMany();
+export function listTasks() {
+  return tasksRepository.findMany();
 }
 
 export async function getTask(id: number) {
-  const task = await repository.findById(id);
-  if (!task)
+  const task = await tasksRepository.findById(id);
+  if (!task) {
     throw new TaskNotFoundError(id);
+  }
   return task;
 }
 
-export async function createTask(data: insertTasksSchema) {
-  const task = await repository.insertOne(data);
-  eventBus.emit(TaskEvents.CREATED, task);
-  return task;
+export function createTask(data: insertTasksSchema) {
+  return tasksRepository.insertOne(data);
 }
 
 export async function updateTask(id: number, data: patchTasksSchema) {
-  const task = await repository.updateById(id, data);
-  if (!task)
+  const task = await tasksRepository.updateById(id, data);
+  if (!task) {
     throw new TaskNotFoundError(id);
-  eventBus.emit(TaskEvents.UPDATED, task);
+  }
   return task;
 }
 
 export async function deleteTask(id: number) {
-  const deleted = await repository.deleteById(id);
-  if (!deleted)
+  const task = await tasksRepository.deleteById(id);
+  if (!task) {
     throw new TaskNotFoundError(id);
-  eventBus.emit(TaskEvents.DELETED, { id });
-  return deleted;
+  }
+  return task;
 }

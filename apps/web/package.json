@@ -12,12 +12,11 @@
     "typecheck": "vue-tsc --noEmit"
   },
   "dependencies": {
-    "@tanstack/vue-query": "^5.101.0",
     "@monorepo-fastify-vue/api": "workspace:^",
     "@monorepo-fastify-vue/api-client": "workspace:^",
     "@monorepo-fastify-vue/eslint-config": "workspace:^",
+    "@tanstack/vue-query": "^5.101.0",
     "@types/node": "^25.9.3",
-    "hono": "^4.12.25",
     "vue": "^3.5.38",
     "vue-router": "^5.1.0",
     "zod": "^4.4.3"

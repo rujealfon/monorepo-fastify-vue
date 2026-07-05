@@ -6,7 +6,7 @@ This project runs entirely in Docker for local development. The setup includes t
 
 | Service | URL | Description |
 |---|---|---|
-| API (Hono) | http://localhost:8787 | Backend API with hot-reload |
+| API (Fastify) | http://localhost:3000 | Backend API with hot-reload |
 | Web (Vue 3) | http://localhost:5173 | Frontend with Vite dev server |
 | Drizzle Studio | http://localhost:4983 | Visual database browser |
 | pgAdmin 4 | http://localhost:5050 | Full-featured DB admin UI |
@@ -40,7 +40,8 @@ docker compose exec api pnpm --filter @monorepo-fastify-vue/api db:migrate
 
 ### 3. Access the services
 
-- **API docs (Scalar):** http://localhost:8787/reference
+- **API docs (Swagger UI):** http://localhost:3000/documentation
+- **OpenAPI spec:** http://localhost:3000/openapi.json
 - **Drizzle Studio:** http://localhost:4983
 - **pgAdmin 4:** http://localhost:5050
 
@@ -63,7 +64,7 @@ Login at http://localhost:5050 with:
 |---|---|
 | Host | postgres |
 | Port | 5432 |
-| Database | tech_full_stack |
+| Database | fastify_vue |
 | Username | root |
 | Password | root |
 
@@ -79,10 +80,8 @@ The API service uses these environment variables (set in `docker-compose.yml`):
 
 | Variable | Value | Description |
 |---|---|---|
-| `DATABASE_URL` | `postgresql://root:root@postgres:5432/tech_full_stack` | PostgreSQL connection string |
-| `PORT` | `8787` | API server port |
-| `JWT_SECRET` | `secret-key-at-least-32-characters-long` | **Change this in production** |
-| `JWT_EXPIRES_IN_DAYS` | `7` | JWT token lifetime |
+| `DATABASE_URL` | `postgresql://root:root@postgres:5432/fastify_vue` | PostgreSQL connection string |
+| `PORT` | `3000` | API server port |
 | `NODE_ENV` | `development` | Runtime environment |
 
 > For production, override these with real secrets and never commit them to version control.
@@ -186,7 +185,7 @@ docker build -f apps/web/Dockerfile --target production -t monorepo-fastify-vue-
 ## Troubleshooting
 
 **Port already in use**
-Another process is using one of the required ports. Find and stop it, or change the host-side port in `docker-compose.yml` (e.g. `"8788:8787"`).
+Another process is using one of the required ports. Find and stop it, or change the host-side port in `docker-compose.yml` (e.g. `"3001:3000"`).
 
 **API fails to start with database errors**
 The `api` service waits for the `postgres` healthcheck to pass before starting. If it still fails, check postgres logs:

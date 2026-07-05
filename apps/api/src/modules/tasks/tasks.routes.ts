@@ -1,123 +1,53 @@
-import { createRoute, z } from "@hono/zod-openapi";
-import * as HttpStatusCodes from "stoker/http-status-codes";
-import { jsonContent, jsonContentRequired } from "stoker/openapi/helpers";
-import { createErrorSchema, IdParamsSchema } from "stoker/openapi/schemas";
+import type { FastifyPluginAsync } from "fastify";
+import type { ZodTypeProvider } from "fastify-type-provider-zod";
+import { z } from "zod";
 
-import { notFoundSchema } from "@/api/lib/constants";
+import * as handlers from "./tasks.handlers.js";
+import { insertTasksSchema, patchTasksSchema, selectTasksSchema } from "./tasks.schema.js";
 
-import { insertTasksSchema, patchTasksSchema, selectTasksSchema } from "./tasks.schema";
+const paramsSchema = z.object({ id: z.coerce.number().int().positive() });
 
-const tags = ["Tasks"];
+export const tasksRoutes: FastifyPluginAsync = async (fastify) => {
+  const app = fastify.withTypeProvider<ZodTypeProvider>();
 
-export const list = createRoute({
-  path: "/tasks",
-  method: "get",
-  tags,
-  responses: {
-    [HttpStatusCodes.OK]: jsonContent(
-      z.array(selectTasksSchema),
-      "The list of tasks",
-    ),
-  },
-});
-
-export const create = createRoute({
-  path: "/tasks",
-  method: "post",
-  tags,
-  request: {
-    body: jsonContentRequired(
-      insertTasksSchema,
-      "The task to create",
-    ),
-  },
-  responses: {
-    [HttpStatusCodes.CREATED]: jsonContent(
-      selectTasksSchema,
-      "The created task",
-    ),
-    [HttpStatusCodes.UNPROCESSABLE_ENTITY]: jsonContent(
-      createErrorSchema(insertTasksSchema),
-      "The validation error(s)",
-    ),
-  },
-});
-
-export const getOne = createRoute({
-  path: "/tasks/{id}",
-  method: "get",
-  tags,
-  request: {
-    params: IdParamsSchema,
-  },
-  responses: {
-    [HttpStatusCodes.OK]: jsonContent(
-      selectTasksSchema,
-      "The requested task",
-    ),
-    [HttpStatusCodes.NOT_FOUND]: jsonContent(
-      notFoundSchema,
-      "Task not found",
-    ),
-    [HttpStatusCodes.UNPROCESSABLE_ENTITY]: jsonContent(
-      createErrorSchema(IdParamsSchema),
-      "Invalid id error",
-    ),
-  },
-});
-
-export const patch = createRoute({
-  path: "/tasks/{id}",
-  method: "patch",
-  tags,
-  request: {
-    params: IdParamsSchema,
-    body: jsonContentRequired(
-      patchTasksSchema,
-      "The task updates",
-    ),
-  },
-  responses: {
-    [HttpStatusCodes.OK]: jsonContent(
-      selectTasksSchema,
-      "The updated task",
-    ),
-    [HttpStatusCodes.NOT_FOUND]: jsonContent(
-      notFoundSchema,
-      "Task not found",
-    ),
-    [HttpStatusCodes.UNPROCESSABLE_ENTITY]: jsonContent(
-      createErrorSchema(patchTasksSchema)
-        .or(createErrorSchema(IdParamsSchema)),
-      "The validation error(s)",
-    ),
-  },
-});
-
-export const remove = createRoute({
-  path: "/tasks/{id}",
-  method: "delete",
-  tags,
-  request: {
-    params: IdParamsSchema,
-  },
-  responses: {
-    [HttpStatusCodes.NO_CONTENT]: {
-      description: "Task deleted",
+  app.get("/", {
+    schema: {
+      tags: ["Tasks"],
+      response: { 200: z.array(selectTasksSchema) },
     },
-    [HttpStatusCodes.NOT_FOUND]: jsonContent(
-      notFoundSchema,
-      "Task not found",
-    ),
-    [HttpStatusCodes.UNPROCESSABLE_ENTITY]: jsonContent(
-      createErrorSchema(IdParamsSchema),
-      "Invalid id error",
-    ),
-  },
-});
+  }, handlers.list);
 
-export type ListRoute = typeof list;
-export type CreateRoute = typeof create;
-export type GetOneRoute = typeof getOne;
-export type PatchRoute = typeof patch;
-export type RemoveRoute = typeof remove;
+  app.post("/", {
+    schema: {
+      tags: ["Tasks"],
+      body: insertTasksSchema,
+      response: { 201: selectTasksSchema },
+    },
+  }, handlers.create);
+
+  app.get("/:id", {
+    schema: {
+      tags: ["Tasks"],
+      params: paramsSchema,
+      response: { 200: selectTasksSchema },
+    },
+  }, handlers.getOne);
+
+  app.patch("/:id", {
+    schema: {
+      tags: ["Tasks"],
+      params: paramsSchema,
+      body: patchTasksSchema,
+      response: { 200: selectTasksSchema },
+    },
+  }, handlers.patch);
+
+  // eslint-disable-next-line drizzle/enforce-delete-with-where -- this is a Fastify route, not a Drizzle query
+  app.delete("/:id", {
+    schema: {
+      tags: ["Tasks"],
+      params: paramsSchema,
+      response: { 204: z.void() },
+    },
+  }, handlers.remove);
+};

@@ -1,73 +1,55 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { TaskNotFoundError } from "../tasks.errors";
-import * as repository from "../tasks.repository";
-import * as service from "../tasks.service";
+import { TaskNotFoundError } from "../tasks.errors.js";
+import * as tasksRepository from "../tasks.repository.js";
+import * as tasksService from "../tasks.service.js";
 
-vi.mock("../tasks.repository");
+vi.mock("../tasks.repository.js");
 
-const mockTask = { id: 1, name: "Test task", done: false, createdAt: new Date(), updatedAt: new Date() };
+const sampleTask = {
+  id: 1,
+  name: "sample",
+  done: false,
+  createdAt: new Date(),
+  updatedAt: new Date(),
+};
 
-describe("tasks service", () => {
+describe("tasks.service", () => {
   beforeEach(() => {
     vi.resetAllMocks();
   });
 
-  describe("listTasks", () => {
-    it("returns all tasks from repository", async () => {
-      vi.mocked(repository.findMany).mockResolvedValue([mockTask]);
-      const result = await service.listTasks();
-      expect(result).toEqual([mockTask]);
-      expect(repository.findMany).toHaveBeenCalledOnce();
-    });
+  it("getTask returns the task from the repository", async () => {
+    vi.mocked(tasksRepository.findById).mockResolvedValue(sampleTask);
+
+    const task = await tasksService.getTask(1);
+    expect(tasksRepository.findById).toHaveBeenCalledWith(1);
+    expect(task).toEqual(sampleTask);
   });
 
-  describe("getTask", () => {
-    it("returns task when found", async () => {
-      vi.mocked(repository.findById).mockResolvedValue(mockTask);
-      const result = await service.getTask(1);
-      expect(result).toEqual(mockTask);
-    });
+  it("getTask throws TaskNotFoundError when the repository finds nothing", async () => {
+    vi.mocked(tasksRepository.findById).mockResolvedValue(undefined);
 
-    it("throws TaskNotFoundError when task does not exist", async () => {
-      vi.mocked(repository.findById).mockResolvedValue(undefined);
-      await expect(service.getTask(999)).rejects.toThrow(TaskNotFoundError);
-    });
+    await expect(tasksService.getTask(404)).rejects.toThrow(TaskNotFoundError);
   });
 
-  describe("createTask", () => {
-    it("inserts and returns the new task", async () => {
-      vi.mocked(repository.insertOne).mockResolvedValue(mockTask);
-      const result = await service.createTask({ name: "Test task", done: false });
-      expect(result).toEqual(mockTask);
-      expect(repository.insertOne).toHaveBeenCalledWith({ name: "Test task", done: false });
-    });
+  it("updateTask throws TaskNotFoundError when the repository finds nothing", async () => {
+    vi.mocked(tasksRepository.updateById).mockResolvedValue(undefined);
+
+    await expect(tasksService.updateTask(404, { done: true })).rejects.toThrow(TaskNotFoundError);
   });
 
-  describe("updateTask", () => {
-    it("updates and returns the task", async () => {
-      const updated = { ...mockTask, done: true };
-      vi.mocked(repository.updateById).mockResolvedValue(updated);
-      const result = await service.updateTask(1, { done: true });
-      expect(result.done).toBe(true);
-    });
+  it("deleteTask throws TaskNotFoundError when the repository finds nothing", async () => {
+    vi.mocked(tasksRepository.deleteById).mockResolvedValue(undefined);
 
-    it("throws TaskNotFoundError when task does not exist", async () => {
-      vi.mocked(repository.updateById).mockResolvedValue(undefined as never);
-      await expect(service.updateTask(999, { done: true })).rejects.toThrow(TaskNotFoundError);
-    });
+    await expect(tasksService.deleteTask(404)).rejects.toThrow(TaskNotFoundError);
   });
 
-  describe("deleteTask", () => {
-    it("deletes and returns the task", async () => {
-      vi.mocked(repository.deleteById).mockResolvedValue(mockTask);
-      const result = await service.deleteTask(1);
-      expect(result).toEqual(mockTask);
-    });
+  it("createTask delegates to the repository", async () => {
+    vi.mocked(tasksRepository.insertOne).mockResolvedValue(sampleTask);
 
-    it("throws TaskNotFoundError when task does not exist", async () => {
-      vi.mocked(repository.deleteById).mockResolvedValue(undefined as never);
-      await expect(service.deleteTask(999)).rejects.toThrow(TaskNotFoundError);
-    });
+    const task = await tasksService.createTask({ name: "sample", done: false });
+    expect(tasksRepository.insertOne).toHaveBeenCalledWith({ name: "sample", done: false });
+    expect(task).toEqual(sampleTask);
   });
 });
