@@ -1,4 +1,4 @@
-import type { ErrorSchema } from "@tech-full-stack/api-client";
+import type { ErrorSchema } from "@monorepo-fastify-vue/api-client";
 
 export default function formatApiError(apiError: ErrorSchema) {
   return apiError

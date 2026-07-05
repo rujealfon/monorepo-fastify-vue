@@ -1,4 +1,4 @@
-# @tech-full-stack/api
+# @monorepo-fastify-vue/api
 
 Hono REST API running on Node.js with PostgreSQL via Drizzle ORM, OpenAPI documentation, and Auth.js for GitHub OAuth.
 

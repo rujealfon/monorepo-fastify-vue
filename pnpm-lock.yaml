@@ -22,7 +22,7 @@ importers:
       '@scalar/hono-api-reference':
         specifier: ^0.11.3
         version: 0.11.3(hono@4.12.25)
-      '@tech-full-stack/eslint-config':
+      '@monorepo-fastify-vue/eslint-config':
         specifier: workspace:^
         version: link:../../packages/eslint-config
       bcryptjs:
@@ -89,13 +89,13 @@ importers:
       '@tanstack/vue-query':
         specifier: ^5.101.0
         version: 5.101.0(vue@3.5.38(typescript@5.9.3))
-      '@tech-full-stack/api':
+      '@monorepo-fastify-vue/api':
         specifier: workspace:^
         version: link:../api
-      '@tech-full-stack/api-client':
+      '@monorepo-fastify-vue/api-client':
         specifier: workspace:^
         version: link:../../packages/api-client
-      '@tech-full-stack/eslint-config':
+      '@monorepo-fastify-vue/eslint-config':
         specifier: workspace:^
         version: link:../../packages/eslint-config
       '@types/node':
@@ -144,10 +144,10 @@ importers:
 
   packages/api-client:
     dependencies:
-      '@tech-full-stack/api':
+      '@monorepo-fastify-vue/api':
         specifier: workspace:^
         version: link:../../apps/api
-      '@tech-full-stack/eslint-config':
+      '@monorepo-fastify-vue/eslint-config':
         specifier: workspace:^
         version: link:../eslint-config
       '@types/node':

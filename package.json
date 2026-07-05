@@ -1,16 +1,16 @@
 {
-  "name": "tech-full-stack",
+  "name": "monorepo-fastify-vue",
   "version": "1.0.0",
   "license": "MIT",
   "scripts": {
     "dev": "pnpm run -r --parallel --aggregate-output dev",
     "build": "pnpm run -r build",
-    "start": "pnpm --filter @tech-full-stack/api start",
+    "start": "pnpm --filter @monorepo-fastify-vue/api start",
     "test": "pnpm run -r --parallel test",
     "lint": "pnpm run -r --parallel lint",
     "lint:fix": "pnpm run -r --parallel lint:fix",
-    "db:generate": "pnpm --filter @tech-full-stack/api db:generate",
-    "db:migrate": "pnpm --filter @tech-full-stack/api db:migrate",
-    "db:studio": "pnpm --filter @tech-full-stack/api db:studio"
+    "db:generate": "pnpm --filter @monorepo-fastify-vue/api db:generate",
+    "db:migrate": "pnpm --filter @monorepo-fastify-vue/api db:migrate",
+    "db:studio": "pnpm --filter @monorepo-fastify-vue/api db:studio"
   }
 }

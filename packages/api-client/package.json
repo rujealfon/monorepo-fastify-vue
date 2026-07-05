@@ -1,5 +1,5 @@
 {
-  "name": "@tech-full-stack/api-client",
+  "name": "@monorepo-fastify-vue/api-client",
   "type": "module",
   "version": "1.0.0",
   "main": "./dist/index.js",
@@ -11,8 +11,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@tech-full-stack/api": "workspace:^",
-    "@tech-full-stack/eslint-config": "workspace:^",
+    "@monorepo-fastify-vue/api": "workspace:^",
+    "@monorepo-fastify-vue/eslint-config": "workspace:^",
     "@types/node": "^25.9.3",
     "hono": "^4.12.25"
   },

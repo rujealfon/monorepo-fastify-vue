@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useMutation, useQuery, useQueryClient } from "@tanstack/vue-query";
-import { patchTasksSchema } from "@tech-full-stack/api/schema";
+import { patchTasksSchema } from "@monorepo-fastify-vue/api/schema";
 import { computed, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 

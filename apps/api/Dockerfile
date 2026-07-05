@@ -38,4 +38,4 @@ CMD ["node", "apps/api/dist/index.js"]
 # --- Development (default) ---
 FROM base AS development
 EXPOSE 8787
-CMD ["pnpm", "--filter", "@tech-full-stack/api", "exec", "tsx", "watch", "src/index.ts"]
+CMD ["pnpm", "--filter", "@monorepo-fastify-vue/api", "exec", "tsx", "watch", "src/index.ts"]

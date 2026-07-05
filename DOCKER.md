@@ -35,7 +35,7 @@ docker compose up
 Once the `api` service is running, apply migrations in a new terminal:
 
 ```bash
-docker compose exec api pnpm --filter @tech-full-stack/api db:migrate
+docker compose exec api pnpm --filter @monorepo-fastify-vue/api db:migrate
 ```
 
 ### 3. Access the services
@@ -56,7 +56,7 @@ Login at http://localhost:5050 with:
 ### Connect to the database
 
 1. Right-click **Servers** → **Register** → **Server**
-2. **General** tab — Name: `tech-full-stack` (or anything)
+2. **General** tab — Name: `monorepo-fastify-vue` (or anything)
 3. **Connection** tab:
 
 | Field | Value |
@@ -123,13 +123,13 @@ docker compose build web
 docker compose exec api sh
 
 # Run a pnpm script in the API
-docker compose exec api pnpm --filter @tech-full-stack/api <script>
+docker compose exec api pnpm --filter @monorepo-fastify-vue/api <script>
 
 # Generate a new migration
-docker compose exec api pnpm --filter @tech-full-stack/api db:generate
+docker compose exec api pnpm --filter @monorepo-fastify-vue/api db:generate
 
 # Apply migrations
-docker compose exec api pnpm --filter @tech-full-stack/api db:migrate
+docker compose exec api pnpm --filter @monorepo-fastify-vue/api db:migrate
 ```
 
 ### Logs
@@ -177,10 +177,10 @@ The Dockerfiles include a `production` target. To build production images locall
 
 ```bash
 # API production image
-docker build -f apps/api/Dockerfile --target production -t tech-full-stack-api .
+docker build -f apps/api/Dockerfile --target production -t monorepo-fastify-vue-api .
 
 # Web production image (outputs static files served by nginx)
-docker build -f apps/web/Dockerfile --target production -t tech-full-stack-web .
+docker build -f apps/web/Dockerfile --target production -t monorepo-fastify-vue-web .
 ```
 
 ## Troubleshooting
@@ -197,7 +197,7 @@ docker compose logs postgres
 **Drizzle Studio shows no tables**
 Migrations have not been applied yet. Run:
 ```bash
-docker compose exec api pnpm --filter @tech-full-stack/api db:migrate
+docker compose exec api pnpm --filter @monorepo-fastify-vue/api db:migrate
 ```
 
 **Changes to `package.json` or `pnpm-lock.yaml` not picked up**

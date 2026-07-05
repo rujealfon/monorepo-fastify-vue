@@ -17,7 +17,7 @@ COPY apps/web/ ./apps/web/
 
 # --- Production build ---
 FROM base AS build
-RUN pnpm --filter @tech-full-stack/web build
+RUN pnpm --filter @monorepo-fastify-vue/web build
 
 FROM nginx:alpine AS production
 COPY --from=build /app/apps/api/public /usr/share/nginx/html
@@ -26,4 +26,4 @@ EXPOSE 80
 # --- Development ---
 FROM base AS development
 EXPOSE 5173
-CMD ["pnpm", "--filter", "@tech-full-stack/web", "exec", "vite", "--host", "0.0.0.0"]
+CMD ["pnpm", "--filter", "@monorepo-fastify-vue/web", "exec", "vite", "--host", "0.0.0.0"]

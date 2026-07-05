@@ -12,7 +12,7 @@ export default defineConfig({
   resolve: {
     alias: {
       "@/web": path.resolve(__dirname, "./src"),
-      "@tech-full-stack/api-client": path.resolve(
+      "@monorepo-fastify-vue/api-client": path.resolve(
         __dirname,
         "../../packages/api-client/src/index.ts",
       ),

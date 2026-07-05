@@ -1,5 +1,5 @@
 {
-  "name": "@tech-full-stack/api",
+  "name": "@monorepo-fastify-vue/api",
   "type": "module",
   "version": "1.0.0",
   "private": true,
@@ -24,7 +24,7 @@
     "@hono/zod-openapi": "^1.4.0",
     "@logtape/logtape": "^2.1.4",
     "@scalar/hono-api-reference": "^0.11.3",
-    "@tech-full-stack/eslint-config": "workspace:^",
+    "@monorepo-fastify-vue/eslint-config": "workspace:^",
     "bcryptjs": "^3.0.3",
     "dotenv": "^17.4.2",
     "drizzle-orm": "^0.45.2",

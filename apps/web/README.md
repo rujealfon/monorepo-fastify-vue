@@ -1,4 +1,4 @@
-# @tech-full-stack/web
+# @monorepo-fastify-vue/web
 
 Vue 3 + Vite frontend for the tasks app. During development, API requests to `/api` are proxied to the Hono server running on `http://localhost:8787`.
 
@@ -8,7 +8,7 @@ Vue 3 + Vite frontend for the tasks app. During development, API requests to `/a
 - [Vite](https://vitejs.dev/)
 - [Vue Router](https://router.vuejs.org/) — client-side routing
 - [VeeValidate](https://vee-validate.logaretm.com/) + [Zod](https://zod.dev/) — form validation
-- [@tech-full-stack/api-client](../../packages/api-client/) — type-safe Hono RPC client
+- [@monorepo-fastify-vue/api-client](../../packages/api-client/) — type-safe Hono RPC client
 
 ## Scripts
 

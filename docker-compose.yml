@@ -56,7 +56,7 @@ services:
       dockerfile: apps/api/Dockerfile
       target: development
     restart: unless-stopped
-    command: pnpm --filter @tech-full-stack/api exec drizzle-kit studio --host 0.0.0.0
+    command: pnpm --filter @monorepo-fastify-vue/api exec drizzle-kit studio --host 0.0.0.0
     environment:
       DATABASE_URL: postgresql://root:root@postgres:5432/tech_full_stack
     ports:

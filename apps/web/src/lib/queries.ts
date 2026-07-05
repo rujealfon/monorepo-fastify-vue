@@ -1,4 +1,4 @@
-import type { insertTasksSchema, patchTasksSchema } from "@tech-full-stack/api/schema";
+import type { insertTasksSchema, patchTasksSchema } from "@monorepo-fastify-vue/api/schema";
 
 import { queryOptions } from "@tanstack/vue-query";
 

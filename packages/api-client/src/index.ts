@@ -1,4 +1,4 @@
-import type { router } from "@tech-full-stack/api/routes";
+import type { router } from "@monorepo-fastify-vue/api/routes";
 
 import { hc } from "hono/client";
 
