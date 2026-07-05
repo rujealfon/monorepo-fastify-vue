@@ -18,4 +18,4 @@ Run from this directory, or via `pnpm --filter @monorepo-fastify-vue/api <script
 | `pnpm db:migrate` | Apply pending migrations |
 | `pnpm db:studio` | Open Drizzle Studio |
 
-Once running, the OpenAPI spec is served at `/openapi.json` and Swagger UI at `/documentation`.
+Once running, the tRPC router is mounted at `/trpc`.

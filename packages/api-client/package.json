@@ -8,17 +8,17 @@
     "build": "rm -rf dist && tsc",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "typecheck": "tsc --noEmit",
-    "types:generate": "openapi-typescript ../../apps/api/openapi.json -o src/schema.d.ts"
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@monorepo-fastify-vue/api": "workspace:^",
     "@monorepo-fastify-vue/eslint-config": "workspace:^",
-    "@types/node": "^25.9.3",
-    "openapi-fetch": "^0.17.0"
+    "@trpc/client": "^11.18.0",
+    "@trpc/server": "^11.18.0",
+    "@types/node": "^25.9.3"
   },
   "devDependencies": {
     "eslint": "^10.5.0",
-    "openapi-typescript": "^7.13.0",
     "typescript": "~5.9.3"
   }
 }

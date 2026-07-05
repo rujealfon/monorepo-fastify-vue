@@ -1,3 +1,3 @@
 import apiClient from "@monorepo-fastify-vue/api-client";
 
-export default apiClient("/");
+export default apiClient("/trpc");

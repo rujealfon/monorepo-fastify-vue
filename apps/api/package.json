@@ -7,7 +7,8 @@
   "license": "MIT",
   "keywords": [],
   "exports": {
-    "./schema": "./src/db/schema/index.ts"
+    "./schema": "./src/db/schema/index.ts",
+    "./router": "./src/trpc/router.ts"
   },
   "scripts": {
     "dev": "tsx watch --env-file=.env src/server.ts",
@@ -17,20 +18,17 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "test": "cross-env NODE_ENV=test vitest run",
-    "openapi:generate": "tsx --env-file=.env scripts/generate-openapi-spec.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
     "@fastify/sensible": "^6.0.0",
-    "@fastify/swagger": "^9.5.1",
-    "@fastify/swagger-ui": "^6.0.0",
+    "@trpc/server": "^11.18.0",
     "drizzle-orm": "^0.45.2",
     "drizzle-zod": "^0.8.3",
     "fastify": "^5.0.0",
     "fastify-plugin": "^5.0.0",
-    "fastify-type-provider-zod": "^7.0.0",
     "pg": "^8.22.0",
     "zod": "^4.4.3"
   },

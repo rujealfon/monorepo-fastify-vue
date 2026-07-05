@@ -1,5 +1,3 @@
-import createConfig from "@monorepo-fastify-vue/eslint-config/create-config";
+import config from "@monorepo-fastify-vue/eslint-config";
 
-export default createConfig({
-  ignores: ["src/schema.d.ts"],
-});
+export default config;

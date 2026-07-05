@@ -8,7 +8,7 @@ Vue 3 + Vite frontend for the tasks app. During development, API requests to `/a
 - [Vite](https://vitejs.dev/)
 - [Vue Router](https://router.vuejs.org/) — client-side routing
 - [VeeValidate](https://vee-validate.logaretm.com/) + [Zod](https://zod.dev/) — form validation
-- [@monorepo-fastify-vue/api-client](../../packages/api-client/) — API client (built for Hono's RPC client; being reworked to consume the Fastify API's OpenAPI spec, see root README)
+- [@monorepo-fastify-vue/api-client](../../packages/api-client/) — tRPC client, typed directly from the API's router (see root README)
 
 ## Scripts
 

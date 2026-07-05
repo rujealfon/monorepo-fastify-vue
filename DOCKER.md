@@ -40,8 +40,7 @@ docker compose exec api pnpm --filter @monorepo-fastify-vue/api db:migrate
 
 ### 3. Access the services
 
-- **API docs (Swagger UI):** http://localhost:3000/documentation
-- **OpenAPI spec:** http://localhost:3000/openapi.json
+- **API (tRPC):** http://localhost:3000/trpc
 - **Drizzle Studio:** http://localhost:4983
 - **pgAdmin 4:** http://localhost:5050
 

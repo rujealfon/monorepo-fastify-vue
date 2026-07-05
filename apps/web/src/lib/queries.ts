@@ -12,46 +12,29 @@ export const queryKeys = {
 
 export const tasksQueryOptions = queryOptions({
   ...queryKeys.LIST_TASKS,
-  queryFn: async () => {
-    const { data, error } = await apiClient.GET("/api/v1/tasks/");
-    if (error)
-      throw new Error(formatApiError(error));
-    return data;
-  },
+  queryFn: () => apiClient.tasks.list.query().catch((error) => {
+    throw new Error(formatApiError(error));
+  }),
 });
 
 export const createTaskQueryOptions = (id: string) => queryOptions({
   ...queryKeys.LIST_TASK(id),
-  queryFn: async () => {
-    const { data, error } = await apiClient.GET("/api/v1/tasks/{id}", {
-      params: { path: { id: Number(id) } },
-    });
-    if (error)
-      throw new Error(formatApiError(error));
-    return data;
-  },
+  queryFn: () => apiClient.tasks.getOne.query({ id: Number(id) }).catch((error) => {
+    throw new Error(formatApiError(error));
+  }),
 });
 
-export const createTask = async (task: insertTasksSchema) => {
-  const { data, error } = await apiClient.POST("/api/v1/tasks/", { body: task });
-  if (error)
+export const createTask = (task: insertTasksSchema) =>
+  apiClient.tasks.create.mutate(task).catch((error) => {
     throw new Error(formatApiError(error));
-  return data;
-};
-
-export const deleteTask = async (id: string) => {
-  const { error } = await apiClient.DELETE("/api/v1/tasks/{id}", {
-    params: { path: { id: Number(id) } },
   });
-  if (error)
-    throw new Error(formatApiError(error));
-};
 
-export const updateTask = async ({ id, task }: { id: string; task: patchTasksSchema }) => {
-  const { error } = await apiClient.PATCH("/api/v1/tasks/{id}", {
-    params: { path: { id: Number(id) } },
-    body: task,
-  });
-  if (error)
+export const deleteTask = (id: string) =>
+  apiClient.tasks.remove.mutate({ id: Number(id) }).catch((error) => {
     throw new Error(formatApiError(error));
-};
+  });
+
+export const updateTask = ({ id, task }: { id: string; task: patchTasksSchema }) =>
+  apiClient.tasks.patch.mutate({ id: Number(id), data: task }).catch((error) => {
+    throw new Error(formatApiError(error));
+  });
