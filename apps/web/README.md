@@ -36,3 +36,9 @@ pnpm build
 ```
 
 The build output goes to `apps/web/dist/`.
+
+## Vercel
+
+Create a separate Vercel project with Root Directory set to `apps/web`.
+
+Set `VITE_API_BASE_URL` to the deployed API URL, for example `https://your-api-project.vercel.app`.

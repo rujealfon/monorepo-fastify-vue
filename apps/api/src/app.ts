@@ -25,6 +25,16 @@ export function buildApp(): FastifyInstance {
   app.register(sensiblePlugin);
   app.register(dbPlugin);
 
+  app.addHook("onRequest", async (request, reply) => {
+    reply.header("Access-Control-Allow-Origin", config.CORS_ORIGIN);
+    reply.header("Access-Control-Allow-Methods", "GET,POST,PATCH,DELETE,OPTIONS");
+    reply.header("Access-Control-Allow-Headers", "Content-Type,Authorization");
+
+    if (request.method === "OPTIONS") {
+      return reply.code(204).send();
+    }
+  });
+
   app.register(swagger, {
     openapi: {
       info: { title: "Monorepo Fastify Vue API", version: "1.0.0" },

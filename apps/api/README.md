@@ -19,3 +19,12 @@ Run from this directory, or via `pnpm --filter @monorepo-fastify-vue/api <script
 | `pnpm db:studio` | Open Drizzle Studio |
 
 Once running, the OpenAPI spec is served at `/openapi.json` and Swagger UI at `/documentation`.
+
+## Vercel
+
+Create a separate Vercel project with Root Directory set to `apps/api`.
+
+Required environment variables:
+
+- `DATABASE_URL`
+- `CORS_ORIGIN` — the deployed web URL, for example `https://your-web-project.vercel.app`
