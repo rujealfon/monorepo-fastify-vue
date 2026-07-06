@@ -1,7 +1,7 @@
 /* eslint-disable ts/no-redeclare -- value + same-named inferred type exports are intentional */
-import type { z } from "zod";
 import { boolean, pgTable, serial, text, timestamp } from "drizzle-orm/pg-core";
-import { createInsertSchema, createSelectSchema, createUpdateSchema } from "drizzle-zod";
+import { createSelectSchema } from "drizzle-zod";
+import { z } from "zod";
 
 export const tasks = pgTable("tasks", {
   id: serial("id").primaryKey(),
@@ -14,12 +14,11 @@ export const tasks = pgTable("tasks", {
 export const selectTasksSchema = createSelectSchema(tasks);
 export type selectTasksSchema = z.infer<typeof selectTasksSchema>;
 
-export const insertTasksSchema = createInsertSchema(tasks, {
-  name: schema => schema.min(1).max(500),
-}).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertTasksSchema = z.object({
+  name: z.string().min(1).max(500),
+  done: z.boolean().optional(),
+});
 export type insertTasksSchema = z.infer<typeof insertTasksSchema>;
 
-export const patchTasksSchema = createUpdateSchema(tasks, {
-  name: schema => schema.min(1).max(500),
-}).omit({ id: true, createdAt: true, updatedAt: true });
+export const patchTasksSchema = insertTasksSchema.partial();
 export type patchTasksSchema = z.infer<typeof patchTasksSchema>;
