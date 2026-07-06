@@ -1,4 +1,5 @@
-import { VueQueryPlugin } from "@tanstack/vue-query";
+import { PiniaColada } from "@pinia/colada";
+import { createPinia } from "pinia";
 import { createApp } from "vue";
 
 import App from "./App.vue";
@@ -15,5 +16,6 @@ router.beforeEach((to) => {
 
 createApp(App)
   .use(router)
-  .use(VueQueryPlugin)
+  .use(createPinia())
+  .use(PiniaColada)
   .mount("#app");

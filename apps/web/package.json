@@ -15,8 +15,9 @@
     "@monorepo-fastify-vue/api": "workspace:^",
     "@monorepo-fastify-vue/api-client": "workspace:^",
     "@monorepo-fastify-vue/eslint-config": "workspace:^",
-    "@tanstack/vue-query": "^5.101.0",
+    "@pinia/colada": "^1.3.1",
     "@types/node": "^25.9.3",
+    "pinia": "^3.0.4",
     "vue": "^3.5.38",
     "vue-router": "^5.1.0",
     "zod": "^4.4.3"

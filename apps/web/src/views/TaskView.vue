@@ -1,18 +1,18 @@
 <script setup lang="ts">
-import { useQuery } from "@tanstack/vue-query";
+import { useQuery } from "@pinia/colada";
 import { useRoute } from "vue-router";
 
 import dateFormatter from "@/web/lib/date-formatter";
-import { createTaskQueryOptions } from "@/web/lib/queries";
+import { taskByIdQueryOptions } from "@/web/lib/queries";
 
 const route = useRoute();
 const id = route.params.id as string;
 
-const { data, isPending, error } = useQuery(createTaskQueryOptions(id));
+const { data, status, error } = useQuery(() => taskByIdQueryOptions(route.params.id as string));
 </script>
 
 <template>
-  <article v-if="isPending">
+  <article v-if="status === 'pending'">
     <progress />
   </article>
   <article v-else-if="error" class="error">

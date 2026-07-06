@@ -1,18 +1,18 @@
 import type { insertTasksSchema, patchTasksSchema } from "@monorepo-fastify-vue/api/schema";
 
-import { queryOptions } from "@tanstack/vue-query";
+import { defineQueryOptions } from "@pinia/colada";
 
 import apiClient from "./api-client";
 import formatApiError from "./format-api-error";
 
-export const queryKeys = {
-  LIST_TASKS: { queryKey: ["list-tasks"] },
-  LIST_TASK: (id: string) => ({ queryKey: [`list-task-${id}`] }),
+export const TASK_KEYS = {
+  root: ["tasks"] as const,
+  byId: (id: string) => [...TASK_KEYS.root, id] as const,
 };
 
-export const tasksQueryOptions = queryOptions({
-  ...queryKeys.LIST_TASKS,
-  queryFn: async () => {
+export const tasksQueryOptions = defineQueryOptions({
+  key: TASK_KEYS.root,
+  query: async () => {
     const { data, error } = await apiClient.GET("/api/v1/tasks/");
     if (error)
       throw new Error(formatApiError(error));
@@ -20,9 +20,9 @@ export const tasksQueryOptions = queryOptions({
   },
 });
 
-export const createTaskQueryOptions = (id: string) => queryOptions({
-  ...queryKeys.LIST_TASK(id),
-  queryFn: async () => {
+export const taskByIdQueryOptions = defineQueryOptions((id: string) => ({
+  key: TASK_KEYS.byId(id),
+  query: async () => {
     const { data, error } = await apiClient.GET("/api/v1/tasks/{id}", {
       params: { path: { id: Number(id) } },
     });
@@ -30,7 +30,7 @@ export const createTaskQueryOptions = (id: string) => queryOptions({
       throw new Error(formatApiError(error));
     return data;
   },
-});
+}));
 
 export const createTask = async (task: insertTasksSchema) => {
   const { data, error } = await apiClient.POST("/api/v1/tasks/", { body: task });
