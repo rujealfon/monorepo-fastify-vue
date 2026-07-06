@@ -15,7 +15,7 @@ Vue 3 + Vite frontend for the tasks app. During development, API requests to `/a
 | Command          | Description                                       |
 | ---------------- | ------------------------------------------------- |
 | `pnpm dev`       | Start Vite dev server                             |
-| `pnpm build`     | Build for production (outputs to `../api/public`) |
+| `pnpm build`     | Build for production (outputs to `dist/`)          |
 | `pnpm lint`      | Lint with ESLint                                  |
 | `pnpm typecheck` | Type-check with `vue-tsc`                         |
 
@@ -35,4 +35,4 @@ The web app is available at [http://localhost:5173](http://localhost:5173). All 
 pnpm build
 ```
 
-The build output goes to `apps/api/public/`, where the API server serves it as static files.
+The build output goes to `apps/web/dist/`.

@@ -1,0 +1,4 @@
+{
+  "buildCommand": "pnpm --filter @monorepo-fastify-vue/web run build",
+  "outputDirectory": "apps/web/dist"
+}

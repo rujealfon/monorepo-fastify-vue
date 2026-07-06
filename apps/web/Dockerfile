@@ -20,7 +20,7 @@ FROM base AS build
 RUN pnpm --filter @monorepo-fastify-vue/web build
 
 FROM nginx:alpine AS production
-COPY --from=build /app/apps/api/public /usr/share/nginx/html
+COPY --from=build /app/apps/web/dist /usr/share/nginx/html
 EXPOSE 80
 
 # --- Development ---
