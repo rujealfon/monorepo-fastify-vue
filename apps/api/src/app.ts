@@ -27,7 +27,7 @@ export function buildApp(): FastifyInstance {
   app.register(sensiblePlugin);
   app.register(dbPlugin);
   app.register(fastifyStatic, {
-    root: new URL("../public", import.meta.url),
+    root: new URL("../../../dist", import.meta.url),
   });
 
   app.addHook("onRequest", async (request, reply) => {
