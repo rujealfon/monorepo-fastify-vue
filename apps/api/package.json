@@ -21,7 +21,6 @@
     "openapi:generate": "tsx --env-file=.env scripts/generate-openapi-spec.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "db:migrate:deploy": "node scripts/deploy-migrate.mjs",
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
