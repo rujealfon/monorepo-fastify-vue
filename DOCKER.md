@@ -35,7 +35,7 @@ docker compose up
 Once the `api` service is running, apply migrations in a new terminal:
 
 ```bash
-docker compose exec api pnpm --filter @monorepo-fastify-vue/api db:migrate
+pnpm docker:db:migrate
 ```
 
 ### 3. Access the services
@@ -128,7 +128,7 @@ docker compose exec api pnpm --filter @monorepo-fastify-vue/api <script>
 docker compose exec api pnpm --filter @monorepo-fastify-vue/api db:generate
 
 # Apply migrations
-docker compose exec api pnpm --filter @monorepo-fastify-vue/api db:migrate
+pnpm docker:db:migrate
 ```
 
 ### Logs
@@ -196,7 +196,7 @@ docker compose logs postgres
 **Drizzle Studio shows no tables**
 Migrations have not been applied yet. Run:
 ```bash
-docker compose exec api pnpm --filter @monorepo-fastify-vue/api db:migrate
+pnpm docker:db:migrate
 ```
 
 **Changes to `package.json` or `pnpm-lock.yaml` not picked up**

@@ -22,9 +22,11 @@ Once running, the OpenAPI spec is served at `/openapi.json` and Swagger UI at `/
 
 ## Vercel
 
-Create a separate Vercel project with Root Directory set to `apps/api`.
+The deployed app uses one Vercel project from the repository root. Do not set this package as the Vercel root directory.
+
+Root-level `api/index.ts` forwards Vercel requests to this Fastify app, and `vercel.json` routes `/api/*` through it.
 
 Required environment variables:
 
 - `DATABASE_URL`
-- `CORS_ORIGIN` — the deployed web URL, for example `https://your-web-project.vercel.app`
+- `NODE_ENV=production`

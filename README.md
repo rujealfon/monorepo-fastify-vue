@@ -6,6 +6,7 @@ A monorepo setup using pnpm workspaces with a Fastify API and Vue / Vite client 
 
 - Run tasks in parallel across apps / packages with pnpm
 - Fastify API [proxied with Vite](./apps/web/vite.config.ts) during development
+- Single-project Vercel deployment: Vue is built to `dist/`, and `/api/*` is handled by Fastify through a Vercel function
 - OpenAPI spec generated from the same Zod schemas via `fastify-type-provider-zod` (`/openapi.json`, Swagger UI at `/documentation`)
 - Shared Zod validators with drizzle-zod
 - Shared ESLint config
@@ -35,6 +36,7 @@ A monorepo setup using pnpm workspaces with a Fastify API and Vue / Vite client 
 
 ```
 .
+├── api/             # Vercel serverless entry for the one-project deploy
 ├── apps/
 │   ├── api/          # Fastify REST API (Node.js)
 │   └── web/          # Vue / Vite frontend
@@ -197,3 +199,36 @@ Tests run against a real PostgreSQL database — make sure `DATABASE_URL` in `ap
 ```sh
 pnpm build
 ```
+
+## Vercel Deployment
+
+Deploy this repository as one Vercel project from the repo root.
+
+Project settings:
+
+```text
+Framework Preset: Other
+Root Directory: .
+Build Command: pnpm vercel-build
+Output Directory: dist
+Install Command: pnpm install
+```
+
+If Vercel does not accept `.` as the root directory, clear the Root Directory field.
+
+Required environment variables:
+
+```env
+DATABASE_URL=postgresql://USER:PASSWORD@HOST:5432/DATABASE?sslmode=require
+NODE_ENV=production
+```
+
+`pnpm vercel-build` runs:
+
+```sh
+pnpm build && pnpm db:migrate
+```
+
+Generate migration files locally with `pnpm db:generate`, commit them, and let Vercel apply them during deployment with its dashboard `DATABASE_URL`.
+
+On Vercel, `/` serves the Vue app and `/api/*` is routed to Fastify.

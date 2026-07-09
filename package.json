@@ -13,6 +13,10 @@
     "lint:fix": "pnpm run -r --parallel lint:fix",
     "db:generate": "pnpm --filter @monorepo-fastify-vue/api db:generate",
     "db:migrate": "pnpm --filter @monorepo-fastify-vue/api db:migrate",
-    "db:studio": "pnpm --filter @monorepo-fastify-vue/api db:studio"
+    "db:studio": "pnpm --filter @monorepo-fastify-vue/api db:studio",
+    "docker:up": "docker compose up",
+    "docker:down": "docker compose down",
+    "docker:rebuild": "docker compose up --build",
+    "docker:db:migrate": "docker compose exec api pnpm --filter @monorepo-fastify-vue/api db:migrate"
   }
 }

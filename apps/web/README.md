@@ -8,14 +8,14 @@ Vue 3 + Vite frontend for the tasks app. During development, API requests to `/a
 - [Vite](https://vitejs.dev/)
 - [Vue Router](https://router.vuejs.org/) — client-side routing
 - [VeeValidate](https://vee-validate.logaretm.com/) + [Zod](https://zod.dev/) — form validation
-- [@monorepo-fastify-vue/api-client](../../packages/api-client/) — API client (built for Hono's RPC client; being reworked to consume the Fastify API's OpenAPI spec, see root README)
+- [@monorepo-fastify-vue/api-client](../../packages/api-client/) — API client generated from the Fastify OpenAPI spec
 
 ## Scripts
 
 | Command          | Description                                       |
 | ---------------- | ------------------------------------------------- |
 | `pnpm dev`       | Start Vite dev server                             |
-| `pnpm build`     | Build for production (outputs to `dist/`)          |
+| `pnpm build`     | Build for production                               |
 | `pnpm lint`      | Lint with ESLint                                  |
 | `pnpm typecheck` | Type-check with `vue-tsc`                         |
 
@@ -35,10 +35,10 @@ The web app is available at [http://localhost:5173](http://localhost:5173). All 
 pnpm build
 ```
 
-The build output goes to `apps/web/dist/`.
+The build output goes to the repository root `dist/` for the one-project Vercel deploy.
 
 ## Vercel
 
-Create a separate Vercel project with Root Directory set to `apps/web`.
+The deployed app uses one Vercel project from the repository root. Do not set this package as the Vercel root directory.
 
-Set `VITE_API_BASE_URL` to the deployed API URL, for example `https://your-api-project.vercel.app`.
+No `VITE_API_BASE_URL` is needed for the one-project deployment because the frontend calls same-origin `/api/*`.
