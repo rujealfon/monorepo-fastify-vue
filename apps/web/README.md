@@ -39,6 +39,8 @@ The build output goes to the repository root `dist/` for the one-project Vercel 
 
 ## Vercel
 
-The deployed app uses one Vercel project from the repository root. Do not set this package as the Vercel root directory.
+Default deployment uses one Vercel project from the repository root. Do not set this package as the Vercel root directory for the default setup.
 
 No `VITE_API_BASE_URL` is needed for the one-project deployment because the frontend calls same-origin `/api/*`.
+
+Separate web deployment is possible with Root Directory set to `apps/web`, but it needs `VITE_API_BASE_URL` and the build output must be `apps/web/dist`. See the root README before switching to that mode.
