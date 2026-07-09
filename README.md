@@ -202,7 +202,12 @@ pnpm build
 
 ## Vercel Deployment
 
-Deploy this repository as one Vercel project from the repo root.
+There are two valid deployment shapes:
+
+- **One Vercel project**: current repo default. Vue and Fastify share one origin.
+- **Two Vercel projects**: optional. Vue and Fastify deploy separately and communicate cross-origin.
+
+### Option 1: one Vercel project
 
 Project settings:
 
@@ -231,4 +236,58 @@ pnpm build && pnpm db:migrate
 
 Generate migration files locally with `pnpm db:generate`, commit them, and let Vercel apply them during deployment with its dashboard `DATABASE_URL`.
 
-On Vercel, `/` serves the Vue app and `/api/*` is routed to Fastify.
+How routing works:
+
+- `apps/web` builds the Vue app to root `dist/`
+- root `vercel.json` sends all requests to `api/index.ts`
+- `api/index.ts` forwards the request to Fastify
+- Fastify serves `dist/index.html` for frontend routes and handles `/api/*`
+
+No `VITE_API_BASE_URL` or CORS setting is needed because browser requests use the same origin:
+
+```text
+/              -> Vue app
+/login         -> Vue app
+/api/v1/tasks  -> Fastify API
+/documentation -> Fastify Swagger UI
+```
+
+### Option 2: separate API and web projects
+
+Use this only if you want independent deployments, domains, or scaling for API and web.
+
+API project settings:
+
+```text
+Root Directory: apps/api
+Build Command: pnpm build
+```
+
+API environment variables:
+
+```env
+DATABASE_URL=postgresql://USER:PASSWORD@HOST:5432/DATABASE?sslmode=require
+NODE_ENV=production
+# CORS_ORIGIN=https://your-web-project.vercel.app
+```
+
+Web project settings:
+
+```text
+Root Directory: apps/web
+Build Command: pnpm build
+Output Directory: dist
+```
+
+Web environment variables:
+
+```env
+VITE_API_BASE_URL=https://your-api-project.vercel.app
+```
+
+Two-project deployment also needs two code/config differences from the current one-project default:
+
+- The web build must output to `apps/web/dist` instead of root `dist`.
+- The API must allow the web project's origin with CORS, because browser requests are no longer same-origin. `CORS_ORIGIN` is commented in the API env examples until that mode is needed.
+
+For this repo, keep the one-project deployment unless you have a concrete reason to split them.

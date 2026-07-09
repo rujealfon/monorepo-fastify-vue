@@ -1,4 +1,5 @@
 import type { FastifyError, FastifyInstance } from "fastify";
+// import cors from "@fastify/cors";
 import fastifyStatic from "@fastify/static";
 import swagger from "@fastify/swagger";
 import swaggerUi from "@fastify/swagger-ui";
@@ -28,16 +29,9 @@ export function buildApp(): FastifyInstance {
   app.register(fastifyStatic, {
     root: new URL("../../../dist", import.meta.url),
   });
-
-  app.addHook("onRequest", async (request, reply) => {
-    reply.header("Access-Control-Allow-Origin", config.CORS_ORIGIN);
-    reply.header("Access-Control-Allow-Methods", "GET,POST,PATCH,DELETE,OPTIONS");
-    reply.header("Access-Control-Allow-Headers", "Content-Type,Authorization");
-
-    if (request.method === "OPTIONS") {
-      return reply.code(204).send();
-    }
-  });
+  // CORS is intentionally disabled for the one-project same-origin deploy.
+  // If API and web are split later, uncomment the import above and this:
+  // app.register(cors, { origin: config.CORS_ORIGIN });
 
   app.register(swagger, {
     openapi: {
