@@ -1,4 +1,5 @@
 import type { FastifyError, FastifyInstance } from "fastify";
+import fastifyStatic from "@fastify/static";
 import swagger from "@fastify/swagger";
 import swaggerUi from "@fastify/swagger-ui";
 import Fastify from "fastify";
@@ -24,6 +25,9 @@ export function buildApp(): FastifyInstance {
 
   app.register(sensiblePlugin);
   app.register(dbPlugin);
+  app.register(fastifyStatic, {
+    root: new URL("../public", import.meta.url),
+  });
 
   app.register(swagger, {
     openapi: {
@@ -69,6 +73,17 @@ export function buildApp(): FastifyInstance {
   });
 
   app.register(tasksRoutes, { prefix: "/api/v1/tasks" });
+  app.setNotFoundHandler((request, reply) => {
+    if (request.method === "GET" && !request.url.startsWith("/api/")) {
+      return reply.sendFile("index.html", { maxAge: 0 });
+    }
+
+    return reply.code(404).send({
+      message: `Route ${request.method}:${request.url} not found`,
+      error: "Not Found",
+      statusCode: 404,
+    });
+  });
 
   return app;
 }
