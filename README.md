@@ -50,8 +50,7 @@ A monorepo setup using pnpm workspaces with a Fastify API and Vue / Vite client 
 **Regenerating the client after changing API routes/schemas:**
 
 ```sh
-pnpm --filter @monorepo-fastify-vue/api openapi:generate       # refreshes apps/api/openapi.json
-pnpm --filter @monorepo-fastify-vue/api-client types:generate  # refreshes packages/api-client/src/schema.d.ts
+pnpm api-client:generate
 ```
 
 ### API folder structure
