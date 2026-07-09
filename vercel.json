@@ -1,0 +1,10 @@
+{
+  "buildCommand": "pnpm vercel-build",
+  "outputDirectory": "dist",
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/api?path=$1"
+    }
+  ]
+}

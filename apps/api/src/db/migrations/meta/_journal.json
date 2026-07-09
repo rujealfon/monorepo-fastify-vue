@@ -5,22 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1781439808437,
-      "tag": "0000_keen_havok",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1781444267799,
-      "tag": "0001_acoustic_hammerhead",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1781448600327,
-      "tag": "0002_conscious_silverclaw",
+      "when": 1783261437032,
+      "tag": "0000_massive_supernaut",
       "breakpoints": true
     }
   ]

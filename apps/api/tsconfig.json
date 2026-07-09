@@ -1,10 +1,9 @@
 {
-  "extends": "../../tsconfig.json",
+  "extends": "fastify-tsconfig",
   "compilerOptions": {
-    "lib": ["ESNext"],
-    "paths": {
-      "@/api/*": ["./src/*"]
-    },
-    "types": ["node", "vitest/globals"]
-  }
+    "rootDir": "src",
+    "outDir": "dist",
+    "sourceMap": true
+  },
+  "include": ["src/**/*.ts"]
 }

@@ -1,17 +1,17 @@
 services:
   postgres:
-    image: postgres:16-alpine
+    image: postgres:18-alpine
     restart: unless-stopped
     environment:
       POSTGRES_USER: root
       POSTGRES_PASSWORD: root
-      POSTGRES_DB: tech_full_stack
+      POSTGRES_DB: fastify_vue
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U root -d tech_full_stack"]
+      test: ["CMD-SHELL", "pg_isready -U root -d fastify_vue"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -37,13 +37,11 @@ services:
       target: development
     restart: unless-stopped
     environment:
-      DATABASE_URL: postgresql://root:root@postgres:5432/tech_full_stack
-      PORT: 8787
-      JWT_SECRET: secret-key-at-least-32-characters-long
-      JWT_EXPIRES_IN_DAYS: 7
+      DATABASE_URL: postgresql://root:root@postgres:5432/fastify_vue
+      PORT: 3000
       NODE_ENV: development
     ports:
-      - "8787:8787"
+      - "3000:3000"
     volumes:
       - ./apps/api/src:/app/apps/api/src
     depends_on:
@@ -56,9 +54,9 @@ services:
       dockerfile: apps/api/Dockerfile
       target: development
     restart: unless-stopped
-    command: pnpm --filter @tech-full-stack/api exec drizzle-kit studio --host 0.0.0.0
+    command: pnpm --filter @monorepo-fastify-vue/api exec drizzle-kit studio --host 0.0.0.0
     environment:
-      DATABASE_URL: postgresql://root:root@postgres:5432/tech_full_stack
+      DATABASE_URL: postgresql://root:root@postgres:5432/fastify_vue
     ports:
       - "4983:4983"
     volumes:
@@ -74,8 +72,8 @@ services:
       target: development
     restart: unless-stopped
     environment:
-      VITE_API_URL: http://localhost:8787
-      API_PROXY_URL: http://api:8787
+      VITE_API_URL: http://localhost:3000
+      API_PROXY_URL: http://api:3000
     ports:
       - "5173:5173"
     volumes:

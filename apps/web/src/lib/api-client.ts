@@ -1,3 +1,3 @@
-import apiClient from "@tech-full-stack/api-client";
+import apiClient from "@monorepo-fastify-vue/api-client";
 
-export default apiClient("/");
+export default apiClient(import.meta.env.VITE_API_BASE_URL ?? "/");

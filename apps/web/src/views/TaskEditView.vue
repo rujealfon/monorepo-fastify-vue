@@ -1,17 +1,17 @@
 <script setup lang="ts">
-import { useMutation, useQuery, useQueryClient } from "@tanstack/vue-query";
-import { patchTasksSchema } from "@tech-full-stack/api/schema";
+import { patchTasksSchema } from "@monorepo-fastify-vue/api/schema";
+import { useMutation, useQuery, useQueryCache } from "@pinia/colada";
 import { computed, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
-import { createTaskQueryOptions, deleteTask, queryKeys, updateTask } from "@/web/lib/queries";
+import { deleteTask, TASK_KEYS, taskByIdQueryOptions, updateTask } from "@/web/lib/queries";
 
 const route = useRoute();
 const router = useRouter();
-const queryClient = useQueryClient();
+const queryCache = useQueryCache();
 const id = route.params.id as string;
 
-const { data } = useQuery(createTaskQueryOptions(id));
+const { data } = useQuery(() => taskByIdQueryOptions(route.params.id as string));
 
 const name = ref("");
 const done = ref(false);
@@ -25,27 +25,22 @@ watch(data, (val) => {
 }, { immediate: true });
 
 const deleteMutation = useMutation({
-  mutationFn: deleteTask,
+  mutation: deleteTask,
   onSuccess: async () => {
-    await queryClient.invalidateQueries(queryKeys.LIST_TASKS);
+    await queryCache.invalidateQueries({ key: TASK_KEYS.root });
     router.push("/");
   },
 });
 
 const updateMutation = useMutation({
-  mutationFn: updateTask,
+  mutation: updateTask,
   onSuccess: async () => {
-    await queryClient.invalidateQueries({
-      queryKey: [
-        ...queryKeys.LIST_TASKS.queryKey,
-        ...queryKeys.LIST_TASK(id).queryKey,
-      ],
-    });
+    await queryCache.invalidateQueries({ key: TASK_KEYS.root });
     router.push(`/task/${id}`);
   },
 });
 
-const pending = computed(() => deleteMutation.isPending.value || updateMutation.isPending.value);
+const pending = computed(() => deleteMutation.isLoading.value || updateMutation.isLoading.value);
 const mutationError = computed(() => deleteMutation.error.value?.message || updateMutation.error.value?.message);
 
 function onSubmit() {

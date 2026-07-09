@@ -6,13 +6,13 @@ import tsconfigPaths from "vite-tsconfig-paths";
 // https://vite.dev/config/
 export default defineConfig({
   build: {
-    outDir: "../api/public",
+    outDir: "../../dist",
     emptyOutDir: true,
   },
   resolve: {
     alias: {
       "@/web": path.resolve(__dirname, "./src"),
-      "@tech-full-stack/api-client": path.resolve(
+      "@monorepo-fastify-vue/api-client": path.resolve(
         __dirname,
         "../../packages/api-client/src/index.ts",
       ),
@@ -25,7 +25,7 @@ export default defineConfig({
   server: {
     proxy: {
       // eslint-disable-next-line node/no-process-env
-      "/api": process.env.API_PROXY_URL ?? "http://localhost:8787",
+      "/api": process.env.API_PROXY_URL ?? "http://localhost:3000",
     },
   },
 });

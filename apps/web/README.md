@@ -1,6 +1,6 @@
-# @tech-full-stack/web
+# @monorepo-fastify-vue/web
 
-Vue 3 + Vite frontend for the tasks app. During development, API requests to `/api` are proxied to the Hono server running on `http://localhost:8787`.
+Vue 3 + Vite frontend for the tasks app. During development, API requests to `/api` are proxied to the Fastify server running on `http://localhost:3000`.
 
 ## Tech Stack
 
@@ -8,14 +8,14 @@ Vue 3 + Vite frontend for the tasks app. During development, API requests to `/a
 - [Vite](https://vitejs.dev/)
 - [Vue Router](https://router.vuejs.org/) — client-side routing
 - [VeeValidate](https://vee-validate.logaretm.com/) + [Zod](https://zod.dev/) — form validation
-- [@tech-full-stack/api-client](../../packages/api-client/) — type-safe Hono RPC client
+- [@monorepo-fastify-vue/api-client](../../packages/api-client/) — API client generated from the Fastify OpenAPI spec
 
 ## Scripts
 
 | Command          | Description                                       |
 | ---------------- | ------------------------------------------------- |
 | `pnpm dev`       | Start Vite dev server                             |
-| `pnpm build`     | Build for production (outputs to `../api/public`) |
+| `pnpm build`     | Build for production                               |
 | `pnpm lint`      | Lint with ESLint                                  |
 | `pnpm typecheck` | Type-check with `vue-tsc`                         |
 
@@ -27,7 +27,7 @@ Start from the repo root:
 pnpm dev
 ```
 
-The web app is available at [http://localhost:5173](http://localhost:5173). All `/api` requests are proxied to the API server at `http://localhost:8787`.
+The web app is available at [http://localhost:5173](http://localhost:5173). All `/api` requests are proxied to the API server at `http://localhost:3000`.
 
 ## Production Build
 
@@ -35,4 +35,10 @@ The web app is available at [http://localhost:5173](http://localhost:5173). All 
 pnpm build
 ```
 
-The build output goes to `apps/api/public/`, where the API server serves it as static files.
+The build output goes to the repository root `dist/` for the one-project Vercel deploy.
+
+## Vercel
+
+The deployed app uses one Vercel project from the repository root. Do not set this package as the Vercel root directory.
+
+No `VITE_API_BASE_URL` is needed for the one-project deployment because the frontend calls same-origin `/api/*`.

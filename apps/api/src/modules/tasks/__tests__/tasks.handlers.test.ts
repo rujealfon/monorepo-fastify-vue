@@ -1,197 +1,64 @@
-import { testClient } from "hono/testing";
-import * as HttpStatusPhrases from "stoker/http-status-phrases";
+import type { FastifyInstance } from "fastify";
+import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { ZodIssueCode } from "zod";
 
-import { db } from "@/api/db";
-import { ZOD_ERROR_CODES, ZOD_ERROR_MESSAGES } from "@/api/lib/constants";
-import createApp from "@/api/lib/create-app";
+import { buildApp } from "../../../app.js";
+import { db } from "../../../db/index.js";
 
-import router from "../tasks.index";
-import { tasks } from "../tasks.schema";
+describe("tasks routes", () => {
+  let app: FastifyInstance;
 
-// Tests use the tasks router directly (no auth middleware) — auth is applied at the features level
-const client = testClient(createApp().route("/", router));
-
-describe("tasks routes", async () => {
   beforeAll(async () => {
-    // eslint-disable-next-line drizzle/enforce-delete-with-where
-    await db.delete(tasks);
+    app = buildApp();
+    await app.ready();
+    await db.execute(sql`truncate table tasks restart identity cascade`);
   });
 
   afterAll(async () => {
-    // eslint-disable-next-line drizzle/enforce-delete-with-where
-    await db.delete(tasks);
+    await app.close();
   });
 
-  it("post /tasks validates the body when creating", async () => {
-    const response = await client.api.v1.tasks.$post({
-      // @ts-expect-error intentionally missing required `name` field
-      json: {
-        done: false,
-      },
+  it("creates, lists, fetches, patches and deletes a task", async () => {
+    const createResponse = await app.inject({
+      method: "POST",
+      url: "/api/v1/tasks",
+      payload: { name: "buy milk", done: false },
     });
-    expect(response.status).toBe(422);
-    if (response.status === 422) {
-      const json = await response.json();
-      expect(json.error.issues[0].path[0]).toBe("name");
-      expect(json.error.issues[0].message).toBe(ZOD_ERROR_MESSAGES.REQUIRED);
-    }
-  });
+    expect(createResponse.statusCode).toBe(201);
+    const created = createResponse.json();
+    expect(created.name).toBe("buy milk");
 
-  let id: number;
-  const name = "Learn vitest";
+    const listResponse = await app.inject({ method: "GET", url: "/api/v1/tasks" });
+    expect(listResponse.statusCode).toBe(200);
+    expect(listResponse.json()).toHaveLength(1);
 
-  it("post /tasks creates a task", async () => {
-    const response = await client.api.v1.tasks.$post({
-      json: {
-        name,
-        done: false,
-      },
+    const getResponse = await app.inject({ method: "GET", url: `/api/v1/tasks/${created.id}` });
+    expect(getResponse.statusCode).toBe(200);
+    expect(getResponse.json().id).toBe(created.id);
+
+    const patchResponse = await app.inject({
+      method: "PATCH",
+      url: `/api/v1/tasks/${created.id}`,
+      payload: { done: true },
     });
-    expect(response.status).toBe(201);
-    if (response.status === 201) {
-      const json = await response.json();
-      expect(json.name).toBe(name);
-      expect(json.done).toBe(false);
-      id = json.id;
-    }
+    expect(patchResponse.statusCode).toBe(200);
+    expect(patchResponse.json().done).toBe(true);
+
+    const deleteResponse = await app.inject({ method: "DELETE", url: `/api/v1/tasks/${created.id}` });
+    expect(deleteResponse.statusCode).toBe(204);
   });
 
-  it("get /tasks lists all tasks", async () => {
-    const response = await client.api.v1.tasks.$get();
-    expect(response.status).toBe(200);
-    if (response.status === 200) {
-      const json = await response.json();
-      expect(Array.isArray(json)).toBe(true);
-      expect(json.length).toBe(1);
-    }
+  it("returns 404 for a missing task", async () => {
+    const response = await app.inject({ method: "GET", url: "/api/v1/tasks/999999" });
+    expect(response.statusCode).toBe(404);
   });
 
-  it("get /tasks/{id} validates the id param", async () => {
-    const response = await client.api.v1.tasks[":id"].$get({
-      param: {
-        id: "wat",
-      },
+  it("returns 422 for an invalid body", async () => {
+    const response = await app.inject({
+      method: "POST",
+      url: "/api/v1/tasks",
+      payload: { name: "", done: false },
     });
-    expect(response.status).toBe(422);
-    if (response.status === 422) {
-      const json = await response.json();
-      expect(json.error.issues[0].path[0]).toBe("id");
-      expect(json.error.issues[0].message).toBe(ZOD_ERROR_MESSAGES.EXPECTED_NUMBER);
-    }
-  });
-
-  it("get /tasks/{id} returns 404 when task not found", async () => {
-    const response = await client.api.v1.tasks[":id"].$get({
-      param: {
-        id: 999999,
-      },
-    });
-    expect(response.status).toBe(404);
-    if (response.status === 404) {
-      const json = await response.json();
-      expect(json.message).toBe(HttpStatusPhrases.NOT_FOUND);
-    }
-  });
-
-  it("get /tasks/{id} gets a single task", async () => {
-    const response = await client.api.v1.tasks[":id"].$get({
-      param: {
-        id,
-      },
-    });
-    expect(response.status).toBe(200);
-    if (response.status === 200) {
-      const json = await response.json();
-      expect(json.name).toBe(name);
-      expect(json.done).toBe(false);
-    }
-  });
-
-  it("patch /tasks/{id} validates the body when updating", async () => {
-    const response = await client.api.v1.tasks[":id"].$patch({
-      param: {
-        id,
-      },
-      json: {
-        name: "",
-      },
-    });
-    expect(response.status).toBe(422);
-    if (response.status === 422) {
-      const json = await response.json();
-      expect(json.error.issues[0].path[0]).toBe("name");
-      expect(json.error.issues[0].code).toBe(ZodIssueCode.too_small);
-    }
-  });
-
-  it("patch /tasks/{id} validates the id param", async () => {
-    const response = await client.api.v1.tasks[":id"].$patch({
-      param: {
-        id: "wat",
-      },
-      json: {},
-    });
-    expect(response.status).toBe(422);
-    if (response.status === 422) {
-      const json = await response.json();
-      expect(json.error.issues[0].path[0]).toBe("id");
-      expect(json.error.issues[0].message).toBe(ZOD_ERROR_MESSAGES.EXPECTED_NUMBER);
-    }
-  });
-
-  it("patch /tasks/{id} validates empty body", async () => {
-    const response = await client.api.v1.tasks[":id"].$patch({
-      param: {
-        id,
-      },
-      json: {},
-    });
-    expect(response.status).toBe(422);
-    if (response.status === 422) {
-      const json = await response.json();
-      expect(json.error.issues[0].code).toBe(ZOD_ERROR_CODES.INVALID_UPDATES);
-      expect(json.error.issues[0].message).toBe(ZOD_ERROR_MESSAGES.NO_UPDATES);
-    }
-  });
-
-  it("patch /tasks/{id} updates a single property of a task", async () => {
-    const response = await client.api.v1.tasks[":id"].$patch({
-      param: {
-        id,
-      },
-      json: {
-        done: true,
-      },
-    });
-    expect(response.status).toBe(200);
-    if (response.status === 200) {
-      const json = await response.json();
-      expect(json.done).toBe(true);
-    }
-  });
-
-  it("delete /tasks/{id} validates the id when deleting", async () => {
-    const response = await client.api.v1.tasks[":id"].$delete({
-      param: {
-        id: "wat",
-      },
-    });
-    expect(response.status).toBe(422);
-    if (response.status === 422) {
-      const json = await response.json();
-      expect(json.error.issues[0].path[0]).toBe("id");
-      expect(json.error.issues[0].message).toBe(ZOD_ERROR_MESSAGES.EXPECTED_NUMBER);
-    }
-  });
-
-  it("delete /tasks/{id} removes a task", async () => {
-    const response = await client.api.v1.tasks[":id"].$delete({
-      param: {
-        id,
-      },
-    });
-    expect(response.status).toBe(204);
+    expect(response.statusCode).toBe(422);
   });
 });

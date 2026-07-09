@@ -1,12 +1,13 @@
-# Hono + Vue / Vite + PostgreSQL + pnpm workspaces monorepo
+# Fastify + Vue / Vite + PostgreSQL + pnpm workspaces monorepo
 
-A monorepo setup using pnpm workspaces with a Hono API and Vue / Vite client backed by a local PostgreSQL database.
+A monorepo setup using pnpm workspaces with a Fastify API and Vue / Vite client backed by a local PostgreSQL database.
 
 ## Features
 
 - Run tasks in parallel across apps / packages with pnpm
-- Hono API [proxied with Vite](./apps/web/vite.config.ts) during development
-- Hono [RPC client](packages/api-client/src/index.ts) resolved directly from source for faster inference
+- Fastify API [proxied with Vite](./apps/web/vite.config.ts) during development
+- Single-project Vercel deployment: Vue is built to `dist/`, and `/api/*` is handled by Fastify through a Vercel function
+- OpenAPI spec generated from the same Zod schemas via `fastify-type-provider-zod` (`/openapi.json`, Swagger UI at `/documentation`)
 - Shared Zod validators with drizzle-zod
 - Shared ESLint config
 - Shared tsconfig
@@ -14,13 +15,11 @@ A monorepo setup using pnpm workspaces with a Hono API and Vue / Vite client bac
 ## Tech Stack
 
 **api**
-- [Hono](https://hono.dev/) on Node.js via `@hono/node-server`
-- Hono Zod OpenAPI + Scalar API reference
+- [Fastify](https://fastify.dev/) on Node.js
+- `fastify-type-provider-zod` + `@fastify/swagger` + `@fastify/swagger-ui`
 - Drizzle ORM + drizzle-zod
 - PostgreSQL (`pg`)
-- stoker
-- bcryptjs (password hashing)
-- JWT via `hono/jwt`
+- `@fastify/sensible`
 
 **web**
 - Vue 3
@@ -37,22 +36,32 @@ A monorepo setup using pnpm workspaces with a Hono API and Vue / Vite client bac
 
 ```
 .
+├── api/             # Vercel serverless entry for the one-project deploy
 ├── apps/
-│   ├── api/          # Hono REST API (Node.js)
+│   ├── api/          # Fastify REST API (Node.js)
 │   └── web/          # Vue / Vite frontend
 └── packages/
-    ├── api-client/   # Type-safe Hono RPC client
+    ├── api-client/   # Typed API client generated from the OpenAPI spec (openapi-fetch)
     └── eslint-config/ # Shared ESLint config
+```
+
+> **Note:** `packages/api-client` used to wrap Hono's RPC client (`hc<router>()`), which has no Fastify equivalent. It's now built on [`openapi-fetch`](https://openapi-ts.dev/openapi-fetch/), typed from `apps/api/openapi.json`. Auth-related calls in `apps/web` (`useAuth`) still throw "not implemented" — the auth module hasn't been rebuilt on the Fastify API yet.
+
+**Regenerating the client after changing API routes/schemas:**
+
+```sh
+pnpm --filter @monorepo-fastify-vue/api openapi:generate       # refreshes apps/api/openapi.json
+pnpm --filter @monorepo-fastify-vue/api-client types:generate  # refreshes packages/api-client/src/schema.d.ts
 ```
 
 ### API folder structure
 
-The API uses a **feature-first** layout with a three-layer architecture. Each domain lives in `src/modules/<domain>/` and owns all of its layers.
+The API uses a **feature-first** layout with a three-layer architecture. Each domain lives in `src/modules/<domain>/` and owns all of its layers. Currently only the `tasks` module is implemented (used as the reference pattern for future domains, e.g. auth/profile).
 
 ```
 apps/api/src/
-├── app.ts                          # App factory, global middleware, OpenAPI setup
-├── index.ts                        # Server entry point
+├── app.ts                          # buildApp() factory — plugins, Zod type provider, OpenAPI, error handler, routes
+├── server.ts                       # Entry point — calls buildApp() and listens
 ├── config/
 │   └── index.ts                    # Zod-validated env config (crashes on boot if invalid)
 ├── db/
@@ -60,47 +69,22 @@ apps/api/src/
 │   ├── migrations/                 # Generated SQL migrations
 │   └── schema/
 │       └── index.ts                # Barrel re-export for drizzle-kit
-├── events/
-│   └── index.ts                    # In-process event bus (Node EventEmitter)
-├── jobs/
-│   └── index.ts                    # Job dispatcher (swap for BullMQ in production)
-├── lib/
-│   ├── configure-open-api.ts       # Scalar API docs
-│   ├── constants.ts                # Shared constants
-│   ├── create-app.ts               # App + test app factories
-│   ├── create-router.ts            # OpenAPIHono factory
-│   └── types.ts                    # AppEnv, JwtPayload, AppRouteHandler
-├── middleware/
-│   ├── auth.ts                     # JWT guard (hono/jwt)
-│   ├── logger.ts                   # Request logger
-│   └── rate-limit.ts               # In-memory rate limiter
+├── plugins/
+│   ├── sensible.ts                 # @fastify/sensible
+│   └── db.ts                       # Decorates fastify.db, closes pool on shutdown
 └── modules/
-    ├── index.ts                    # Registers all routers; applies route-level middleware
-    ├── index.route.ts              # Root GET /
-    ├── auth/
-    │   ├── auth.schema.ts          # users table + Zod schemas
-    │   ├── auth.errors.ts          # UserAlreadyExistsError, InvalidCredentialsError
-    │   ├── auth.repository.ts      # User DB queries
-    │   ├── auth.service.ts         # register / login business logic
-    │   ├── auth.routes.ts          # OpenAPI route definitions
-    │   ├── auth.handlers.ts        # HTTP layer
-    │   └── auth.index.ts           # Router wiring
     └── tasks/
-        ├── tasks.schema.ts         # tasks table + Zod schemas
-        ├── tasks.types.ts          # Domain types (TaskSortField, TaskFilters)
+        ├── tasks.schema.ts         # tasks table + drizzle-zod schemas (insert/patch/select)
         ├── tasks.errors.ts         # TaskNotFoundError
         ├── tasks.repository.ts     # Drizzle queries
-        ├── tasks.service.ts        # Business logic + event emission
-        ├── tasks.routes.ts         # OpenAPI route definitions
-        ├── tasks.handlers.ts       # HTTP layer — catches domain errors, maps to status codes
-        ├── tasks.index.ts          # Router wiring
+        ├── tasks.service.ts        # Business logic
+        ├── tasks.routes.ts         # Fastify route registration (Zod type provider)
+        ├── tasks.handlers.ts       # HTTP layer
         └── __tests__/
-            ├── tasks.handlers.test.ts   # Integration — full HTTP round-trip
+            ├── tasks.handlers.test.ts   # Integration — full HTTP round-trip via app.inject()
             ├── tasks.service.test.ts    # Unit — mocked repository
             └── tasks.repository.test.ts # Integration — real DB queries
 ```
-
-> `src/test/setup.ts` loads `.env.test` before any module code runs, ensuring tests always hit the test database.
 
 ```
 apps/api/
@@ -114,19 +98,12 @@ apps/api/
 
 | Layer | File | Knows about |
 | --- | --- | --- |
-| Handler | `*.handlers.ts` | HTTP (`c.req`, `c.json`, status codes); catches domain errors |
-| Service | `*.service.ts` | Business rules, event emission; throws domain errors |
+| Handler | `*.handlers.ts` | HTTP (`request`, `reply`, status codes); catches domain errors |
+| Service | `*.service.ts` | Business rules; throws domain errors |
 | Repository | `*.repository.ts` | Drizzle ORM, DB queries only |
 | Schema | `*.schema.ts` | Drizzle table definition, Zod types |
 
-**Auth flow:**
-
-| Endpoint | Access | Description |
-| --- | --- | --- |
-| `POST /api/v1/auth/register` | Public | Create account, returns JWT |
-| `POST /api/v1/auth/login` | Public | Login, returns JWT |
-
-Adding a new feature: create a folder under `modules/` with the same file structure, then register its router in `modules/index.ts`.
+Adding a new feature: create a folder under `modules/` with the same file structure, then register its routes in `app.ts`.
 
 > All pnpm commands are run from the root of the repo.
 
@@ -134,9 +111,9 @@ Adding a new feature: create a folder under `modules/` with the same file struct
 
 ### Prerequisites
 
-- Node.js 20+
+- Node.js 24+
 - pnpm
-- PostgreSQL running locally (e.g. via [Postgres.app](https://postgresapp.com/) or Docker)
+- PostgreSQL running locally (e.g. via [Postgres.app](https://postgresapp.com/) or Docker — see [DOCKER.md](./DOCKER.md))
 
 ### 1. Install dependencies
 
@@ -155,20 +132,19 @@ Edit `apps/api/.env` with your dev database credentials, and `apps/api/.env.test
 
 ```env
 # .env
-DATABASE_URL=postgresql://postgres:password@localhost:5432/tech_full_stack
+DATABASE_URL=postgresql://root:root@localhost:5432/fastify_vue
 
 # .env.test
-DATABASE_URL=postgresql://postgres:password@localhost:5432/tech_full_stack_test
+DATABASE_URL=postgresql://root:root@localhost:5432/fastify_vue_test
 ```
 
 Both files also require:
 
 ```env
-PORT=8787
-
-# Generate with: openssl rand -base64 32
-JWT_SECRET=your-super-secret-jwt-key-at-least-32-characters-long
-JWT_EXPIRES_IN_DAYS=7
+PORT=3000
+HOST=0.0.0.0
+NODE_ENV=development   # or test
+LOG_LEVEL=info
 ```
 
 ### 3. Run DB migrations
@@ -179,7 +155,7 @@ pnpm db:generate
 pnpm db:migrate
 
 # Test database (run once after creating it)
-DATABASE_URL=postgresql://postgres:password@localhost:5432/tech_full_stack_test pnpm db:migrate
+DATABASE_URL=postgresql://root:root@localhost:5432/fastify_vue_test pnpm db:migrate
 ```
 
 ### 4. Start apps
@@ -190,11 +166,9 @@ pnpm dev
 
 Visit [http://localhost:5173](http://localhost:5173)
 
-All requests to `/api` are proxied to the Hono server running on [http://localhost:8787](http://localhost:8787).
+All requests to `/api` are proxied to the Fastify server running on [http://localhost:3000](http://localhost:3000).
 
-The API reference (Scalar) is available at [http://localhost:8787/api/v1/scalar](http://localhost:8787/api/v1/scalar).
-
-In production (`pnpm start`), [http://localhost:8787](http://localhost:8787) serves the Vue app and `/scalar` serves the API docs.
+The OpenAPI spec is available at [http://localhost:3000/openapi.json](http://localhost:3000/openapi.json), and Swagger UI at [http://localhost:3000/documentation](http://localhost:3000/documentation).
 
 ## Database
 
@@ -218,10 +192,43 @@ pnpm lint
 pnpm test
 ```
 
-Tests run against a real PostgreSQL database — make sure `DATABASE_URL` in `apps/api/.env` points to a running instance. Service-layer unit tests mock the repository and run without a database connection.
+Tests run against a real PostgreSQL database — make sure `DATABASE_URL` in `apps/api/.env.test` points to a running instance. Service-layer unit tests mock the repository and run without a database connection.
 
 ### Build
 
 ```sh
 pnpm build
 ```
+
+## Vercel Deployment
+
+Deploy this repository as one Vercel project from the repo root.
+
+Project settings:
+
+```text
+Framework Preset: Other
+Root Directory: .
+Build Command: pnpm vercel-build
+Output Directory: dist
+Install Command: pnpm install
+```
+
+If Vercel does not accept `.` as the root directory, clear the Root Directory field.
+
+Required environment variables:
+
+```env
+DATABASE_URL=postgresql://USER:PASSWORD@HOST:5432/DATABASE?sslmode=require
+NODE_ENV=production
+```
+
+`pnpm vercel-build` runs:
+
+```sh
+pnpm build && pnpm db:migrate
+```
+
+Generate migration files locally with `pnpm db:generate`, commit them, and let Vercel apply them during deployment with its dashboard `DATABASE_URL`.
+
+On Vercel, `/` serves the Vue app and `/api/*` is routed to Fastify.

@@ -1,4 +1,4 @@
-import createConfig from "@tech-full-stack/eslint-config/create-config";
+import createConfig from "@monorepo-fastify-vue/eslint-config/create-config";
 
 export default createConfig({
   vue: true,

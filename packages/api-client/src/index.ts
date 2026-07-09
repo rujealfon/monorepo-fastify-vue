@@ -1,24 +1,16 @@
-import type { router } from "@tech-full-stack/api/routes";
+import type { paths } from "./schema.js";
 
-import { hc } from "hono/client";
+import createClient from "openapi-fetch";
 
-// create instance to inline type in build
-// https://hono.dev/docs/guides/rpc#compile-your-code-before-using-it-recommended
-// eslint-disable-next-line unused-imports/no-unused-vars
-const client = hc<router>("");
-export type Client = typeof client;
+export default function apiClient(baseUrl: string) {
+  return createClient<paths>({ baseUrl });
+}
 
-export default (...args: Parameters<typeof hc>): Client =>
-  hc<router>(...args);
+export type ApiClient = ReturnType<typeof apiClient>;
 
-export type ErrorSchema = {
-  error: {
-    issues: {
-      code: string;
-      path: (string | number)[];
-      message?: string | undefined;
-    }[];
-    name: string;
-  };
-  success: boolean;
+export type ApiErrorSchema = {
+  statusCode: number;
+  error: string;
+  message: string;
+  details?: unknown;
 };

@@ -1,81 +1,35 @@
-import type { CreateRoute, GetOneRoute, ListRoute, PatchRoute, RemoveRoute } from "./tasks.routes";
-import type { AppRouteHandler } from "@/api/lib/types";
+import type { FastifyReply, FastifyRequest } from "fastify";
 
-import * as HttpStatusCodes from "stoker/http-status-codes";
+import type { insertTasksSchema, patchTasksSchema } from "./tasks.schema.js";
+import * as tasksService from "./tasks.service.js";
 
-import * as HttpStatusPhrases from "stoker/http-status-phrases";
+export async function list() {
+  return tasksService.listTasks();
+}
 
-import { ZOD_ERROR_CODES, ZOD_ERROR_MESSAGES } from "@/api/lib/constants";
+export async function create(
+  request: FastifyRequest<{ Body: insertTasksSchema }>,
+  reply: FastifyReply,
+) {
+  const task = await tasksService.createTask(request.body);
+  reply.code(201);
+  return task;
+}
 
-import { TaskNotFoundError } from "./tasks.errors";
-import * as service from "./tasks.service";
+export async function getOne(request: FastifyRequest<{ Params: { id: number } }>) {
+  return tasksService.getTask(request.params.id);
+}
 
-export const list: AppRouteHandler<ListRoute> = async (c) => {
-  return c.json(await service.listTasks());
-};
+export async function patch(
+  request: FastifyRequest<{ Params: { id: number }; Body: patchTasksSchema }>,
+) {
+  return tasksService.updateTask(request.params.id, request.body);
+}
 
-export const create: AppRouteHandler<CreateRoute> = async (c) => {
-  const task = c.req.valid("json");
-  return c.json(await service.createTask(task), HttpStatusCodes.CREATED);
-};
-
-export const getOne: AppRouteHandler<GetOneRoute> = async (c) => {
-  const { id } = c.req.valid("param");
-  try {
-    return c.json(await service.getTask(id), HttpStatusCodes.OK);
-  }
-  catch (e) {
-    if (e instanceof TaskNotFoundError) {
-      return c.json({ message: HttpStatusPhrases.NOT_FOUND }, HttpStatusCodes.NOT_FOUND);
-    }
-    throw e;
-  }
-};
-
-export const patch: AppRouteHandler<PatchRoute> = async (c) => {
-  const { id } = c.req.valid("param");
-  const updates = c.req.valid("json");
-
-  if (Object.keys(updates).length === 0) {
-    return c.json(
-      {
-        success: false,
-        error: {
-          issues: [
-            {
-              code: ZOD_ERROR_CODES.INVALID_UPDATES,
-              path: [],
-              message: ZOD_ERROR_MESSAGES.NO_UPDATES,
-            },
-          ],
-          name: "ZodError",
-        },
-      },
-      HttpStatusCodes.UNPROCESSABLE_ENTITY,
-    );
-  }
-
-  try {
-    return c.json(await service.updateTask(id, updates), HttpStatusCodes.OK);
-  }
-  catch (e) {
-    if (e instanceof TaskNotFoundError) {
-      return c.json({ message: HttpStatusPhrases.NOT_FOUND }, HttpStatusCodes.NOT_FOUND);
-    }
-    throw e;
-  }
-};
-
-export const remove: AppRouteHandler<RemoveRoute> = async (c) => {
-  const { id } = c.req.valid("param");
-  try {
-    await service.deleteTask(id);
-    return c.body(null, HttpStatusCodes.NO_CONTENT);
-  }
-  catch (e) {
-    if (e instanceof TaskNotFoundError) {
-      return c.json({ message: HttpStatusPhrases.NOT_FOUND }, HttpStatusCodes.NOT_FOUND);
-    }
-    throw e;
-  }
-};
+export async function remove(
+  request: FastifyRequest<{ Params: { id: number } }>,
+  reply: FastifyReply,
+) {
+  await tasksService.deleteTask(request.params.id);
+  reply.code(204);
+}

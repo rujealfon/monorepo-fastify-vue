@@ -1,5 +1,5 @@
 {
-  "name": "@tech-full-stack/eslint-config",
+  "name": "@monorepo-fastify-vue/eslint-config",
   "type": "module",
   "version": "1.0.0",
   "exports": {
