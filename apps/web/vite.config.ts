@@ -5,6 +5,10 @@ import tsconfigPaths from "vite-tsconfig-paths";
 
 // https://vite.dev/config/
 export default defineConfig({
+  build: {
+    outDir: "../api/public",
+    emptyOutDir: true,
+  },
   resolve: {
     alias: {
       "@/web": path.resolve(__dirname, "./src"),
