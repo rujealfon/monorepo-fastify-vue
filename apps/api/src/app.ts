@@ -1,4 +1,5 @@
 import type { FastifyError, FastifyInstance } from "fastify";
+import type { IncomingMessage, ServerResponse } from "node:http";
 import fastifyStatic from "@fastify/static";
 import swagger from "@fastify/swagger";
 import swaggerUi from "@fastify/swagger-ui";
@@ -96,4 +97,15 @@ export function buildApp(): FastifyInstance {
   });
 
   return app;
+}
+
+let vercelApp: FastifyInstance | undefined;
+let vercelReady: ReturnType<FastifyInstance["ready"]> | undefined;
+
+export default async function handler(request: IncomingMessage, response: ServerResponse) {
+  vercelApp ??= buildApp();
+  vercelReady ??= vercelApp.ready();
+
+  await vercelReady;
+  vercelApp.server.emit("request", request, response);
 }
