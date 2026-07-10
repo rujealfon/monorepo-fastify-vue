@@ -1,15 +1,47 @@
+import { readdirSync } from "node:fs";
 import createConfig from "@monorepo-fastify-vue/eslint-config/create-config";
+import pluginVitest from "@vitest/eslint-plugin";
+import pluginVueA11y from "eslint-plugin-vuejs-accessibility";
+
+const { plugins: _vitestPlugins, ...vitestRecommended } = pluginVitest.configs.recommended;
+
+const noParentImports = {
+  group: ["../*"],
+  message: "Use the @/ alias instead of parent-relative (../) imports.",
+};
+
+const features = readdirSync(new URL("./src/features", import.meta.url), { withFileTypes: true })
+  .filter(entry => entry.isDirectory())
+  .map(entry => entry.name);
 
 export default createConfig({
   vue: true,
-}, {
+  ignores: ["dist-ssr/**", "coverage/**"],
+}, ...pluginVueA11y.configs["flat/recommended"], {
   rules: {
-    "antfu/top-level-function": "off",
-    "unicorn/filename-case": ["error", {
-      cases: {
-        kebabCase: true,
-        pascalCase: true,
-      },
+    "node/no-process-env": "off",
+    "unicorn/filename-case": "off",
+  },
+}, {
+  // Path alias: import from src/ via @/ instead of climbing with ../
+  files: ["src/**"],
+  rules: {
+    "no-restricted-imports": ["error", { patterns: [noParentImports] }],
+  },
+}, ...features.map(feature => ({
+  // Feature boundaries: a feature may only reach outside itself via @/shared
+  // or @/app aliases; cross-feature imports are forbidden. Its own files are
+  // reachable via ./ or @/features/<self>.
+  files: [`src/features/${feature}/**`],
+  rules: {
+    "no-restricted-imports": ["error", {
+      patterns: [{
+        group: ["@/features/*", `!@/features/${feature}`, `!@/features/${feature}/**`],
+        message: "Features must not import from other features. Move shared code to @/shared.",
+      }, noParentImports],
     }],
   },
+})), {
+  ...vitestRecommended,
+  files: ["src/**/__tests__/*", "src/**/*.spec.ts"],
 });

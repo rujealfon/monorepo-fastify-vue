@@ -1,7 +1,8 @@
 {
   "name": "monorepo-fastify-vue",
-  "version": "1.0.0",
   "type": "module",
+  "version": "1.0.0",
+  "private": true,
   "license": "MIT",
   "scripts": {
     "dev": "pnpm run -r --parallel --aggregate-output dev",

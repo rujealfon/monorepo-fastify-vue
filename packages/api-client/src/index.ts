@@ -2,11 +2,19 @@ import type { paths } from "./schema.js";
 
 import createClient from "openapi-fetch";
 
-export default function apiClient(baseUrl: string) {
+export function createApiClient(baseUrl: string) {
   return createClient<paths>({ baseUrl });
 }
 
-export type ApiClient = ReturnType<typeof apiClient>;
+export default createApiClient;
+
+export type ApiClient = ReturnType<typeof createApiClient>;
+
+export class RpcError extends Error {
+  constructor(public status: number) {
+    super(`API request failed with HTTP ${status}`);
+  }
+}
 
 export type ApiErrorSchema = {
   statusCode: number;

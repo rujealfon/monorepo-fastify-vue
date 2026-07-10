@@ -12,6 +12,7 @@ import {
 } from "fastify-type-provider-zod";
 
 import { config } from "./config/index.js";
+import { healthRoutes } from "./modules/health/health.routes.js";
 import { tasksRoutes } from "./modules/tasks/tasks.routes.js";
 import dbPlugin from "./plugins/db.js";
 import sensiblePlugin from "./plugins/sensible.js";
@@ -76,6 +77,7 @@ export function buildApp(): FastifyInstance {
     });
   });
 
+  app.register(healthRoutes, { prefix: "/api/v1/health" });
   app.register(tasksRoutes, { prefix: "/api/v1/tasks" });
   app.setNotFoundHandler((request, reply) => {
     if (request.method === "GET" && !request.url.startsWith("/api/")) {

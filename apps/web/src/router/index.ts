@@ -1,34 +1,22 @@
 import { createRouter, createWebHistory } from "vue-router";
 
-import HomeView from "../views/HomeView.vue";
+import DefaultLayout from "@/app/layouts/DefaultLayout.vue";
+import { aboutRoutes } from "@/features/about/routes";
+import { healthRoutes } from "@/features/health/routes";
+import { homeRoutes } from "@/features/home/routes";
+import { taskRoutes } from "@/features/tasks/routes";
 
-export default createRouter({
-  history: createWebHistory(),
+const router = createRouter({
+  history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     {
       path: "/",
-      component: HomeView,
+      component: DefaultLayout,
+      children: [...homeRoutes, ...aboutRoutes, ...healthRoutes, ...taskRoutes],
     },
-    {
-      path: "/login",
-      component: () => import("../views/LoginView.vue"),
-    },
-    {
-      path: "/register",
-      component: () => import("../views/RegisterView.vue"),
-    },
-    {
-      path: "/profile",
-      component: () => import("../views/ProfileView.vue"),
-      meta: { requiresAuth: true },
-    },
-    {
-      path: "/task/:id",
-      component: () => import("../views/TaskView.vue"),
-    },
-    {
-      path: "/task/:id/edit",
-      component: () => import("../views/TaskEditView.vue"),
-    },
+    // TODO Auth feature routes go under AuthLayout once they exist:
+    // { path: '/', component: () => import('@/app/layouts/AuthLayout.vue'), children: [...authRoutes] },
   ],
 });
+
+export default router;

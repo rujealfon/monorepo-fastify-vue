@@ -1,0 +1,9 @@
+{
+  "extends": "./tsconfig.app.json",
+  "compilerOptions": {
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.vitest.tsbuildinfo",
+    "types": ["node", "jsdom"]
+  },
+  "include": ["src/app/plugins/pinia-colada.ts", "src/**/*.spec.ts", "env.d.ts"],
+  "exclude": []
+}

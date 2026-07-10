@@ -1,21 +1,14 @@
-import { PiniaColada } from "@pinia/colada";
-import { createPinia } from "pinia";
 import { createApp } from "vue";
 
+import { registerPlugins } from "@/app/plugins";
+
 import App from "./App.vue";
-import { useAuth } from "./composables/use-auth";
 import router from "./router";
-import "./index.css";
+import "./assets/styles/main.css";
 
-router.beforeEach((to) => {
-  const { isAuthenticated } = useAuth();
-  if (to.meta.requiresAuth && !isAuthenticated.value) {
-    return { path: "/login" };
-  }
-});
+const app = createApp(App);
 
-createApp(App)
-  .use(router)
-  .use(createPinia())
-  .use(PiniaColada)
-  .mount("#app");
+registerPlugins(app);
+app.use(router);
+
+app.mount("#app");

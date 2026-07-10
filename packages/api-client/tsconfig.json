@@ -2,14 +2,10 @@
   "extends": "../../tsconfig.json",
   "compilerOptions": {
     "lib": ["ESNext", "DOM", "DOM.Iterable"],
-    "rootDir": "src",
-    "types": ["node"],
+    "rootDir": "./src",
     "declaration": true,
     "declarationMap": true,
-    "outDir": "dist"
-  },
-  "watchOptions": {
-    "excludeDirectories": ["**/node_modules", "**/packages/web"]
+    "outDir": "./dist"
   },
   "include": ["src"]
 }

@@ -1,10 +1,7 @@
 <script setup lang="ts">
-import AppNavbar from "./components/AppNavbar.vue";
+import { RouterView } from "vue-router";
 </script>
 
 <template>
-  <AppNavbar />
-  <main class="container" style="margin-top: 1rem">
-    <RouterView />
-  </main>
+  <RouterView />
 </template>
