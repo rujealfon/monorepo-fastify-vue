@@ -213,7 +213,7 @@ Project settings:
 ```text
 Framework Preset: Other
 Root Directory: .
-Build Command: pnpm vercel-build
+Build Command: pnpm build:vercel
 Output Directory: dist
 Install Command: pnpm install
 ```
@@ -227,7 +227,7 @@ DATABASE_URL=postgresql://USER:PASSWORD@HOST:5432/DATABASE?sslmode=require
 NODE_ENV=production
 ```
 
-`pnpm vercel-build` runs:
+`pnpm build:vercel` runs:
 
 ```sh
 pnpm build && pnpm db:migrate
