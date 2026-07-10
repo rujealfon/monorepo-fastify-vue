@@ -2,6 +2,9 @@ import type { paths } from "./schema.js";
 
 import createClient from "openapi-fetch";
 
+export type { HealthResponse } from "./health/types.js";
+export type { CreateTask, Task, TaskId, TaskList, UpdateTask } from "./tasks/types.js";
+
 export function createApiClient(baseUrl: string) {
   return createClient<paths>({ baseUrl });
 }

@@ -29,7 +29,7 @@ const error = computed(() => tasks.error.value
 function create() {
   const value = name.value.trim();
   if (value)
-    createMutation.mutate(value);
+    createMutation.mutate({ name: value });
 }
 </script>
 
