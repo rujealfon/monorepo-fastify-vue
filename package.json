@@ -16,6 +16,7 @@
     "test": "pnpm run -r --parallel test",
     "lint": "pnpm run -r --parallel lint",
     "lint:fix": "pnpm run -r --parallel lint:fix",
+    "prepare": "husky",
     "openapi:generate": "pnpm --filter @monorepo-fastify-vue/api openapi:generate",
     "types:generate": "pnpm --filter @monorepo-fastify-vue/api-client types:generate",
     "api-client:generate": "pnpm openapi:generate && pnpm types:generate",
@@ -27,5 +28,16 @@
     "docker:restart": "docker compose restart",
     "docker:rebuild": "docker compose up --build -d",
     "docker:db:migrate": "docker compose exec api pnpm --filter @monorepo-fastify-vue/api db:migrate"
+  },
+  "devDependencies": {
+    "husky": "^9.1.7",
+    "lint-staged": "^17.0.8"
+  },
+  "lint-staged": {
+    "api/**/*.{js,ts}": "pnpm --filter @monorepo-fastify-vue/api exec eslint --fix --config ../../eslint.config.mjs",
+    "apps/api/**/*.{js,mjs,ts,json}": "pnpm --filter @monorepo-fastify-vue/api exec eslint --fix",
+    "apps/web/**/*.{js,mjs,ts,vue,json,css,html}": "pnpm --filter @monorepo-fastify-vue/web exec eslint --fix",
+    "packages/api-client/**/*.{js,mjs,ts,json}": "pnpm --filter @monorepo-fastify-vue/api-client exec eslint --fix",
+    "packages/eslint-config/**/*.{js,mjs,ts,json}": "pnpm --filter @monorepo-fastify-vue/eslint-config exec eslint --fix"
   }
 }

@@ -8,6 +8,7 @@ export default fp(async (fastify) => {
       directives: {
         imgSrc: ['\'self\'', 'data:', 'validator.swagger.io'],
         scriptSrc: ['\'self\'', ...fastify.swaggerCSP.script],
+        // 'https:' is broad, but Swagger UI pulls its stylesheet from a CDN with no fixed origin
         styleSrc: ['\'self\'', 'https:', ...fastify.swaggerCSP.style]
       }
     }

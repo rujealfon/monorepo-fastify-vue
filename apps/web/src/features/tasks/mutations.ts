@@ -1,14 +1,9 @@
 import type { CreateTask, TaskId, UpdateTask } from '@monorepo-fastify-vue/api-client'
-import { RpcError } from '@monorepo-fastify-vue/api-client'
 import { useMutation, useQueryCache } from '@pinia/colada'
 
 import { TASK_KEYS } from '@/features/tasks/queries'
+import { fail } from '@/features/tasks/tasks.utils'
 import { api } from '@/shared/api/client'
-
-async function fail(response: Response) {
-  if (!response.ok)
-    throw new RpcError(response.status)
-}
 
 export function useTaskMutations(onCreate?: () => void) {
   const queryCache = useQueryCache()

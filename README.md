@@ -139,6 +139,8 @@ The OpenAPI spec is available at [http://localhost:3000/openapi.json](http://loc
 pnpm lint
 ```
 
+`pnpm install` enables the Husky pre-commit hook. It runs lint-staged and applies existing ESLint fixes only to staged API, web, and package files.
+
 ### Test
 
 ```sh

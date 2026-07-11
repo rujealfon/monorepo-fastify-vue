@@ -18,10 +18,10 @@ describe('health routes', () => {
 
   it('rate limits API routes but not health checks', async () => {
     for (let request = 0; request < 100; request++) {
-      await app.inject({ method: 'POST', url: '/api/v1/tasks', payload: {} })
+      await app.inject({ method: 'POST', url: '/api/v1/tasks/', payload: {} })
     }
 
-    const limited = await app.inject({ method: 'POST', url: '/api/v1/tasks', payload: {} })
+    const limited = await app.inject({ method: 'POST', url: '/api/v1/tasks/', payload: {} })
     expect(limited.statusCode).toBe(429)
     expect(limited.headers['retry-after']).toBeDefined()
 
