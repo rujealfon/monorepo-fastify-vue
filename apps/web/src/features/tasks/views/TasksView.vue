@@ -1,23 +1,13 @@
 <script setup lang="ts">
-import { useMutation, useQuery, useQueryCache } from '@pinia/colada'
+import { useQuery } from '@pinia/colada'
 import { computed, ref } from 'vue'
 
-import { createTask, deleteTask, TASK_KEYS, tasksQuery, updateTask } from '@/features/tasks/queries'
+import { useTaskMutations } from '@/features/tasks/mutations'
+import { tasksQuery } from '@/features/tasks/queries'
 
 const name = ref('')
-const queryCache = useQueryCache()
 const tasks = useQuery(tasksQuery)
-const refresh = () => queryCache.invalidateQueries({ key: TASK_KEYS.root })
-
-const createMutation = useMutation({
-  mutation: createTask,
-  onSuccess: () => {
-    name.value = ''
-    return refresh()
-  }
-})
-const updateMutation = useMutation({ mutation: updateTask, onSuccess: refresh })
-const deleteMutation = useMutation({ mutation: deleteTask, onSuccess: refresh })
+const { create: createMutation, update: updateMutation, remove: deleteMutation } = useTaskMutations(() => name.value = '')
 
 const pending = computed(() => [createMutation, updateMutation, deleteMutation]
   .some(mutation => mutation.asyncStatus.value === 'loading'))

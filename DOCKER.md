@@ -40,8 +40,7 @@ pnpm docker:db:migrate
 
 ### 3. Access the services
 
-- **API docs (Swagger UI):** http://localhost:3000/documentation
-- **OpenAPI spec:** http://localhost:3000/openapi.json
+- **API docs (Scalar, development only):** http://localhost:3000
 - **Drizzle Studio:** http://localhost:4983
 - **pgAdmin 4:** http://localhost:5050
 

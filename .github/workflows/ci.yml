@@ -57,5 +57,8 @@ jobs:
       - name: Lint
         run: pnpm lint
 
+      - name: Check generated API client
+        run: pnpm api-client:check
+
       - name: Test
         run: pnpm test

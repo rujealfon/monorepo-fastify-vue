@@ -7,8 +7,8 @@ A monorepo setup using pnpm workspaces with a Fastify API and Vue / Vite client 
 - Run tasks in parallel across apps / packages with pnpm
 - Fastify API [proxied with Vite](./apps/web/vite.config.ts) during development
 - Single-project Vercel deployment: Vue is built to `dist/`, and `/api/*` is handled by Fastify through a Vercel function
-- OpenAPI spec generated from the same Zod schemas via `fastify-type-provider-zod` (`/openapi.json`, Swagger UI at `/documentation`)
-- Shared Zod validators with drizzle-zod
+- OpenAPI spec generated from the same Zod schemas via `fastify-type-provider-zod`, with Scalar at `/` in development
+- Module-owned Zod validators with drizzle-zod
 - Shared ESLint config
 - Shared tsconfig
 
@@ -16,7 +16,7 @@ A monorepo setup using pnpm workspaces with a Fastify API and Vue / Vite client 
 
 **api**
 - [Fastify](https://fastify.dev/) on Node.js
-- `fastify-type-provider-zod` + `@fastify/swagger` + `@fastify/swagger-ui`
+- `fastify-type-provider-zod` + `@fastify/swagger` + Scalar
 - Drizzle ORM + drizzle-zod
 - PostgreSQL (`pg`)
 - `@fastify/sensible`
@@ -25,7 +25,7 @@ A monorepo setup using pnpm workspaces with a Fastify API and Vue / Vite client 
 - Vue 3
 - Vite
 - Vue Router
-- VeeValidate + Zod
+- Pinia + Pinia Colada
 
 **dev tooling**
 - TypeScript
@@ -45,64 +45,20 @@ A monorepo setup using pnpm workspaces with a Fastify API and Vue / Vite client 
     └── eslint-config/ # Shared ESLint config
 ```
 
-> **Note:** `packages/api-client` used to wrap Hono's RPC client (`hc<router>()`), which has no Fastify equivalent. It's now built on [`openapi-fetch`](https://openapi-ts.dev/openapi-fetch/), typed from `apps/api/openapi.json`. Auth-related calls in `apps/web` (`useAuth`) still throw "not implemented" — the auth module hasn't been rebuilt on the Fastify API yet.
+Detailed structure and dependency rules live with each workspace:
 
-**Regenerating the client after changing API routes/schemas:**
+- [Fastify API](./apps/api/README.md)
+- [Vue web app](./apps/web/README.md)
+- [Generated API client](./packages/api-client/README.md)
+- [Shared ESLint config](./packages/eslint-config/README.md)
+
+Regenerate the client after changing API routes or schemas:
 
 ```sh
 pnpm api-client:generate
 ```
 
-### API folder structure
-
-The API uses a **feature-first** layout with a three-layer architecture. Each domain lives in `src/modules/<domain>/` and owns all of its layers. Currently only the `tasks` module is implemented (used as the reference pattern for future domains, e.g. auth/profile).
-
-```
-apps/api/src/
-├── app.ts                          # buildApp() factory — plugins, Zod type provider, OpenAPI, error handler, routes
-├── server.ts                       # Entry point — calls buildApp() and listens
-├── config/
-│   └── index.ts                    # Zod-validated env config (crashes on boot if invalid)
-├── db/
-│   ├── index.ts                    # Drizzle client
-│   ├── migrations/                 # Generated SQL migrations
-│   └── schema/
-│       └── index.ts                # Barrel re-export for drizzle-kit
-├── plugins/
-│   ├── sensible.ts                 # @fastify/sensible
-│   └── db.ts                       # Decorates fastify.db, closes pool on shutdown
-└── modules/
-    └── tasks/
-        ├── tasks.schema.ts         # tasks table + drizzle-zod schemas (insert/patch/select)
-        ├── tasks.errors.ts         # TaskNotFoundError
-        ├── tasks.repository.ts     # Drizzle queries
-        ├── tasks.service.ts        # Business logic
-        ├── tasks.routes.ts         # Fastify route registration (Zod type provider)
-        ├── tasks.handlers.ts       # HTTP layer
-        └── __tests__/
-            ├── tasks.handlers.test.ts   # Integration — full HTTP round-trip via app.inject()
-            ├── tasks.service.test.ts    # Unit — mocked repository
-            └── tasks.repository.test.ts # Integration — real DB queries
-```
-
-```
-apps/api/
-├── .env.example          # Dev environment template
-├── .env.test.example     # Test environment template
-├── .env                  # Dev secrets (gitignored)
-└── .env.test             # Test secrets (gitignored)
-```
-
-**Layer responsibilities:**
-
-| Layer | File | Knows about |
-| --- | --- | --- |
-| Handler | `*.handlers.ts` | HTTP (`request`, `reply`, status codes); catches domain errors |
-| Service | `*.service.ts` | Business rules; throws domain errors |
-| Repository | `*.repository.ts` | Drizzle ORM, DB queries only |
-| Schema | `*.schema.ts` | Drizzle table definition, Zod types |
-
-Adding a new feature: create a folder under `modules/` with the same file structure, then register its routes in `app.ts`.
+CI runs `pnpm api-client:check` and fails when the committed OpenAPI document or generated client types are stale.
 
 > All pnpm commands are run from the root of the repo.
 
@@ -167,7 +123,7 @@ Visit [http://localhost:5173](http://localhost:5173)
 
 All requests to `/api` are proxied to the Fastify server running on [http://localhost:3000](http://localhost:3000).
 
-The OpenAPI spec is available at [http://localhost:3000/openapi.json](http://localhost:3000/openapi.json), and Swagger UI at [http://localhost:3000/documentation](http://localhost:3000/documentation).
+In development, Scalar is available at [http://localhost:3000](http://localhost:3000) and its OpenAPI document at [http://localhost:3000/openapi.json](http://localhost:3000/openapi.json). Neither documentation route is registered in production.
 
 ## Database
 
@@ -184,6 +140,8 @@ The OpenAPI spec is available at [http://localhost:3000/openapi.json](http://loc
 ```sh
 pnpm lint
 ```
+
+`pnpm install` enables the Husky pre-commit hook. It runs lint-staged and applies existing ESLint fixes only to staged API, web, and package files.
 
 ### Test
 
@@ -248,7 +206,7 @@ No `VITE_API_BASE_URL` or CORS setting is needed because browser requests use th
 /              -> Vue app
 /login         -> Vue app
 /api/v1/tasks  -> Fastify API
-/documentation -> Fastify Swagger UI
+/              -> Scalar API reference in development; Vue app in production
 ```
 
 ### Option 2: separate API and web projects
