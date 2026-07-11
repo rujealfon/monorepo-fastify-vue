@@ -1,35 +1,35 @@
-import type { insertTasksSchema, patchTasksSchema } from "./tasks.schema.js";
-import { TaskNotFoundError } from "./tasks.errors.js";
-import * as tasksRepository from "./tasks.repository.js";
+import type { insertTasksSchema, patchTasksSchema } from './tasks.schema.js'
+import { TaskNotFoundError } from './tasks.errors.js'
+import * as tasksRepository from './tasks.repository.js'
 
 export function listTasks() {
-  return tasksRepository.findMany();
+  return tasksRepository.findMany()
 }
 
 export async function getTask(id: number) {
-  const task = await tasksRepository.findById(id);
+  const task = await tasksRepository.findById(id)
   if (!task) {
-    throw new TaskNotFoundError(id);
+    throw new TaskNotFoundError(id)
   }
-  return task;
+  return task
 }
 
 export function createTask(data: insertTasksSchema) {
-  return tasksRepository.insertOne(data);
+  return tasksRepository.insertOne(data)
 }
 
 export async function updateTask(id: number, data: patchTasksSchema) {
-  const task = await tasksRepository.updateById(id, data);
+  const task = await tasksRepository.updateById(id, data)
   if (!task) {
-    throw new TaskNotFoundError(id);
+    throw new TaskNotFoundError(id)
   }
-  return task;
+  return task
 }
 
 export async function deleteTask(id: number) {
-  const task = await tasksRepository.deleteById(id);
+  const task = await tasksRepository.deleteById(id)
   if (!task) {
-    throw new TaskNotFoundError(id);
+    throw new TaskNotFoundError(id)
   }
-  return task;
+  return task
 }

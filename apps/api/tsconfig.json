@@ -2,6 +2,7 @@
   "extends": "../../tsconfig.json",
   "compilerOptions": {
     "rootDir": "./src",
+    "paths": { "#api/*": ["./src/*"] },
     "types": ["node"],
     "outDir": "./dist",
     "sourceMap": true

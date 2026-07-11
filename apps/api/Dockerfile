@@ -1,4 +1,4 @@
-FROM node:24-alpine AS base
+FROM node:24.18.0-alpine AS base
 
 RUN corepack enable && corepack prepare pnpm@latest --activate
 
@@ -20,7 +20,7 @@ FROM base AS build
 WORKDIR /app/apps/api
 RUN pnpm build
 
-FROM node:24-alpine AS production
+FROM node:24.18.0-alpine AS production
 RUN corepack enable && corepack prepare pnpm@latest --activate
 WORKDIR /app
 

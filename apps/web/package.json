@@ -23,15 +23,15 @@
   "devDependencies": {
     "@monorepo-fastify-vue/eslint-config": "workspace:^",
     "@types/jsdom": "^28.0.3",
-    "@types/node": "^26.1.0",
+    "@types/node": "^26.1.1",
     "@vitejs/plugin-vue": "^6.0.7",
-    "@vitest/eslint-plugin": "^1.6.20",
+    "@vitest/eslint-plugin": "^1.6.22",
     "@vue/test-utils": "^2.4.11",
     "eslint": "^10.6.0",
     "eslint-plugin-vuejs-accessibility": "^2.5.0",
     "jsdom": "^29.1.1",
-    "vite": "^8.1.3",
-    "vitest": "^4.1.9",
-    "vue-tsc": "^3.3.6"
+    "vite": "^8.1.4",
+    "vitest": "^4.1.10",
+    "vue-tsc": "^3.3.7"
   }
 }

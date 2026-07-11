@@ -1,35 +1,35 @@
 <script setup lang="ts">
-import { useMutation, useQuery, useQueryCache } from "@pinia/colada";
-import { computed, ref } from "vue";
+import { useMutation, useQuery, useQueryCache } from '@pinia/colada'
+import { computed, ref } from 'vue'
 
-import { createTask, deleteTask, TASK_KEYS, tasksQuery, updateTask } from "@/features/tasks/queries";
+import { createTask, deleteTask, TASK_KEYS, tasksQuery, updateTask } from '@/features/tasks/queries'
 
-const name = ref("");
-const queryCache = useQueryCache();
-const tasks = useQuery(tasksQuery);
-const refresh = () => queryCache.invalidateQueries({ key: TASK_KEYS.root });
+const name = ref('')
+const queryCache = useQueryCache()
+const tasks = useQuery(tasksQuery)
+const refresh = () => queryCache.invalidateQueries({ key: TASK_KEYS.root })
 
 const createMutation = useMutation({
   mutation: createTask,
   onSuccess: () => {
-    name.value = "";
-    return refresh();
-  },
-});
-const updateMutation = useMutation({ mutation: updateTask, onSuccess: refresh });
-const deleteMutation = useMutation({ mutation: deleteTask, onSuccess: refresh });
+    name.value = ''
+    return refresh()
+  }
+})
+const updateMutation = useMutation({ mutation: updateTask, onSuccess: refresh })
+const deleteMutation = useMutation({ mutation: deleteTask, onSuccess: refresh })
 
 const pending = computed(() => [createMutation, updateMutation, deleteMutation]
-  .some(mutation => mutation.asyncStatus.value === "loading"));
+  .some(mutation => mutation.asyncStatus.value === 'loading'))
 const error = computed(() => tasks.error.value
   ?? createMutation.error.value
   ?? updateMutation.error.value
-  ?? deleteMutation.error.value);
+  ?? deleteMutation.error.value)
 
 function create() {
-  const value = name.value.trim();
+  const value = name.value.trim()
   if (value)
-    createMutation.mutate({ name: value });
+    createMutation.mutate({ name: value })
 }
 </script>
 

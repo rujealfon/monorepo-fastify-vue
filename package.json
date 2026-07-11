@@ -3,6 +3,9 @@
   "type": "module",
   "version": "1.0.0",
   "private": true,
+    "engines": {
+    "node": ">=24.18.0 <25"
+  },
   "license": "MIT",
   "scripts": {
     "dev": "pnpm run -r --parallel --aggregate-output dev",
