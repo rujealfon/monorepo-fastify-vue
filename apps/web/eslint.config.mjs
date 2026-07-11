@@ -29,19 +29,27 @@ export default createConfig({
     'no-restricted-imports': ['error', { patterns: [noParentImports] }]
   }
 }, ...features.map(feature => ({
-  // Feature boundaries: a feature may only reach outside itself via @/shared
-  // or @/app aliases; cross-feature imports are forbidden. Its own files are
-  // reachable via ./ or @/features/<self>.
+  // Cross-feature access is allowed only through the feature's index.ts.
   files: [`src/features/${feature}/**`],
   rules: {
     'no-restricted-imports': ['error', {
       patterns: [{
-        group: ['@/features/*', `!@/features/${feature}`, `!@/features/${feature}/**`],
-        message: 'Features must not import from other features. Move shared code to @/shared.'
+        group: ['@/features/*/*', `!@/features/${feature}/**`],
+        message: 'Import another feature through its public @/features/<feature> entry point.'
       }, noParentImports]
     }]
   }
 })), {
+  files: ['src/shared/**'],
+  rules: {
+    'no-restricted-imports': ['error', {
+      patterns: [{
+        group: ['@/features/**'],
+        message: 'Shared code cannot depend on features.'
+      }, noParentImports]
+    }]
+  }
+}, {
   ...vitestRecommended,
   files: ['src/**/__tests__/*', 'src/**/*.spec.ts']
 })

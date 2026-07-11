@@ -4,7 +4,11 @@
 
 This is a pnpm workspace monorepo. The API lives in `apps/api`, the Vue/Vite client lives in `apps/web`, and shared packages live in `packages`.
 
-API code uses a feature-first layout under `apps/api/src/modules/<domain>/`. Keep each domain's schema, routes, handlers, service, repository, errors, and tests together, for example `apps/api/src/modules/tasks/tasks.service.ts` and `apps/api/src/modules/tasks/__tests__/tasks.service.test.ts`. Shared API infrastructure is in `apps/api/src/lib`, `middleware`, `db`, `events`, and `jobs`. Web views are in `apps/web/src/views`, reusable Vue components in `apps/web/src/components`, and client helpers in `apps/web/src/lib`.
+API code uses a feature-first layout under `apps/api/src/modules/<domain>/`. Keep each domain's schema, routes, handlers, service, repository, errors, and tests together, and expose cross-domain contracts through the module's `index.ts`. `modules/index.ts` is the explicit route registry. Shared API infrastructure is in `apps/api/src/lib`, `plugins`, `db`, `events`, `jobs`, and `test`.
+
+Web code lives under `apps/web/src/features/<feature>/`; each feature exposes routes and cross-feature contracts through `index.ts`. App composition belongs in `src/app`, while code with at least two feature consumers belongs in `src/shared`. Dependency direction is app/features → shared, never shared → features. Server data stays in Pinia Colada queries and mutations; Pinia stores hold client-only state.
+
+Keep constants, utilities, and types beside their owning module or feature, using names such as `tasks.constants.ts`, `tasks.utils.ts`, or `tasks.types.ts`. Do not create global `constants`, `utils`, or `types` folders preemptively. Promote code only after it has at least two real consumers: API technical helpers go to `apps/api/src/lib`, web helpers go to `apps/web/src/shared`, and API contract types go to `packages/api-client`. Prefer types inferred from Zod, Drizzle, OpenAPI, and function signatures over duplicate handwritten types.
 
 ## Build, Test, and Development Commands
 
@@ -25,6 +29,8 @@ Run commands from the repository root.
 Use TypeScript and ESM. The shared ESLint config in `packages/eslint-config` enforces 2-space indentation, no semicolons, single quotes, sorted imports, kebab-case filenames, and `type` aliases instead of `interface`. Avoid `process.env` outside the validated config layer in `apps/api/src/config`.
 
 Follow existing API layering: handlers handle HTTP concerns, services hold business rules, repositories hold Drizzle queries, and schemas define tables plus Zod validators.
+
+Use `#api/modules/<domain>` and `@/features/<feature>` for cross-domain imports. Deep imports are private and rejected by ESLint; `apps/api/src/db/schema/index.ts` is the sole exception for composing module-owned Drizzle tables.
 
 ## Testing Guidelines
 

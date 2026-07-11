@@ -1,9 +1,9 @@
 import { createApp } from 'vue'
 
 import { registerPlugins } from '@/app/plugins'
+import router from '@/app/router'
 
 import App from './App.vue'
-import router from './router'
 import './assets/styles/main.css'
 
 const app = createApp(App)

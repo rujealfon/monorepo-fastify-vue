@@ -1,4 +1,3 @@
-import type { CreateTask, TaskId, UpdateTask } from '@monorepo-fastify-vue/api-client'
 import { RpcError } from '@monorepo-fastify-vue/api-client'
 import { defineQueryOptions } from '@pinia/colada'
 
@@ -19,23 +18,3 @@ export const tasksQuery = defineQueryOptions({
     return data ?? []
   }
 })
-
-export async function createTask(body: CreateTask) {
-  const { response } = await api.POST('/api/v1/tasks/', { body })
-  await fail(response)
-}
-
-export async function updateTask({ id, ...body }: UpdateTask & { id: TaskId }) {
-  const { response } = await api.PATCH('/api/v1/tasks/{id}', {
-    params: { path: { id } },
-    body
-  })
-  await fail(response)
-}
-
-export async function deleteTask(id: TaskId) {
-  const { response } = await api.DELETE('/api/v1/tasks/{id}', {
-    params: { path: { id } }
-  })
-  await fail(response)
-}

@@ -5,6 +5,14 @@
   "private": true,
   "license": "MIT",
   "imports": {
+    "#api/modules/health": {
+      "development": "./src/modules/health/index.ts",
+      "default": "./dist/modules/health/index.js"
+    },
+    "#api/modules/tasks": {
+      "development": "./src/modules/tasks/index.ts",
+      "default": "./dist/modules/tasks/index.js"
+    },
     "#api/*": {
       "development": "./src/*",
       "default": "./dist/*"
@@ -27,6 +35,8 @@
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
+    "@fastify/helmet": "^13.1.0",
+    "@fastify/rate-limit": "^11.1.0",
     "@fastify/sensible": "^6.0.4",
     "@fastify/static": "^9.3.0",
     "@fastify/swagger": "^9.8.0",
