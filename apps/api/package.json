@@ -5,13 +5,16 @@
   "private": true,
   "license": "MIT",
   "imports": {
-    "#api/*": "./dist/*"
+    "#api/*": {
+      "development": "./src/*",
+      "default": "./dist/*"
+    }
   },
   "exports": {
     "./schema": "./src/db/schema/index.ts"
   },
   "scripts": {
-    "dev": "tsx watch --env-file=.env src/server.ts",
+    "dev": "tsx watch --conditions=development --env-file=.env src/server.ts",
     "build": "tsc -p tsconfig.build.json",
     "start": "node --env-file=.env dist/server.js",
     "typecheck": "tsc --noEmit",

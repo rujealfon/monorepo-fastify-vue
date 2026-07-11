@@ -22,7 +22,7 @@ Run commands from the repository root.
 
 ## Coding Style & Naming Conventions
 
-Use TypeScript and ESM. The shared ESLint config in `packages/eslint-config` enforces 2-space indentation, semicolons, double quotes, sorted imports, kebab-case filenames, and `type` aliases instead of `interface`. Avoid `process.env` outside the validated config layer in `apps/api/src/config`.
+Use TypeScript and ESM. The shared ESLint config in `packages/eslint-config` enforces 2-space indentation, no semicolons, single quotes, sorted imports, kebab-case filenames, and `type` aliases instead of `interface`. Avoid `process.env` outside the validated config layer in `apps/api/src/config`.
 
 Follow existing API layering: handlers handle HTTP concerns, services hold business rules, repositories hold Drizzle queries, and schemas define tables plus Zod validators.
 
