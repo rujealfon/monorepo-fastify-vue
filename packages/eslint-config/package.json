@@ -2,13 +2,14 @@
   "name": "@monorepo-fastify-vue/eslint-config",
   "type": "module",
   "version": "1.0.0",
+  "private": true,
   "exports": {
     ".": "./eslint.config.js",
     "./create-config": "./create-config.js"
   },
   "devDependencies": {
     "@antfu/eslint-config": "^9.0.0",
-    "eslint": "^10.5.0",
+    "eslint": "^10.6.0",
     "eslint-plugin-format": "^2.0.1"
   }
 }

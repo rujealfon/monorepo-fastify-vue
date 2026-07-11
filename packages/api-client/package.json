@@ -2,6 +2,7 @@
   "name": "@monorepo-fastify-vue/api-client",
   "type": "module",
   "version": "1.0.0",
+  "private": true,
   "main": "./dist/index.js",
   "scripts": {
     "dev": "tsc --watch",
@@ -12,12 +13,11 @@
     "types:generate": "openapi-typescript ../../apps/api/openapi.json -o src/schema.d.ts"
   },
   "dependencies": {
-    "@monorepo-fastify-vue/eslint-config": "workspace:^",
-    "@types/node": "^25.9.3",
     "openapi-fetch": "^0.17.0"
   },
   "devDependencies": {
-    "eslint": "^10.5.0",
+    "@monorepo-fastify-vue/eslint-config": "workspace:^",
+    "eslint": "^10.6.0",
     "openapi-typescript": "^7.13.0",
     "typescript": "~5.9.3"
   }

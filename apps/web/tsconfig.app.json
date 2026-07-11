@@ -6,10 +6,11 @@
     "lib": ["ESNext", "DOM", "DOM.Iterable"],
     "paths": {
       "@monorepo-fastify-vue/api-client": ["../../packages/api-client/src/index.ts"],
-      "@/web/*": ["./src/*"]
+      "@/*": ["./src/*"]
     },
     "allowImportingTsExtensions": true,
     "noEmit": true
   },
-  "include": ["src/**/*", "env.d.ts"]
+  "include": ["src/**/*.ts", "src/**/*.vue", "env.d.ts"],
+  "exclude": ["src/**/*.spec.ts"]
 }

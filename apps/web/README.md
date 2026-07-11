@@ -1,46 +1,81 @@
-# @monorepo-fastify-vue/web
+# Web App
 
-Vue 3 + Vite frontend for the tasks app. During development, API requests to `/api` are proxied to the Fastify server running on `http://localhost:3000`.
-
-## Tech Stack
-
-- [Vue 3](https://vuejs.org/)
-- [Vite](https://vitejs.dev/)
-- [Vue Router](https://router.vuejs.org/) — client-side routing
-- [VeeValidate](https://vee-validate.logaretm.com/) + [Zod](https://zod.dev/) — form validation
-- [@monorepo-fastify-vue/api-client](../../packages/api-client/) — API client generated from the Fastify OpenAPI spec
-
-## Scripts
-
-| Command          | Description                                       |
-| ---------------- | ------------------------------------------------- |
-| `pnpm dev`       | Start Vite dev server                             |
-| `pnpm build`     | Build for production                               |
-| `pnpm lint`      | Lint with ESLint                                  |
-| `pnpm typecheck` | Type-check with `vue-tsc`                         |
+Vue 3 + Vite frontend for the monorepo.
 
 ## Development
 
-Start from the repo root:
+Run from the repo root:
 
 ```sh
-pnpm dev
+docker-compose up -d
+nub run dev
 ```
 
-The web app is available at [http://localhost:5173](http://localhost:5173). All `/api` requests are proxied to the API server at `http://localhost:3000`.
+The Vite dev server proxies `/api` to `http://localhost:3000`.
 
-## Production Build
+## Project Structure
 
-```sh
-pnpm build
+Feature-based layout under `src/`. Data fetching uses [Pinia Colada](https://pinia-colada.esm.dev/) (`useQuery` / `useMutation`) on top of Pinia:
+
+```
+src/
+├── app/                        # App-level setup & config
+│   ├── layouts/                # App shells (DefaultLayout.vue, AuthLayout.vue)
+│   └── plugins/                # Vue plugin registration (Pinia, PiniaColada, i18n, …)
+│       ├── index.ts            # registerPlugins(app) — installs Pinia + PiniaColada
+│       └── pinia-colada.ts     # Global PiniaColada query/mutation defaults
+│
+├── assets/
+│   ├── styles/                 # Global CSS (main.css, base.css)
+│   └── images/                 # Static images (logo.svg, …)
+│
+├── features/                   # ⭐ One folder per domain feature
+│   └── <feature>/              # e.g. health/, users/, auth/
+│       ├── views/              # Route-level pages (lazy-loaded from routes.ts)
+│       ├── components/         # Components used ONLY by this feature
+│       ├── composables/        # UI-facing composables that wrap queries/mutations
+│       ├── queries.ts          # Query key factory + defineQueryOptions for reads
+│       ├── mutations.ts        # useMutation wrappers (write + cache invalidation)
+│       ├── stores/             # Pinia stores for client-only state (not server data)
+│       └── routes.ts           # Exports RouteRecordRaw[]
+│
+├── shared/                     # Cross-feature code (no feature imports here)
+│   ├── api/
+│   │   └── client.ts           # api-client singleton
+│   ├── components/             # Reusable UI components
+│   ├── composables/            # Reusable composables (useDebounce, useToast, …)
+│   └── utils/                  # Pure helpers (formatters, guards)
+│
+├── router/
+│   └── index.ts                # Root router, aggregates feature routes
+├── App.vue
+└── main.ts
 ```
 
-The build output goes to the repository root `dist/` for the one-project Vercel deploy.
+Per-feature data layer:
 
-## Vercel
+- `queries.ts` — the only place query keys are written. Export a key factory and `defineQueryOptions` bundles:
 
-Default deployment uses one Vercel project from the repository root. Do not set this package as the Vercel root directory for the default setup.
+  ```ts
+  export const HEALTH_KEYS = {
+    root: ["health"] as const,
+    live: () => [...HEALTH_KEYS.root, "live"] as const,
+  };
 
-No `VITE_API_BASE_URL` is needed for the one-project deployment because the frontend calls same-origin `/api/*`.
+  export const healthLiveQuery = defineQueryOptions({
+    key: HEALTH_KEYS.live(),
+    query: () => api.health.live(),
+  });
+  ```
 
-Separate web deployment is possible with Root Directory set to `apps/web`, but it needs `VITE_API_BASE_URL` and the build output must be `apps/web/dist`. See the root README before switching to that mode.
+- `mutations.ts` — `useMutation` wrappers that invalidate the feature's keys in `onSettled` via `useQueryCache()`.
+- `composables/` — what components actually import; compose queries/mutations with UI state. Use `defineQuery` here when several mounted components must share the same reactive state (e.g. a shared search ref).
+- `stores/` — Pinia stores only for client-side state (UI prefs, wizard state, session). Server data belongs in the Colada query cache, not stores.
+
+Rules:
+
+- A feature may import from `@/shared/*` (including `@/shared/api/client`), never from a sibling feature. ESLint enforces this (`no-restricted-imports` in `eslint.config.mjs`): another feature's `@/features/*` path is an error; a feature's own files are reachable via `./` or `@/features/<self>`.
+- Parent-relative (`../`) imports are ESLint errors everywhere in `src/` — use the `@/` alias to reach outside the current directory.
+- Components never call `api` directly — API calls live in feature queries/mutations, consumed through composables.
+- Every reactive value used inside a `query` function must appear in its `key` (use a getter key: `key: () => [...]`).
+- API types come from `@monorepo-fastify-vue/api-client`; do not hand-write them.

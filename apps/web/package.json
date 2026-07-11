@@ -8,29 +8,30 @@
     "build": "vue-tsc -b && vite build",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "preview": "vite preview",
-    "typecheck": "vue-tsc --noEmit"
+    "test": "vitest run --passWithNoTests",
+    "typecheck": "vue-tsc --noEmit",
+    "preview": "vite preview"
   },
   "dependencies": {
-    "@monorepo-fastify-vue/api": "workspace:^",
     "@monorepo-fastify-vue/api-client": "workspace:^",
-    "@monorepo-fastify-vue/eslint-config": "workspace:^",
     "@pinia/colada": "^1.3.1",
-    "@types/node": "^25.9.3",
+    "@pinia/colada-plugin-auto-refetch": "^0.2.6",
     "pinia": "^3.0.4",
-    "vue": "^3.5.38",
-    "vue-router": "^5.1.0",
-    "zod": "^4.4.3"
+    "vue": "^3.5.39",
+    "vue-router": "^5.1.0"
   },
   "devDependencies": {
-    "@eslint/js": "^10.0.1",
+    "@monorepo-fastify-vue/eslint-config": "workspace:^",
+    "@types/jsdom": "^28.0.3",
+    "@types/node": "^26.1.0",
     "@vitejs/plugin-vue": "^6.0.7",
-    "eslint": "^10.5.0",
-    "globals": "^17.6.0",
-    "typescript": "~5.9.3",
-    "typescript-eslint": "^8.61.0",
-    "vite": "^8.0.16",
-    "vite-tsconfig-paths": "^6.1.1",
-    "vue-tsc": "^3.3.5"
+    "@vitest/eslint-plugin": "^1.6.20",
+    "@vue/test-utils": "^2.4.11",
+    "eslint": "^10.6.0",
+    "eslint-plugin-vuejs-accessibility": "^2.5.0",
+    "jsdom": "^29.1.1",
+    "vite": "^8.1.3",
+    "vitest": "^4.1.9",
+    "vue-tsc": "^3.3.6"
   }
 }
