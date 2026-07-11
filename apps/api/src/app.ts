@@ -2,7 +2,7 @@ import type { FastifyInstance } from 'fastify'
 // import cors from "@fastify/cors";
 import fastifyStatic from '@fastify/static'
 import swagger from '@fastify/swagger'
-import swaggerUi from '@fastify/swagger-ui'
+import scalar from '@scalar/fastify-api-reference'
 import Fastify from 'fastify'
 import {
   jsonSchemaTransform,
@@ -40,10 +40,11 @@ export function buildApp(): FastifyInstance {
     },
     transform: jsonSchemaTransform
   })
-  app.register(swaggerUi, { routePrefix: '/documentation' })
+  if (config.NODE_ENV === 'development')
+    app.register(scalar, { routePrefix: '/' })
+
   app.register(securityPlugin)
   app.register(errorHandlerPlugin)
-  app.get('/openapi.json', async () => app.swagger())
   app.register(modules)
   app.setNotFoundHandler((request, reply) => {
     if (request.method === 'GET' && !request.url.startsWith('/api/')) {

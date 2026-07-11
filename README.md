@@ -7,7 +7,7 @@ A monorepo setup using pnpm workspaces with a Fastify API and Vue / Vite client 
 - Run tasks in parallel across apps / packages with pnpm
 - Fastify API [proxied with Vite](./apps/web/vite.config.ts) during development
 - Single-project Vercel deployment: Vue is built to `dist/`, and `/api/*` is handled by Fastify through a Vercel function
-- OpenAPI spec generated from the same Zod schemas via `fastify-type-provider-zod` (`/openapi.json`, Swagger UI at `/documentation`)
+- OpenAPI spec generated from the same Zod schemas via `fastify-type-provider-zod`, with Scalar at `/` in development
 - Module-owned Zod validators with drizzle-zod
 - Shared ESLint config
 - Shared tsconfig
@@ -16,7 +16,7 @@ A monorepo setup using pnpm workspaces with a Fastify API and Vue / Vite client 
 
 **api**
 - [Fastify](https://fastify.dev/) on Node.js
-- `fastify-type-provider-zod` + `@fastify/swagger` + `@fastify/swagger-ui`
+- `fastify-type-provider-zod` + `@fastify/swagger` + Scalar
 - Drizzle ORM + drizzle-zod
 - PostgreSQL (`pg`)
 - `@fastify/sensible`
@@ -121,7 +121,7 @@ Visit [http://localhost:5173](http://localhost:5173)
 
 All requests to `/api` are proxied to the Fastify server running on [http://localhost:3000](http://localhost:3000).
 
-The OpenAPI spec is available at [http://localhost:3000/openapi.json](http://localhost:3000/openapi.json), and Swagger UI at [http://localhost:3000/documentation](http://localhost:3000/documentation).
+In development, Scalar is available at [http://localhost:3000](http://localhost:3000) and its OpenAPI document at [http://localhost:3000/openapi.json](http://localhost:3000/openapi.json). Neither documentation route is registered in production.
 
 ## Database
 
@@ -204,7 +204,7 @@ No `VITE_API_BASE_URL` or CORS setting is needed because browser requests use th
 /              -> Vue app
 /login         -> Vue app
 /api/v1/tasks  -> Fastify API
-/documentation -> Fastify Swagger UI
+/              -> Scalar API reference in development; Vue app in production
 ```
 
 ### Option 2: separate API and web projects

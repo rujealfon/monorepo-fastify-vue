@@ -16,6 +16,10 @@ describe('health routes', () => {
     expect(response.headers['x-content-type-options']).toBe('nosniff')
   })
 
+  it('does not register API documentation outside development', () => {
+    expect(app.hasRoute({ method: 'GET', url: '/openapi.json' })).toBe(false)
+  })
+
   it('rate limits API routes but not health checks', async () => {
     for (let request = 0; request < 100; request++) {
       await app.inject({ method: 'POST', url: '/api/v1/tasks/', payload: {} })

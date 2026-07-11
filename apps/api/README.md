@@ -18,7 +18,7 @@ Run from this directory, or via `pnpm --filter @monorepo-fastify-vue/api <script
 | `pnpm db:migrate` | Apply pending migrations |
 | `pnpm db:studio` | Open Drizzle Studio |
 
-Once running, the OpenAPI spec is served at `/openapi.json` and Swagger UI at `/documentation`.
+In development, Scalar is served at `/` and its OpenAPI document at `/openapi.json`. Documentation routes are not registered in test or production.
 
 ## Project structure
 
