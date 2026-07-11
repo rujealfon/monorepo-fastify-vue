@@ -58,6 +58,8 @@ Regenerate the client after changing API routes or schemas:
 pnpm api-client:generate
 ```
 
+CI runs `pnpm api-client:check` and fails when the committed OpenAPI document or generated client types are stale.
+
 > All pnpm commands are run from the root of the repo.
 
 ## Local Setup

@@ -20,6 +20,7 @@
     "openapi:generate": "pnpm --filter @monorepo-fastify-vue/api openapi:generate",
     "types:generate": "pnpm --filter @monorepo-fastify-vue/api-client types:generate",
     "api-client:generate": "pnpm openapi:generate && pnpm types:generate",
+    "api-client:check": "pnpm api-client:generate && git diff --exit-code -- apps/api/openapi.json packages/api-client/src/schema.d.ts",
     "db:generate": "pnpm --filter @monorepo-fastify-vue/api db:generate",
     "db:migrate": "pnpm --filter @monorepo-fastify-vue/api db:migrate",
     "db:studio": "pnpm --filter @monorepo-fastify-vue/api db:studio",
@@ -34,7 +35,6 @@
     "lint-staged": "^17.0.8"
   },
   "lint-staged": {
-    "api/**/*.{js,ts}": "pnpm --filter @monorepo-fastify-vue/api exec eslint --fix --config ../../eslint.config.mjs",
     "apps/api/**/*.{js,mjs,ts,json}": "pnpm --filter @monorepo-fastify-vue/api exec eslint --fix",
     "apps/web/**/*.{js,mjs,ts,vue,json,css,html}": "pnpm --filter @monorepo-fastify-vue/web exec eslint --fix",
     "packages/api-client/**/*.{js,mjs,ts,json}": "pnpm --filter @monorepo-fastify-vue/api-client exec eslint --fix",

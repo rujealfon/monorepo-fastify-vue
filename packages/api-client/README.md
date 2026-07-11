@@ -12,6 +12,8 @@ pnpm api-client:generate
 
 This regenerates `apps/api/openapi.json` and `src/schema.d.ts`. Do not edit either generated file by hand.
 
+CI runs `pnpm api-client:check`, regenerates both files, and fails if the committed contract is stale.
+
 ## Module types
 
 Keep one generated `schema.d.ts` for the complete API. Each API module may expose short aliases derived from its generated `paths` entries:
