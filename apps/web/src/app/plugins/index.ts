@@ -1,11 +1,11 @@
-import type { App } from "vue";
+import type { App } from 'vue'
 
-import { PiniaColada } from "@pinia/colada";
-import { createPinia } from "pinia";
+import { PiniaColada } from '@pinia/colada'
+import { createPinia } from 'pinia'
 
-import { coladaOptions } from "./pinia-colada";
+import { coladaOptions } from './pinia-colada'
 
 export function registerPlugins(app: App) {
-  app.use(createPinia());
-  app.use(PiniaColada, coladaOptions);
+  app.use(createPinia())
+  app.use(PiniaColada, coladaOptions)
 }

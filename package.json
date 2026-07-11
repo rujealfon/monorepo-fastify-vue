@@ -3,6 +3,10 @@
   "type": "module",
   "version": "1.0.0",
   "private": true,
+  "packageManager": "pnpm@11.11.0",
+  "engines": {
+    "node": ">=24.18.0 <25"
+  },
   "license": "MIT",
   "scripts": {
     "dev": "pnpm run -r --parallel --aggregate-output dev",

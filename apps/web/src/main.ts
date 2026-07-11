@@ -1,14 +1,14 @@
-import { createApp } from "vue";
+import { createApp } from 'vue'
 
-import { registerPlugins } from "@/app/plugins";
+import { registerPlugins } from '@/app/plugins'
 
-import App from "./App.vue";
-import router from "./router";
-import "./assets/styles/main.css";
+import App from './App.vue'
+import router from './router'
+import './assets/styles/main.css'
 
-const app = createApp(App);
+const app = createApp(App)
 
-registerPlugins(app);
-app.use(router);
+registerPlugins(app)
+app.use(router)
 
-app.mount("#app");
+app.mount('#app')

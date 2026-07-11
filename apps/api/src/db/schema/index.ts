@@ -1,1 +1,1 @@
-export * from "../../modules/tasks/tasks.schema.js";
+export * from '#api/modules/tasks/tasks.schema.js'

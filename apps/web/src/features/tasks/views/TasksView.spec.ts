@@ -1,56 +1,56 @@
-import { PiniaColada } from "@pinia/colada";
-import { flushPromises, mount } from "@vue/test-utils";
-import { createPinia } from "pinia";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { PiniaColada } from '@pinia/colada'
+import { flushPromises, mount } from '@vue/test-utils'
+import { createPinia } from 'pinia'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import TasksView from "./TasksView.vue";
+import TasksView from './TasksView.vue'
 
 const api = vi.hoisted(() => ({
   DELETE: vi.fn(),
   GET: vi.fn(),
   PATCH: vi.fn(),
-  POST: vi.fn(),
-}));
+  POST: vi.fn()
+}))
 
-vi.mock("@/shared/api/client", () => ({ api }));
+vi.mock('@/shared/api/client', () => ({ api }))
 
-describe("tasksView", () => {
+describe('tasksView', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
-    const response = { ok: true, status: 200 };
+    vi.clearAllMocks()
+    const response = { ok: true, status: 200 }
     api.GET.mockResolvedValue({
-      data: [{ id: 1, name: "Ship CRUD", done: false, createdAt: "", updatedAt: "" }],
-      response,
-    });
-    api.POST.mockResolvedValue({ response });
-    api.PATCH.mockResolvedValue({ response });
-    api.DELETE.mockResolvedValue({ response });
-  });
+      data: [{ id: 1, name: 'Ship CRUD', done: false, createdAt: '', updatedAt: '' }],
+      response
+    })
+    api.POST.mockResolvedValue({ response })
+    api.PATCH.mockResolvedValue({ response })
+    api.DELETE.mockResolvedValue({ response })
+  })
 
-  it("lists, creates, updates and deletes tasks", async () => {
+  it('lists, creates, updates and deletes tasks', async () => {
     const wrapper = mount(TasksView, {
-      global: { plugins: [createPinia(), [PiniaColada, { queryOptions: { staleTime: 0 } }]] },
-    });
-    await flushPromises();
+      global: { plugins: [createPinia(), [PiniaColada, { queryOptions: { staleTime: 0 } }]] }
+    })
+    await flushPromises()
 
-    expect(wrapper.text()).toContain("Ship CRUD");
+    expect(wrapper.text()).toContain('Ship CRUD')
 
-    await wrapper.get("#task-name").setValue("New task");
-    await wrapper.get("form").trigger("submit");
-    await flushPromises();
-    expect(api.POST).toHaveBeenCalledWith("/api/v1/tasks/", { body: { name: "New task" } });
+    await wrapper.get('#task-name').setValue('New task')
+    await wrapper.get('form').trigger('submit')
+    await flushPromises()
+    expect(api.POST).toHaveBeenCalledWith('/api/v1/tasks/', { body: { name: 'New task' } })
 
-    await wrapper.get("input[type=\"checkbox\"]").trigger("change");
-    await flushPromises();
-    expect(api.PATCH).toHaveBeenCalledWith("/api/v1/tasks/{id}", {
+    await wrapper.get('input[type="checkbox"]').trigger('change')
+    await flushPromises()
+    expect(api.PATCH).toHaveBeenCalledWith('/api/v1/tasks/{id}', {
       params: { path: { id: 1 } },
-      body: { done: true },
-    });
+      body: { done: true }
+    })
 
-    await wrapper.get("li button").trigger("click");
-    await flushPromises();
-    expect(api.DELETE).toHaveBeenCalledWith("/api/v1/tasks/{id}", {
-      params: { path: { id: 1 } },
-    });
-  });
-});
+    await wrapper.get('li button').trigger('click')
+    await flushPromises()
+    expect(api.DELETE).toHaveBeenCalledWith('/api/v1/tasks/{id}', {
+      params: { path: { id: 1 } }
+    })
+  })
+})

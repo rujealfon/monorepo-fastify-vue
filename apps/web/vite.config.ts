@@ -1,29 +1,29 @@
-import path from "node:path";
-import vue from "@vitejs/plugin-vue";
-import { defineConfig } from "vite";
+import path from 'node:path'
+import vue from '@vitejs/plugin-vue'
+import { defineConfig } from 'vite'
 
 // https://vite.dev/config/
 export default defineConfig({
   build: {
-    outDir: "../../dist",
-    emptyOutDir: true,
+    outDir: '../../dist',
+    emptyOutDir: true
   },
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "./src"),
-      "@monorepo-fastify-vue/api-client": path.resolve(
+      '@': path.resolve(__dirname, './src'),
+      '@monorepo-fastify-vue/api-client': path.resolve(
         __dirname,
-        "../../packages/api-client/src/index.ts",
-      ),
-    },
+        '../../packages/api-client/src/index.ts'
+      )
+    }
   },
   plugins: [
-    vue(),
+    vue()
   ],
   server: {
     proxy: {
       // Development stays same-origin; Vite forwards API calls to the API container.
-      "/api": process.env.API_PROXY_URL ?? "http://localhost:3000",
-    },
-  },
-});
+      '/api': process.env.API_PROXY_URL ?? 'http://localhost:3000'
+    }
+  }
+})

@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { useHealth } from "@/features/health/composables/useHealth";
+import { useHealth } from '@/features/health/composables/useHealth'
 
-const { status, error, loading, checkHealth } = useHealth();
+const { status, error, loading, checkHealth } = useHealth()
 </script>
 
 <template>

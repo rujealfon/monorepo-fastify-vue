@@ -1,44 +1,44 @@
-import { sql } from "drizzle-orm";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { sql } from 'drizzle-orm'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
-import { db } from "../../../db/index.js";
-import * as tasksRepository from "../tasks.repository.js";
+import { db } from '#api/db/index.js'
+import * as tasksRepository from '#api/modules/tasks/tasks.repository.js'
 
-describe("tasks.repository", () => {
+describe('tasks.repository', () => {
   beforeAll(async () => {
-    await db.execute(sql`truncate table tasks restart identity cascade`);
-  });
+    await db.execute(sql`truncate table tasks restart identity cascade`)
+  })
 
   afterAll(async () => {
-    await db.execute(sql`truncate table tasks restart identity cascade`);
-    await db.$client.end();
-  });
+    await db.execute(sql`truncate table tasks restart identity cascade`)
+    await db.$client.end()
+  })
 
-  it("inserts and finds a task", async () => {
-    const inserted = await tasksRepository.insertOne({ name: "write tests", done: false });
-    expect(inserted.name).toBe("write tests");
+  it('inserts and finds a task', async () => {
+    const inserted = await tasksRepository.insertOne({ name: 'write tests', done: false })
+    expect(inserted.name).toBe('write tests')
 
-    const found = await tasksRepository.findById(inserted.id);
-    expect(found?.id).toBe(inserted.id);
-  });
+    const found = await tasksRepository.findById(inserted.id)
+    expect(found?.id).toBe(inserted.id)
+  })
 
-  it("lists all tasks", async () => {
-    const tasks = await tasksRepository.findMany();
-    expect(tasks.length).toBeGreaterThan(0);
-  });
+  it('lists all tasks', async () => {
+    const tasks = await tasksRepository.findMany()
+    expect(tasks.length).toBeGreaterThan(0)
+  })
 
-  it("updates a task", async () => {
-    const inserted = await tasksRepository.insertOne({ name: "to update", done: false });
-    const updated = await tasksRepository.updateById(inserted.id, { done: true });
-    expect(updated?.done).toBe(true);
-  });
+  it('updates a task', async () => {
+    const inserted = await tasksRepository.insertOne({ name: 'to update', done: false })
+    const updated = await tasksRepository.updateById(inserted.id, { done: true })
+    expect(updated?.done).toBe(true)
+  })
 
-  it("deletes a task", async () => {
-    const inserted = await tasksRepository.insertOne({ name: "to delete", done: false });
-    const deleted = await tasksRepository.deleteById(inserted.id);
-    expect(deleted?.id).toBe(inserted.id);
+  it('deletes a task', async () => {
+    const inserted = await tasksRepository.insertOne({ name: 'to delete', done: false })
+    const deleted = await tasksRepository.deleteById(inserted.id)
+    expect(deleted?.id).toBe(inserted.id)
 
-    const found = await tasksRepository.findById(inserted.id);
-    expect(found).toBeUndefined();
-  });
-});
+    const found = await tasksRepository.findById(inserted.id)
+    expect(found).toBeUndefined()
+  })
+})
