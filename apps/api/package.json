@@ -21,9 +21,9 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "test": "vitest run",
-    "openapi:generate": "tsx --env-file=.env scripts/generate-openapi-spec.ts",
-    "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate",
+    "openapi:generate": "tsx --conditions=development --env-file=.env scripts/generate-openapi-spec.ts",
+    "db:generate": "NODE_OPTIONS=--conditions=development drizzle-kit generate",
+    "db:migrate": "NODE_OPTIONS=--conditions=development drizzle-kit migrate",
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {

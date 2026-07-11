@@ -11,8 +11,6 @@ const defaultIgnores = [
   '**/cypress/videos/**',
   '**/cypress/downloads/**',
   '**/*.md',
-  '**/package.json',
-  '**/tsconfig.json',
   '**/*.tsbuildinfo'
 ]
 
@@ -39,7 +37,6 @@ export default function createConfig(options = {}, ...userConfigs) {
       'perfectionist/sort-imports': ['error'],
       'style/comma-dangle': ['error', 'never'],
       'ts/consistent-type-definitions': ['error', 'type'],
-      'ts/no-redeclare': 'off',
       'unicorn/filename-case': ['error', {
         case: 'kebabCase',
         ignore: [/\.md$/]
@@ -49,6 +46,11 @@ export default function createConfig(options = {}, ...userConfigs) {
     files: ['**/*.d.ts'],
     rules: {
       'ts/consistent-type-definitions': ['error', 'interface']
+    }
+  }, {
+    files: ['**/modules/tasks/tasks.schema.ts'],
+    rules: {
+      'ts/no-redeclare': 'off'
     }
   }, ...userConfigs)
 }
