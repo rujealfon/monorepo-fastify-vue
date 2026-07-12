@@ -100,7 +100,7 @@ function create() {
     <div v-if="tasks.data.value?.pagination.totalPages" class="flex justify-center">
       <UPagination
         v-model:page="page"
-        :total="tasks.data.value.pagination.totalPages * 20"
+        :total="tasks.data.value.pagination.total"
         :items-per-page="20"
       />
     </div>

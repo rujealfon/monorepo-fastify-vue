@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { NavigationMenuItem } from '@nuxt/ui'
+import { useToast } from '@nuxt/ui/composables'
 import { useQuery } from '@pinia/colada'
 import { computed } from 'vue'
 import { RouterLink, RouterView, useRouter } from 'vue-router'
@@ -9,6 +10,7 @@ import { sessionQuery, useAuthMutations } from '@/features/auth'
 const router = useRouter()
 const session = useQuery(sessionQuery)
 const { logout } = useAuthMutations()
+const toast = useToast()
 
 const links: NavigationMenuItem[] = [
   { label: 'Home', to: '/', icon: 'i-lucide-house' },
@@ -22,7 +24,13 @@ async function signOut() {
     await logout.mutateAsync()
     await router.push('/login')
   }
-  catch {}
+  catch {
+    toast.add({
+      title: 'Could not log out.',
+      color: 'error',
+      icon: 'i-lucide-triangle-alert'
+    })
+  }
 }
 
 const userMenu = computed(() => [[
