@@ -37,5 +37,6 @@ export type insertTasksSchema = z.infer<typeof insertTasksSchema>
 
 export const patchTasksSchema = insertTasksSchema
   .partial()
+  .refine(task => Object.keys(task).length > 0, { message: 'At least one task field is required' })
   .meta({ examples: [{ name: 'Ship authentication', done: true }] })
 export type patchTasksSchema = z.infer<typeof patchTasksSchema>

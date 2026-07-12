@@ -44,7 +44,9 @@ export const patchProfileSchema = z.object({
   sex: z.enum(sexEnum.enumValues).nullable(),
   birthDate: birthDateSchema,
   bio: z.string().trim().max(500).nullable()
-}).partial().meta({
+}).partial().refine(profile => Object.keys(profile).length > 0, {
+  message: 'At least one profile field is required'
+}).meta({
   examples: [{
     firstName: 'Alex',
     lastName: 'Morgan',

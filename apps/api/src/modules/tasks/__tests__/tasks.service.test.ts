@@ -52,4 +52,12 @@ describe('tasks.service', () => {
     expect(tasksRepository.insertOne).toHaveBeenCalledWith({ name: 'sample', done: false })
     expect(task).toEqual(sampleTask)
   })
+
+  it('calculates pagination metadata', async () => {
+    vi.mocked(tasksRepository.findMany).mockResolvedValue({ data: [sampleTask], total: 45 })
+    await expect(tasksService.listTasks(2, 20)).resolves.toEqual({
+      data: [sampleTask],
+      pagination: { page: 2, limit: 20, total: 45, totalPages: 3 }
+    })
+  })
 })

@@ -86,5 +86,8 @@ async function signOut() {
     <button :disabled="pending" type="button" @click="signOut">
       Logout
     </button>
+    <p v-if="logout.error.value" role="alert">
+      Could not log out.
+    </p>
   </main>
 </template>

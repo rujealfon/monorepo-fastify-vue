@@ -12,6 +12,7 @@ export const tasksRoutes: FastifyPluginAsync = async (fastify) => {
   const app = fastify.withTypeProvider<ZodTypeProvider>()
 
   app.get<{ Querystring: TasksPageQuery }>('/', {
+    onRequest: app.authenticate,
     schema: {
       tags: ['Tasks'],
       querystring: tasksPageQuerySchema,
@@ -19,7 +20,9 @@ export const tasksRoutes: FastifyPluginAsync = async (fastify) => {
     }
   }, handlers.list)
 
-  app.post('/', {
+  app.post<{ Body: insertTasksSchema }>('/', {
+    onRequest: app.authenticate,
+    preHandler: app.sameOrigin,
     schema: {
       tags: ['Tasks'],
       body: insertTasksSchema,
@@ -27,7 +30,8 @@ export const tasksRoutes: FastifyPluginAsync = async (fastify) => {
     }
   }, handlers.create)
 
-  app.get('/:id', {
+  app.get<{ Params: { id: number } }>('/:id', {
+    onRequest: app.authenticate,
     schema: {
       tags: ['Tasks'],
       params: paramsSchema,
@@ -35,7 +39,9 @@ export const tasksRoutes: FastifyPluginAsync = async (fastify) => {
     }
   }, handlers.getOne)
 
-  app.patch('/:id', {
+  app.patch<{ Params: { id: number }, Body: patchTasksSchema }>('/:id', {
+    onRequest: app.authenticate,
+    preHandler: app.sameOrigin,
     schema: {
       tags: ['Tasks'],
       params: paramsSchema,
@@ -45,7 +51,9 @@ export const tasksRoutes: FastifyPluginAsync = async (fastify) => {
   }, handlers.patch)
 
   // eslint-disable-next-line drizzle/enforce-delete-with-where -- this is a Fastify route, not a Drizzle query
-  app.delete('/:id', {
+  app.delete<{ Params: { id: number } }>('/:id', {
+    onRequest: app.authenticate,
+    preHandler: app.sameOrigin,
     schema: {
       tags: ['Tasks'],
       params: paramsSchema,

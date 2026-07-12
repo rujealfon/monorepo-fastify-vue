@@ -9,4 +9,8 @@ describe('user passwords', () => {
     await expect(verifyPassword(hash, 'correct horse battery staple')).resolves.toBe(true)
     await expect(verifyPassword(hash, 'wrong password')).resolves.toBe(false)
   })
+
+  it('verifies against a dummy hash instead of short-circuiting when no hash is given', async () => {
+    await expect(verifyPassword(undefined, 'anything')).resolves.toBe(false)
+  })
 })

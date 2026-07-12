@@ -20,13 +20,14 @@ export async function register(data: RegisterUser) {
     const cause = typeof error === 'object' && error && 'cause' in error ? error.cause : error
     if (typeof cause === 'object' && cause && 'code' in cause && cause.code === '23505')
       throw new EmailAlreadyExistsError()
-    throw new Error('Could not create account')
+    throw new Error('Could not create account', { cause: error })
   }
 }
 
 export async function login(data: LoginUser) {
   const user = await repository.findByEmail(data.email)
-  if (!user || !await verifyPassword(user.user.passwordHash, data.password))
+  const valid = await verifyPassword(user?.user.passwordHash, data.password)
+  if (!user || !valid)
     throw new UnauthorizedError()
   return publicUser(user)
 }

@@ -31,8 +31,8 @@ router.beforeEach(async (to) => {
     return
 
   const cache = useQueryCache()
-  const state = await cache.refresh(cache.ensure(sessionQuery))
-  if (state.status === 'error')
+  const state = await cache.refresh(cache.ensure(sessionQuery)).catch(() => null)
+  if (!state || state.status === 'error')
     return
 
   const user = state.data

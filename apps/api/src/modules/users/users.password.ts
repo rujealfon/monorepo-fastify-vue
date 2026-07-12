@@ -11,6 +11,8 @@ export function hashPassword(password: string) {
   return argon2.hash(password, options)
 }
 
-export function verifyPassword(hash: string, password: string) {
-  return argon2.verify(hash, password)
+const dummyHash = argon2.hash('correct horse battery staple placeholder', options)
+
+export async function verifyPassword(hash: string | undefined, password: string) {
+  return argon2.verify(hash ?? await dummyHash, password)
 }

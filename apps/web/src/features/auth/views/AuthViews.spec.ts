@@ -1,10 +1,11 @@
 import type { Component } from 'vue'
-import { PiniaColada } from '@pinia/colada'
+import { PiniaColada, useQueryCache } from '@pinia/colada'
 import { flushPromises, mount } from '@vue/test-utils'
 import { createPinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMemoryHistory, createRouter } from 'vue-router'
 
+import { SESSION_KEY } from '@/features/auth'
 import LoginView from './LoginView.vue'
 import RegisterView from './RegisterView.vue'
 
@@ -31,7 +32,8 @@ async function mountAt(component: Component, path: string) {
   })
   await router.push(path)
   await router.isReady()
-  return { router, wrapper: mount(component, { global: { plugins: [createPinia(), PiniaColada, router] } }) }
+  const pinia = createPinia()
+  return { pinia, router, wrapper: mount(component, { global: { plugins: [pinia, PiniaColada, router] } }) }
 }
 
 describe('authentication views', () => {
@@ -39,12 +41,13 @@ describe('authentication views', () => {
 
   it('logs in and honors only internal redirects', async () => {
     api.POST.mockResolvedValue({ data: user, response: { ok: true, status: 200 } })
-    const { router, wrapper } = await mountAt(LoginView, '/login?redirect=/tasks')
+    const { pinia, router, wrapper } = await mountAt(LoginView, '/login?redirect=/tasks')
     await wrapper.get('#login-email').setValue(user.email)
     await wrapper.get('#login-password').setValue('correct horse battery staple')
     await wrapper.get('form').trigger('submit')
     await flushPromises()
     expect(router.currentRoute.value.fullPath).toBe('/tasks')
+    expect(useQueryCache(pinia).getQueryData(SESSION_KEY)).toEqual(user)
 
     const unsafe = await mountAt(LoginView, '/login?redirect=//evil.example')
     await unsafe.wrapper.get('#login-email').setValue(user.email)
@@ -73,5 +76,17 @@ describe('authentication views', () => {
       body: { email: user.email, password: 'correct horse battery staple' }
     })
     expect(registration.router.currentRoute.value.fullPath).toBe('/profile')
+    expect(useQueryCache(registration.pinia).getQueryData(SESSION_KEY)).toEqual(user)
+  })
+
+  it('shows registration errors without redirecting', async () => {
+    api.POST.mockResolvedValue({ response: { ok: false, status: 409 } })
+    const registration = await mountAt(RegisterView, '/register')
+    await registration.wrapper.get('#register-email').setValue(user.email)
+    await registration.wrapper.get('#register-password').setValue('correct horse battery staple')
+    await registration.wrapper.get('form').trigger('submit')
+    await flushPromises()
+    expect(registration.wrapper.get('[role="alert"]').text()).toContain('Registration failed')
+    expect(registration.router.currentRoute.value.fullPath).toBe('/register')
   })
 })
