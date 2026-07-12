@@ -2,7 +2,6 @@
   "extends": "../../tsconfig.json",
   "compilerOptions": {
     "rootDir": "./src",
-    "customConditions": ["development"],
     "paths": { "#api/*": ["./src/*"] },
     "types": ["node"],
     "outDir": "./dist",
