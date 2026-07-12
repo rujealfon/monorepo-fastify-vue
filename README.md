@@ -182,6 +182,7 @@ Required environment variables:
 
 ```env
 DATABASE_URL=postgresql://USER:PASSWORD@HOST:5432/DATABASE?sslmode=require
+JWT_SECRET=replace-with-a-random-secret-of-at-least-32-characters
 NODE_ENV=production
 ```
 
@@ -213,6 +214,14 @@ No `VITE_API_BASE_URL` or CORS setting is needed because browser requests use th
 
 Use this only if you want independent deployments, domains, or scaling for API and web.
 
+Separate projects do not have to mean cross-origin browser requests. The recommended setup keeps `/api/*` on the web origin and proxies those requests to the separately deployed API:
+
+```text
+Browser -> https://app.example.com/api/* -> https://api-provider.example/*
+```
+
+Configure the web host with a rewrite or reverse proxy for `/api/*` and leave `VITE_API_BASE_URL` unset. The browser continues to use the existing HTTP-only, `SameSite=Strict` session cookie, while web and API remain independently deployable. Confirm that the proxy forwards `Cookie`, `Set-Cookie`, `Origin`, and the original host/protocol headers.
+
 API project settings:
 
 ```text
@@ -220,12 +229,14 @@ Root Directory: apps/api
 Build Command: pnpm build
 ```
 
+The current Vercel function entry is at the repository root for Option 1. Before using `apps/api` as an independent Vercel root, add an API-local function handler that creates the Fastify app with `buildApp()`, and route `/api/*` to it. Run committed Drizzle migrations as a separate deployment step against the API project's database.
+
 API environment variables:
 
 ```env
 DATABASE_URL=postgresql://USER:PASSWORD@HOST:5432/DATABASE?sslmode=require
+JWT_SECRET=replace-with-a-random-secret-of-at-least-32-characters
 NODE_ENV=production
-# CORS_ORIGIN=https://your-web-project.vercel.app
 ```
 
 Web project settings:
@@ -236,15 +247,29 @@ Build Command: pnpm build
 Output Directory: dist
 ```
 
-Web environment variables:
+No web environment variable is needed when `/api/*` is proxied through the web origin.
+
+#### Direct requests between unrelated domains
+
+If the browser must call the API domain directly, for example from `https://app.example.com` to `https://api.example.net`, set:
 
 ```env
+# Web project
 VITE_API_BASE_URL=https://your-api-project.vercel.app
+
+# API project
+CORS_ORIGIN=https://your-web-project.vercel.app
 ```
 
-Two-project deployment also needs two code/config differences from the current one-project default:
+This mode is not enabled by the current code. It requires all of these changes:
 
-- The web build must output to `apps/web/dist` instead of root `dist`.
-- The API must allow the web project's origin with CORS, because browser requests are no longer same-origin. `CORS_ORIGIN` is commented in the API env examples until that mode is needed.
+- Register `@fastify/cors` with the exact `CORS_ORIGIN` and `credentials: true`; never use `*` with credentials.
+- Create the API client with `credentials: 'include'`, otherwise cross-origin requests neither send cookies nor accept `Set-Cookie`.
+- Change the session cookie to `HttpOnly; Secure; SameSite=None; Path=/`. Do not set `Domain`; the cookie belongs to the API host.
+- Change the unsafe-request check to accept only the configured web `Origin`. A legitimate request is cross-site in this setup, so it cannot reject every `Sec-Fetch-Site: cross-site` request.
+- Serve both projects over HTTPS.
+- Build the web app to `apps/web/dist` instead of the root `dist`.
 
-For this repo, keep the one-project deployment unless you have a concrete reason to split them.
+Credentialed CORS only permits the request; it does not override browser privacy rules. Safari blocks third-party cookies by default, and other browsers or user settings may do the same. A cross-site HTTP-only cookie can therefore fail even when CORS and `SameSite=None` are configured correctly. See [MDN's credentialed CORS guidance](https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/CORS#credentialed_requests_and_wildcards) and [WebKit's tracking-prevention policy](https://webkit.org/tracking-prevention/).
+
+Prefer the same-origin proxy above unless direct cross-domain browser access is a firm requirement. If third-party cookies must work reliably across unrelated domains, add a backend-for-frontend on the web origin or move to an OAuth authorization-code flow instead of storing tokens in browser storage.

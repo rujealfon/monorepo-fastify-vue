@@ -4,6 +4,181 @@
  */
 
 export interface paths {
+    "/api/v1/auth/register": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    /**
+                     * @example {
+                     *       "email": "person@example.com",
+                     *       "password": "correct horse battery staple"
+                     *     }
+                     */
+                    "application/json": {
+                        /** Format: email */
+                        email: string;
+                        password: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** Format: uuid */
+                            id: string;
+                            email: string;
+                            /** Format: date-time */
+                            createdAt: string;
+                            /** Format: date-time */
+                            updatedAt: string;
+                            profile: {
+                                firstName: string | null;
+                                lastName: string | null;
+                                /** @enum {string|null} */
+                                sex: "male" | "female" | "intersex" | "prefer_not_to_say" | null;
+                                /** Format: date */
+                                birthDate: string | null;
+                                bio: string | null;
+                                /** Format: date-time */
+                                createdAt: string;
+                                /** Format: date-time */
+                                updatedAt: string;
+                            };
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    /**
+                     * @example {
+                     *       "email": "person@example.com",
+                     *       "password": "correct horse battery staple"
+                     *     }
+                     */
+                    "application/json": {
+                        /** Format: email */
+                        email: string;
+                        password: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** Format: uuid */
+                            id: string;
+                            email: string;
+                            /** Format: date-time */
+                            createdAt: string;
+                            /** Format: date-time */
+                            updatedAt: string;
+                            profile: {
+                                firstName: string | null;
+                                lastName: string | null;
+                                /** @enum {string|null} */
+                                sex: "male" | "female" | "intersex" | "prefer_not_to_say" | null;
+                                /** Format: date */
+                                birthDate: string | null;
+                                bio: string | null;
+                                /** Format: date-time */
+                                createdAt: string;
+                                /** Format: date-time */
+                                updatedAt: string;
+                            };
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/logout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": unknown;
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/health/live": {
         parameters: {
             query?: never;
@@ -42,7 +217,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/tasks/": {
+    "/api/v1/profile/": {
         parameters: {
             query?: never;
             header?: never;
@@ -65,14 +240,144 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            id: number;
-                            name: string;
-                            done: boolean;
+                            /** Format: uuid */
+                            id: string;
+                            email: string;
                             /** Format: date-time */
                             createdAt: string;
                             /** Format: date-time */
                             updatedAt: string;
-                        }[];
+                            profile: {
+                                firstName: string | null;
+                                lastName: string | null;
+                                /** @enum {string|null} */
+                                sex: "male" | "female" | "intersex" | "prefer_not_to_say" | null;
+                                /** Format: date */
+                                birthDate: string | null;
+                                bio: string | null;
+                                /** Format: date-time */
+                                createdAt: string;
+                                /** Format: date-time */
+                                updatedAt: string;
+                            };
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    /**
+                     * @example {
+                     *       "firstName": "Alex",
+                     *       "lastName": "Morgan",
+                     *       "sex": "prefer_not_to_say",
+                     *       "birthDate": "1990-05-20",
+                     *       "bio": "Building useful things with TypeScript."
+                     *     }
+                     */
+                    "application/json": {
+                        firstName?: string | null;
+                        lastName?: string | null;
+                        /** @enum {string|null} */
+                        sex?: "male" | "female" | "intersex" | "prefer_not_to_say" | null;
+                        /** Format: date */
+                        birthDate?: string | null;
+                        bio?: string | null;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** Format: uuid */
+                            id: string;
+                            email: string;
+                            /** Format: date-time */
+                            createdAt: string;
+                            /** Format: date-time */
+                            updatedAt: string;
+                            profile: {
+                                firstName: string | null;
+                                lastName: string | null;
+                                /** @enum {string|null} */
+                                sex: "male" | "female" | "intersex" | "prefer_not_to_say" | null;
+                                /** Format: date */
+                                birthDate: string | null;
+                                bio: string | null;
+                                /** Format: date-time */
+                                createdAt: string;
+                                /** Format: date-time */
+                                updatedAt: string;
+                            };
+                        };
+                    };
+                };
+            };
+        };
+        trace?: never;
+    };
+    "/api/v1/tasks/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    page?: number;
+                    limit?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data: {
+                                id: number;
+                                /** Format: uuid */
+                                userId: string;
+                                name: string;
+                                done: boolean;
+                                /** Format: date-time */
+                                createdAt: string;
+                                /** Format: date-time */
+                                updatedAt: string;
+                            }[];
+                            pagination: {
+                                page: number;
+                                limit: number;
+                                total: number;
+                                totalPages: number;
+                            };
+                        };
                     };
                 };
             };
@@ -87,6 +392,12 @@ export interface paths {
             };
             requestBody: {
                 content: {
+                    /**
+                     * @example {
+                     *       "name": "Ship authentication",
+                     *       "done": false
+                     *     }
+                     */
                     "application/json": {
                         name: string;
                         done?: boolean;
@@ -102,6 +413,8 @@ export interface paths {
                     content: {
                         "application/json": {
                             id: number;
+                            /** Format: uuid */
+                            userId: string;
                             name: string;
                             done: boolean;
                             /** Format: date-time */
@@ -145,6 +458,8 @@ export interface paths {
                     content: {
                         "application/json": {
                             id: number;
+                            /** Format: uuid */
+                            userId: string;
                             name: string;
                             done: boolean;
                             /** Format: date-time */
@@ -193,6 +508,12 @@ export interface paths {
             };
             requestBody: {
                 content: {
+                    /**
+                     * @example {
+                     *       "name": "Ship authentication",
+                     *       "done": true
+                     *     }
+                     */
                     "application/json": {
                         name?: string;
                         done?: boolean;
@@ -208,6 +529,8 @@ export interface paths {
                     content: {
                         "application/json": {
                             id: number;
+                            /** Format: uuid */
+                            userId: string;
                             name: string;
                             done: boolean;
                             /** Format: date-time */

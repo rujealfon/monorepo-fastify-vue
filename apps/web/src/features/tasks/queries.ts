@@ -3,13 +3,17 @@ import { defineQueryOptions } from '@pinia/colada'
 import { fail } from '@/features/tasks/tasks.utils'
 import { api } from '@/shared/api/client'
 
-export const TASK_KEYS = { root: ['tasks'] as const }
+export const TASK_KEYS = {
+  root: ['tasks'] as const,
+  page: (page: number) => [...TASK_KEYS.root, { page }] as const
+}
 
-export const tasksQuery = defineQueryOptions({
-  key: TASK_KEYS.root,
+export const tasksQuery = defineQueryOptions((page: number) => ({
+  key: TASK_KEYS.page(page),
   query: async () => {
-    const { data, response } = await api.GET('/api/v1/tasks/')
+    const { data, response } = await api.GET('/api/v1/tasks/', { params: { query: { page, limit: 20 } } })
     await fail(response)
-    return data ?? []
-  }
-})
+    return data
+  },
+  placeholderData: previous => previous
+}))

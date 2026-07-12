@@ -44,6 +44,7 @@ jobs:
         run: |
           cat <<'EOF' > apps/api/.env
           DATABASE_URL=postgresql://root:root@localhost:5432/fastify_vue_test
+          JWT_SECRET=test-secret-at-least-32-characters-long
           PORT=3000
           HOST=0.0.0.0
           NODE_ENV=test
@@ -56,6 +57,9 @@ jobs:
 
       - name: Lint
         run: pnpm lint
+
+      - name: Build
+        run: pnpm build
 
       - name: Check generated API client
         run: pnpm api-client:check

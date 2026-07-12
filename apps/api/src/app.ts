@@ -12,6 +12,7 @@ import {
 
 import { config } from './config/index.js'
 import { modules } from './modules/index.js'
+import authPlugin from './plugins/auth.js'
 import dbPlugin from './plugins/db.js'
 import errorHandlerPlugin from './plugins/error-handler.js'
 import securityPlugin from './plugins/security.js'
@@ -19,7 +20,11 @@ import sensiblePlugin from './plugins/sensible.js'
 
 export function buildApp(): FastifyInstance {
   const app = Fastify({
-    logger: { level: config.LOG_LEVEL }
+    logger: { level: config.LOG_LEVEL },
+    // Vercel's edge is the only reverse proxy in front of the API in production,
+    // so trust exactly one hop. Other environments (e.g. docker-compose) expose
+    // the API directly, so X-Forwarded-* headers must not be trusted there.
+    trustProxy: config.NODE_ENV === 'production' ? 1 : false
   })
 
   app.setValidatorCompiler(validatorCompiler)
@@ -27,6 +32,7 @@ export function buildApp(): FastifyInstance {
 
   app.register(sensiblePlugin)
   app.register(dbPlugin)
+  app.register(authPlugin)
   app.register(fastifyStatic, {
     root: new URL('../../../dist', import.meta.url)
   })
