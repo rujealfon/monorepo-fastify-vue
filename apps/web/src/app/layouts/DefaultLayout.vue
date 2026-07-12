@@ -1,101 +1,79 @@
 <script setup lang="ts">
-import { RouterLink, RouterView } from 'vue-router'
+import type { NavigationMenuItem } from '@nuxt/ui'
+import { useQuery } from '@pinia/colada'
+import { computed } from 'vue'
+import { RouterLink, RouterView, useRouter } from 'vue-router'
+
+import { sessionQuery, useAuthMutations } from '@/features/auth'
+
+const router = useRouter()
+const session = useQuery(sessionQuery)
+const { logout } = useAuthMutations()
+
+const links: NavigationMenuItem[] = [
+  { label: 'Home', to: '/', icon: 'i-lucide-house' },
+  { label: 'Tasks', to: '/tasks', icon: 'i-lucide-list-checks' },
+  { label: 'Health', to: '/health', icon: 'i-lucide-activity' },
+  { label: 'About', to: '/about', icon: 'i-lucide-info' }
+]
+
+async function signOut() {
+  try {
+    await logout.mutateAsync()
+    await router.push('/login')
+  }
+  catch {}
+}
+
+const userMenu = computed(() => [[
+  { label: session.data.value?.email ?? '', type: 'label' as const },
+  { label: 'Profile', icon: 'i-lucide-user', to: '/profile' }
+], [
+  { label: 'Logout', icon: 'i-lucide-log-out', onSelect: signOut }
+]])
 </script>
 
 <template>
-  <header>
-    <img alt="Vue logo" class="logo" src="@/assets/images/logo.svg" width="125" height="125">
+  <div class="min-h-dvh bg-default">
+    <UHeader :ui="{ root: 'border-b border-default' }">
+      <template #title>
+        <RouterLink to="/" class="flex items-center gap-2 font-semibold text-highlighted">
+          <UIcon name="i-lucide-check-check" class="size-6 text-primary" />
+          Task Manager
+        </RouterLink>
+      </template>
 
-    <div class="wrapper">
-      <nav>
-        <RouterLink to="/">
-          Home
-        </RouterLink>
-        <RouterLink to="/about">
-          About
-        </RouterLink>
-        <RouterLink to="/health">
-          Health
-        </RouterLink>
-        <RouterLink to="/tasks">
-          Tasks
-        </RouterLink>
-        <RouterLink to="/profile">
-          Profile
-        </RouterLink>
-        <RouterLink to="/login">
-          Login
-        </RouterLink>
-        <RouterLink to="/register">
-          Register
-        </RouterLink>
-      </nav>
-    </div>
-  </header>
+      <UNavigationMenu :items="links" variant="link" />
 
-  <RouterView />
+      <template #right>
+        <UColorModeButton />
+        <template v-if="session.data.value">
+          <UDropdownMenu :items="userMenu">
+            <UButton
+              color="neutral"
+              variant="ghost"
+              icon="i-lucide-user-circle"
+              :label="session.data.value.email"
+              class="max-w-48"
+              :ui="{ label: 'truncate' }"
+            />
+          </UDropdownMenu>
+        </template>
+        <template v-else>
+          <UButton to="/login" color="neutral" variant="ghost" label="Login" />
+          <UButton to="/register" color="primary" label="Register" />
+        </template>
+      </template>
+
+      <template #body>
+        <UNavigationMenu :items="links" orientation="vertical" class="-mx-2.5" />
+      </template>
+    </UHeader>
+
+    <UMain>
+      <UContainer class="py-10">
+        <RouterView />
+      </UContainer>
+    </UMain>
+  </div>
 </template>
-
-<style scoped>
-header {
-  line-height: 1.5;
-  max-height: 100vh;
-}
-
-.logo {
-  display: block;
-  margin: 0 auto 2rem;
-}
-
-nav {
-  width: 100%;
-  font-size: 12px;
-  text-align: center;
-  margin-top: 2rem;
-}
-
-nav a.router-link-exact-active {
-  color: var(--color-text);
-}
-
-nav a.router-link-exact-active:hover {
-  background-color: transparent;
-}
-
-nav a {
-  display: inline-block;
-  padding: 0 1rem;
-  border-left: 1px solid var(--color-border);
-}
-
-nav a:first-of-type {
-  border: 0;
-}
-
-@media (min-width: 1024px) {
-  header {
-    display: flex;
-    place-items: center;
-    padding-right: calc(var(--section-gap) / 2);
-  }
-
-  .logo {
-    margin: 0 2rem 0 0;
-  }
-
-  header .wrapper {
-    display: flex;
-    place-items: flex-start;
-    flex-wrap: wrap;
-  }
-
-  nav {
-    text-align: left;
-    margin-left: -1rem;
-    font-size: 1rem;
-
-    padding: 1rem 0;
-    margin-top: 1rem;
-  }
-}
-</style>

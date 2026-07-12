@@ -25,100 +25,83 @@ function create() {
 </script>
 
 <template>
-  <main class="tasks">
-    <h1>Tasks</h1>
+  <div class="mx-auto flex max-w-2xl flex-col gap-6">
+    <div>
+      <h1 class="text-2xl font-semibold text-highlighted">
+        Tasks
+      </h1>
+      <p class="text-muted">
+        Track and manage your tasks in one place.
+      </p>
+    </div>
 
-    <form class="create" @submit.prevent="create">
-      <input id="task-name" v-model="name" aria-label="New task" maxlength="500" required>
-      <button type="submit" :disabled="pending || !name.trim()">
-        Add
-      </button>
+    <form class="flex items-center gap-2" @submit.prevent="create">
+      <UInput
+        v-model="name"
+        aria-label="New task"
+        placeholder="What needs to be done?"
+        maxlength="500"
+        required
+        icon="i-lucide-plus"
+        class="flex-1"
+        size="lg"
+      />
+      <UButton type="submit" label="Add" size="lg" :disabled="pending || !name.trim()" />
     </form>
 
-    <p v-if="error" class="error">
-      {{ error.message }}
-    </p>
-    <p v-if="tasks.status.value === 'pending'">
-      Loading…
-    </p>
-    <p v-else-if="!tasks.data.value?.data.length">
-      No tasks yet.
-    </p>
-    <ul v-else>
-      <li v-for="task in tasks.data.value?.data" :key="task.id">
-        <div class="task-name">
-          <input
-            type="checkbox"
-            :aria-label="`${task.done ? 'Reopen' : 'Complete'} ${task.name}`"
-            :checked="task.done"
-            :disabled="pending"
-            @change="updateMutation.mutate({ id: task.id, done: !task.done })"
-          >
-          <span :class="{ done: task.done }">{{ task.name }}</span>
-        </div>
-        <button type="button" :disabled="pending" @click="deleteMutation.mutate(task.id)">
-          Delete
-        </button>
+    <UAlert
+      v-if="error"
+      color="error"
+      variant="subtle"
+      icon="i-lucide-triangle-alert"
+      :title="error.message"
+    />
+
+    <div v-if="tasks.status.value === 'pending'" class="flex flex-col gap-2">
+      <USkeleton v-for="i in 4" :key="i" class="h-14 w-full" />
+    </div>
+
+    <UEmpty
+      v-else-if="!tasks.data.value?.data.length"
+      icon="i-lucide-list-checks"
+      title="No tasks yet"
+      description="Add your first task above to get started."
+    />
+
+    <ul v-else class="flex flex-col gap-2">
+      <li
+        v-for="task in tasks.data.value?.data"
+        :key="task.id"
+        class="flex items-center gap-3 rounded-lg border border-default bg-elevated/50 px-4 py-3"
+      >
+        <UCheckbox
+          :aria-label="`${task.done ? 'Reopen' : 'Complete'} ${task.name}`"
+          :model-value="task.done"
+          :disabled="pending"
+          @update:model-value="updateMutation.mutate({ id: task.id, done: !task.done })"
+        />
+        <span
+          class="flex-1 truncate"
+          :class="task.done ? 'text-dimmed line-through' : 'text-default'"
+        >{{ task.name }}</span>
+        <UButton
+          :aria-label="`Delete ${task.name}`"
+          icon="i-lucide-trash-2"
+          color="error"
+          variant="ghost"
+          size="sm"
+          :disabled="pending"
+          @click="deleteMutation.mutate(task.id)"
+        />
       </li>
     </ul>
-    <nav v-if="tasks.data.value?.pagination.totalPages" aria-label="Task pages">
-      <button type="button" :disabled="page === 1" @click="page--">
-        Previous
-      </button>
-      <span>Page {{ page }} of {{ tasks.data.value.pagination.totalPages }}</span>
-      <button type="button" :disabled="page >= tasks.data.value.pagination.totalPages" @click="page++">
-        Next
-      </button>
-    </nav>
-  </main>
+
+    <div v-if="tasks.data.value?.pagination.totalPages" class="flex justify-center">
+      <UPagination
+        v-model:page="page"
+        :total="tasks.data.value.pagination.totalPages * 20"
+        :items-per-page="20"
+      />
+    </div>
+  </div>
 </template>
-
-<style scoped>
-.tasks {
-  display: grid;
-  gap: 1rem;
-}
-
-.create,
-li,
-nav {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.create input {
-  min-width: 0;
-  flex: 1;
-}
-
-ul {
-  display: grid;
-  gap: 0.75rem;
-  padding: 0;
-  list-style: none;
-}
-
-li {
-  justify-content: space-between;
-}
-
-.task-name {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.done {
-  text-decoration: line-through;
-}
-
-.error {
-  color: #c2410c;
-}
-
-button,
-input {
-  padding: 0.5rem 0.75rem;
-}
-</style>
