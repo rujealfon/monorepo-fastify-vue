@@ -20,7 +20,8 @@ import sensiblePlugin from './plugins/sensible.js'
 
 export function buildApp(): FastifyInstance {
   const app = Fastify({
-    logger: { level: config.LOG_LEVEL }
+    logger: { level: config.LOG_LEVEL },
+    trustProxy: true
   })
 
   app.setValidatorCompiler(validatorCompiler)
