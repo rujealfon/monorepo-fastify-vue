@@ -362,6 +362,8 @@ export interface paths {
                         "application/json": {
                             data: {
                                 id: number;
+                                /** Format: uuid */
+                                userId: string;
                                 name: string;
                                 done: boolean;
                                 /** Format: date-time */
@@ -411,6 +413,8 @@ export interface paths {
                     content: {
                         "application/json": {
                             id: number;
+                            /** Format: uuid */
+                            userId: string;
                             name: string;
                             done: boolean;
                             /** Format: date-time */
@@ -454,6 +458,8 @@ export interface paths {
                     content: {
                         "application/json": {
                             id: number;
+                            /** Format: uuid */
+                            userId: string;
                             name: string;
                             done: boolean;
                             /** Format: date-time */
@@ -523,6 +529,8 @@ export interface paths {
                     content: {
                         "application/json": {
                             id: number;
+                            /** Format: uuid */
+                            userId: string;
                             name: string;
                             done: boolean;
                             /** Format: date-time */
