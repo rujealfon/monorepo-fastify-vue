@@ -1,19 +1,21 @@
 import type { FastifyPluginAsync } from 'fastify'
 import type { ZodTypeProvider } from 'fastify-type-provider-zod'
-import { z } from 'zod'
+import type { TasksPageQuery } from './tasks.schema.js'
 
+import { z } from 'zod'
 import * as handlers from './tasks.handlers.js'
-import { insertTasksSchema, patchTasksSchema, selectTasksSchema } from './tasks.schema.js'
+import { insertTasksSchema, patchTasksSchema, selectTasksSchema, tasksPageQuerySchema, tasksPageSchema } from './tasks.schema.js'
 
 const paramsSchema = z.object({ id: z.coerce.number().int().positive() })
 
 export const tasksRoutes: FastifyPluginAsync = async (fastify) => {
   const app = fastify.withTypeProvider<ZodTypeProvider>()
 
-  app.get('/', {
+  app.get<{ Querystring: TasksPageQuery }>('/', {
     schema: {
       tags: ['Tasks'],
-      response: { 200: z.array(selectTasksSchema) }
+      querystring: tasksPageQuerySchema,
+      response: { 200: tasksPageSchema }
     }
   }, handlers.list)
 

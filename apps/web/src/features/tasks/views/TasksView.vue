@@ -6,7 +6,8 @@ import { useTaskMutations } from '@/features/tasks/mutations'
 import { tasksQuery } from '@/features/tasks/queries'
 
 const name = ref('')
-const tasks = useQuery(tasksQuery)
+const page = ref(1)
+const tasks = useQuery(() => tasksQuery(page.value))
 const { create: createMutation, update: updateMutation, remove: deleteMutation } = useTaskMutations(() => name.value = '')
 
 const pending = computed(() => [createMutation, updateMutation, deleteMutation]
@@ -40,11 +41,11 @@ function create() {
     <p v-if="tasks.status.value === 'pending'">
       Loading…
     </p>
-    <p v-else-if="!tasks.data.value?.length">
+    <p v-else-if="!tasks.data.value?.data.length">
       No tasks yet.
     </p>
     <ul v-else>
-      <li v-for="task in tasks.data.value" :key="task.id">
+      <li v-for="task in tasks.data.value?.data" :key="task.id">
         <div class="task-name">
           <input
             type="checkbox"
@@ -60,6 +61,15 @@ function create() {
         </button>
       </li>
     </ul>
+    <nav v-if="tasks.data.value?.pagination.totalPages" aria-label="Task pages">
+      <button type="button" :disabled="page === 1" @click="page--">
+        Previous
+      </button>
+      <span>Page {{ page }} of {{ tasks.data.value.pagination.totalPages }}</span>
+      <button type="button" :disabled="page >= tasks.data.value.pagination.totalPages" @click="page++">
+        Next
+      </button>
+    </nav>
   </main>
 </template>
 
@@ -70,7 +80,8 @@ function create() {
 }
 
 .create,
-li {
+li,
+nav {
   display: flex;
   align-items: center;
   gap: 0.75rem;

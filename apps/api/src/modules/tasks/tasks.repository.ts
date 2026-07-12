@@ -1,11 +1,15 @@
 import type { insertTasksSchema, patchTasksSchema } from './tasks.schema.js'
 
-import { eq } from 'drizzle-orm'
+import { asc, count, eq } from 'drizzle-orm'
 import { db } from '#api/db/index.js'
 import { tasks } from './tasks.schema.js'
 
-export function findMany() {
-  return db.select().from(tasks)
+export async function findMany(page: number, limit: number) {
+  const [data, [{ total }]] = await Promise.all([
+    db.select().from(tasks).orderBy(asc(tasks.id)).limit(limit).offset((page - 1) * limit),
+    db.select({ total: count() }).from(tasks)
+  ])
+  return { data, total }
 }
 
 export function findById(id: number) {

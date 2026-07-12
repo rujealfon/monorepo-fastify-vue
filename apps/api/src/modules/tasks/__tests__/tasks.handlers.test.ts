@@ -30,7 +30,10 @@ describe('tasks routes', () => {
 
     const listResponse = await app.inject({ method: 'GET', url: '/api/v1/tasks' })
     expect(listResponse.statusCode).toBe(200)
-    expect(listResponse.json()).toHaveLength(1)
+    expect(listResponse.json()).toMatchObject({
+      data: [{ id: created.id }],
+      pagination: { page: 1, limit: 20, total: 1, totalPages: 1 }
+    })
 
     const getResponse = await app.inject({ method: 'GET', url: `/api/v1/tasks/${created.id}` })
     expect(getResponse.statusCode).toBe(200)
@@ -59,6 +62,11 @@ describe('tasks routes', () => {
       url: '/api/v1/tasks',
       payload: { name: '', done: false }
     })
+    expect(response.statusCode).toBe(422)
+  })
+
+  it('returns 422 for invalid pagination', async () => {
+    const response = await app.inject({ method: 'GET', url: '/api/v1/tasks?page=0&limit=101' })
     expect(response.statusCode).toBe(422)
   })
 })

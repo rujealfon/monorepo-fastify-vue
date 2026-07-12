@@ -13,11 +13,29 @@ export const tasks = pgTable('tasks', {
 export const selectTasksSchema = createSelectSchema(tasks)
 export type selectTasksSchema = z.infer<typeof selectTasksSchema>
 
+export const tasksPageQuerySchema = z.object({
+  page: z.coerce.number().int().positive().default(1),
+  limit: z.coerce.number().int().positive().max(100).default(20)
+}).meta({ examples: [{ page: 1, limit: 20 }] })
+export type TasksPageQuery = z.infer<typeof tasksPageQuerySchema>
+
+export const tasksPageSchema = z.object({
+  data: z.array(selectTasksSchema),
+  pagination: z.object({
+    page: z.number().int().positive(),
+    limit: z.number().int().positive(),
+    total: z.number().int().nonnegative(),
+    totalPages: z.number().int().nonnegative()
+  })
+})
+
 export const insertTasksSchema = z.object({
   name: z.string().min(1).max(500),
   done: z.boolean().optional()
-})
+}).meta({ examples: [{ name: 'Ship authentication', done: false }] })
 export type insertTasksSchema = z.infer<typeof insertTasksSchema>
 
-export const patchTasksSchema = insertTasksSchema.partial()
+export const patchTasksSchema = insertTasksSchema
+  .partial()
+  .meta({ examples: [{ name: 'Ship authentication', done: true }] })
 export type patchTasksSchema = z.infer<typeof patchTasksSchema>

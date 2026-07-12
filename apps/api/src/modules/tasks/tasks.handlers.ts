@@ -1,10 +1,10 @@
 import type { FastifyReply, FastifyRequest } from 'fastify'
 
-import type { insertTasksSchema, patchTasksSchema } from './tasks.schema.js'
+import type { insertTasksSchema, patchTasksSchema, TasksPageQuery } from './tasks.schema.js'
 import * as tasksService from './tasks.service.js'
 
-export async function list() {
-  return tasksService.listTasks()
+export async function list(request: FastifyRequest<{ Querystring: TasksPageQuery }>) {
+  return tasksService.listTasks(request.query.page, request.query.limit)
 }
 
 export async function create(

@@ -23,8 +23,10 @@ describe('tasks.repository', () => {
   })
 
   it('lists all tasks', async () => {
-    const tasks = await tasksRepository.findMany()
-    expect(tasks.length).toBeGreaterThan(0)
+    await tasksRepository.insertOne({ name: 'second task', done: false })
+    const { data, total } = await tasksRepository.findMany(1, 1)
+    expect(data).toHaveLength(1)
+    expect(total).toBeGreaterThanOrEqual(2)
   })
 
   it('updates a task', async () => {

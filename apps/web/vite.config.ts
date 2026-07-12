@@ -23,7 +23,10 @@ export default defineConfig({
   server: {
     proxy: {
       // Development stays same-origin; Vite forwards API calls to the API container.
-      '/api': process.env.API_PROXY_URL ?? 'http://localhost:3000'
+      '/api': {
+        target: process.env.API_PROXY_URL ?? 'http://localhost:3000',
+        changeOrigin: false
+      }
     }
   }
 })

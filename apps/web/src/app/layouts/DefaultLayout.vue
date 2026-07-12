@@ -20,6 +20,15 @@ import { RouterLink, RouterView } from 'vue-router'
         <RouterLink to="/tasks">
           Tasks
         </RouterLink>
+        <RouterLink to="/profile">
+          Profile
+        </RouterLink>
+        <RouterLink to="/login">
+          Login
+        </RouterLink>
+        <RouterLink to="/register">
+          Register
+        </RouterLink>
       </nav>
     </div>
   </header>

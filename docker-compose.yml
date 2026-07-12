@@ -36,6 +36,8 @@ services:
       dockerfile: apps/api/Dockerfile
       target: development
     restart: unless-stopped
+    env_file:
+      - ./apps/api/.env
     environment:
       DATABASE_URL: postgresql://root:root@postgres:5432/fastify_vue
       PORT: 3000

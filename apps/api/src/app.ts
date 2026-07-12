@@ -12,6 +12,7 @@ import {
 
 import { config } from './config/index.js'
 import { modules } from './modules/index.js'
+import authPlugin from './plugins/auth.js'
 import dbPlugin from './plugins/db.js'
 import errorHandlerPlugin from './plugins/error-handler.js'
 import securityPlugin from './plugins/security.js'
@@ -27,6 +28,7 @@ export function buildApp(): FastifyInstance {
 
   app.register(sensiblePlugin)
   app.register(dbPlugin)
+  app.register(authPlugin)
   app.register(fastifyStatic, {
     root: new URL('../../../dist', import.meta.url)
   })

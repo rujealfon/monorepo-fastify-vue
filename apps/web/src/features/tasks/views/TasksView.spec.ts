@@ -19,7 +19,10 @@ describe('tasksView', () => {
     vi.clearAllMocks()
     const response = { ok: true, status: 200 }
     api.GET.mockResolvedValue({
-      data: [{ id: 1, name: 'Ship CRUD', done: false, createdAt: '', updatedAt: '' }],
+      data: {
+        data: [{ id: 1, name: 'Ship CRUD', done: false, createdAt: '', updatedAt: '' }],
+        pagination: { page: 1, limit: 20, total: 21, totalPages: 2 }
+      },
       response
     })
     api.POST.mockResolvedValue({ response })
@@ -34,6 +37,18 @@ describe('tasksView', () => {
     await flushPromises()
 
     expect(wrapper.text()).toContain('Ship CRUD')
+    expect(api.GET).toHaveBeenCalledWith('/api/v1/tasks/', { params: { query: { page: 1, limit: 20 } } })
+
+    api.GET.mockResolvedValueOnce({
+      data: {
+        data: [{ id: 1, name: 'Ship CRUD', done: false, createdAt: '', updatedAt: '' }],
+        pagination: { page: 2, limit: 20, total: 21, totalPages: 2 }
+      },
+      response: { ok: true, status: 200 }
+    })
+    await wrapper.get('nav button:last-child').trigger('click')
+    await flushPromises()
+    expect(api.GET).toHaveBeenCalledWith('/api/v1/tasks/', { params: { query: { page: 2, limit: 20 } } })
 
     await wrapper.get('#task-name').setValue('New task')
     await wrapper.get('form').trigger('submit')
