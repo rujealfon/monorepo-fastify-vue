@@ -98,7 +98,7 @@ describe('user routes', () => {
 
     const logout = await app.inject({ method: 'POST', url: '/api/v1/auth/logout', headers: { cookie: sessionCookie } })
     expect(logout.statusCode).toBe(204)
-    expect(logout.headers['set-cookie']).toEqual(expect.stringContaining('Max-Age=0'))
+    expect(logout.headers['set-cookie']).toEqual(expect.stringContaining('Expires=Thu, 01 Jan 1970'))
   })
 
   it('maps duplicate races and invalid credentials to stable errors', async () => {
