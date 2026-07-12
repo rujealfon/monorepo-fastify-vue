@@ -27,6 +27,15 @@ describe('tasks routes', () => {
     auth = { cookie: cookie(registration) }
   })
 
+  async function registerAnotherUser() {
+    const registration = await app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/register',
+      payload: { email: 'tasks-intruder@example.com', password: 'correct horse battery staple' }
+    })
+    return { cookie: cookie(registration) }
+  }
+
   afterAll(async () => {
     await app.close()
   })
@@ -117,5 +126,31 @@ describe('tasks routes', () => {
       data: [],
       pagination: { page: 99, limit: 1, total: 3, totalPages: 3 }
     })
+  })
+
+  it('does not expose one user\'s tasks to another user', async () => {
+    const createResponse = await app.inject({
+      method: 'POST',
+      url: '/api/v1/tasks',
+      headers: auth,
+      payload: { name: 'owner-only task' }
+    })
+    const ownerTask = createResponse.json()
+
+    const intruder = await registerAnotherUser()
+
+    const listResponse = await app.inject({ method: 'GET', url: '/api/v1/tasks', headers: intruder })
+    expect(listResponse.json().data.some((task: { id: number }) => task.id === ownerTask.id)).toBe(false)
+
+    const responses = await Promise.all([
+      app.inject({ method: 'GET', url: `/api/v1/tasks/${ownerTask.id}`, headers: intruder }),
+      app.inject({ method: 'PATCH', url: `/api/v1/tasks/${ownerTask.id}`, headers: intruder, payload: { done: true } }),
+      app.inject({ method: 'DELETE', url: `/api/v1/tasks/${ownerTask.id}`, headers: intruder })
+    ])
+    expect(responses.map(response => response.statusCode)).toEqual([404, 404, 404])
+
+    const stillThere = await app.inject({ method: 'GET', url: `/api/v1/tasks/${ownerTask.id}`, headers: auth })
+    expect(stillThere.statusCode).toBe(200)
+    expect(stillThere.json().done).toBe(false)
   })
 })
