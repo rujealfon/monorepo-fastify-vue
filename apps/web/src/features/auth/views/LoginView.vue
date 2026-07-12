@@ -35,6 +35,7 @@ async function submit() {
     <UForm :state="state" class="space-y-4" @submit="submit">
       <UFormField name="email" label="Email" required>
         <UInput
+          id="login-email"
           v-model="state.email"
           type="email"
           autocomplete="email"
@@ -47,6 +48,7 @@ async function submit() {
 
       <UFormField name="password" label="Password" required>
         <UInput
+          id="login-password"
           v-model="state.password"
           type="password"
           autocomplete="current-password"

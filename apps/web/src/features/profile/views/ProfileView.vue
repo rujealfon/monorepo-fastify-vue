@@ -8,21 +8,13 @@ import { sessionQuery, useAuthMutations } from '@/features/auth'
 
 import { useProfileMutation } from '@/features/profile/mutations'
 
-const sexOptions = [
-  { label: 'Not specified', value: '' },
-  { label: 'Female', value: 'female' },
-  { label: 'Male', value: 'male' },
-  { label: 'Intersex', value: 'intersex' },
-  { label: 'Prefer not to say', value: 'prefer_not_to_say' }
-]
-
 const router = useRouter()
 const session = useQuery(sessionQuery)
 const update = useProfileMutation()
 const { logout } = useAuthMutations()
 const firstName = ref('')
 const lastName = ref('')
-const sex = ref<NonNullable<UpdateProfile['sex']> | ''>('')
+const gender = ref<NonNullable<UpdateProfile['gender']> | ''>('')
 const birthDate = ref('')
 const bio = ref('')
 const pending = computed(() => update.asyncStatus.value === 'loading' || logout.asyncStatus.value === 'loading')
@@ -31,7 +23,7 @@ watchEffect(() => {
   const profile = session.data.value?.profile
   firstName.value = profile?.firstName ?? ''
   lastName.value = profile?.lastName ?? ''
-  sex.value = profile?.sex ?? ''
+  gender.value = profile?.gender ?? ''
   birthDate.value = profile?.birthDate ?? ''
   bio.value = profile?.bio ?? ''
 })
@@ -41,7 +33,7 @@ async function save() {
     await update.mutateAsync({
       firstName: firstName.value.trim() || null,
       lastName: lastName.value.trim() || null,
-      sex: sex.value || null,
+      gender: gender.value || null,
       birthDate: birthDate.value || null,
       bio: bio.value.trim() || null
     })
@@ -75,19 +67,42 @@ async function signOut() {
     <UCard :ui="{ body: 'space-y-4' }">
       <form class="grid grid-cols-1 gap-4 sm:grid-cols-2" @submit.prevent="save">
         <UFormField label="First name" class="w-full">
-          <UInput v-model="firstName" autocomplete="given-name" maxlength="100" class="w-full" />
+          <UInput id="profile-first-name" v-model="firstName" autocomplete="given-name" maxlength="100" class="w-full" />
         </UFormField>
         <UFormField label="Last name" class="w-full">
-          <UInput v-model="lastName" autocomplete="family-name" maxlength="100" class="w-full" />
+          <UInput id="profile-last-name" v-model="lastName" autocomplete="family-name" maxlength="100" class="w-full" />
         </UFormField>
-        <UFormField label="Sex" class="w-full">
-          <USelect v-model="sex" :items="sexOptions" value-key="value" class="w-full" />
-        </UFormField>
+        <div class="w-full text-sm">
+          <label for="profile-gender" class="block font-medium text-default">
+            Gender
+            <select
+              id="profile-gender"
+              v-model="gender"
+              class="mt-1 block w-full rounded-md border-0 bg-default px-2.5 py-1.5 text-sm font-normal text-highlighted ring ring-inset ring-accented focus-visible:outline-2 focus-visible:outline-primary"
+            >
+              <option value="">
+                Not specified
+              </option>
+              <option value="female">
+                Female
+              </option>
+              <option value="male">
+                Male
+              </option>
+              <option value="intersex">
+                Intersex
+              </option>
+              <option value="prefer_not_to_say">
+                Prefer not to say
+              </option>
+            </select>
+          </label>
+        </div>
         <UFormField label="Birth date" class="w-full">
-          <UInput v-model="birthDate" type="date" class="w-full" />
+          <UInput id="profile-birth-date" v-model="birthDate" type="date" class="w-full" />
         </UFormField>
         <UFormField label="Bio" class="col-span-full">
-          <UTextarea v-model="bio" maxlength="500" :rows="3" autoresize class="w-full" />
+          <UTextarea id="profile-bio" v-model="bio" maxlength="500" :rows="3" autoresize class="w-full" />
         </UFormField>
 
         <UAlert

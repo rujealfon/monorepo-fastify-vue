@@ -27,7 +27,8 @@
     "docker:start": "docker compose start",
     "docker:stop": "docker compose stop",
     "docker:restart": "docker compose restart",
-    "docker:rebuild": "docker compose up --build -d",
+    "docker:rebuild": "docker compose up --build -d web api",
+    "docker:rebuild:all": "docker compose up --build -d",
     "docker:db:migrate": "docker compose exec api pnpm --filter @monorepo-fastify-vue/api db:migrate"
   },
   "devDependencies": {

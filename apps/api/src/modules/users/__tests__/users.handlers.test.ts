@@ -33,7 +33,7 @@ describe('user routes', () => {
     expect(registration.statusCode).toBe(201)
     expect(registration.json()).toMatchObject({
       email: 'person@example.com',
-      profile: { firstName: null, lastName: null, sex: null, birthDate: null, bio: null }
+      profile: { firstName: null, lastName: null, gender: null, birthDate: null, bio: null }
     })
     expect(registration.body).not.toContain('passwordHash')
     expect(registration.headers['set-cookie']).toEqual(expect.stringContaining('HttpOnly'))
@@ -67,7 +67,7 @@ describe('user routes', () => {
       payload: {
         firstName: '  Updated  ',
         lastName: '  Person  ',
-        sex: 'prefer_not_to_say',
+        gender: 'prefer_not_to_say',
         birthDate: '1990-05-20',
         bio: '  Hello  '
       }
@@ -75,7 +75,7 @@ describe('user routes', () => {
     expect(updated.json().profile).toMatchObject({
       firstName: 'Updated',
       lastName: 'Person',
-      sex: 'prefer_not_to_say',
+      gender: 'prefer_not_to_say',
       birthDate: '1990-05-20',
       bio: 'Hello'
     })

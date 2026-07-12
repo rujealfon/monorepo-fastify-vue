@@ -35,7 +35,7 @@ describe('authentication router guard', () => {
     cache.setQueryData(SESSION_KEY, {
       id: '1',
       email: 'person@example.com',
-      profile: { firstName: null, lastName: null, sex: null, birthDate: null, bio: null, createdAt: '', updatedAt: '' },
+      profile: { firstName: null, lastName: null, gender: null, birthDate: null, bio: null, createdAt: '', updatedAt: '' },
       createdAt: '',
       updatedAt: ''
     })

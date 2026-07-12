@@ -14,7 +14,7 @@ describe('profile view', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     const response = { ok: true, status: 200 }
-    const profile = { firstName: 'Person', lastName: null, sex: null, birthDate: null, bio: null, createdAt: '', updatedAt: '' }
+    const profile = { firstName: 'Person', lastName: null, gender: null, birthDate: null, bio: null, createdAt: '', updatedAt: '' }
     api.GET.mockResolvedValue({ data: { id: '1', email: 'person@example.com', profile, createdAt: '', updatedAt: '' }, response })
     api.PATCH.mockResolvedValue({ data: { id: '1', email: 'person@example.com', profile: { ...profile, firstName: 'Updated' }, createdAt: '', updatedAt: '' }, response })
     api.POST.mockResolvedValue({ response: { ok: true, status: 204 } })
@@ -35,7 +35,7 @@ describe('profile view', () => {
 
     await wrapper.get('#profile-first-name').setValue('Updated')
     await wrapper.get('#profile-last-name').setValue('Person')
-    await wrapper.get('#profile-sex').setValue('prefer_not_to_say')
+    await wrapper.get('#profile-gender').setValue('prefer_not_to_say')
     await wrapper.get('#profile-birth-date').setValue('1990-05-20')
     await wrapper.get('#profile-bio').setValue('Hello')
     await wrapper.get('form').trigger('submit')
@@ -44,7 +44,7 @@ describe('profile view', () => {
       body: {
         firstName: 'Updated',
         lastName: 'Person',
-        sex: 'prefer_not_to_say',
+        gender: 'prefer_not_to_say',
         birthDate: '1990-05-20',
         bio: 'Hello'
       }

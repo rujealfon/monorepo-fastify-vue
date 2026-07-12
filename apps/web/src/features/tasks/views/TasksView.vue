@@ -37,6 +37,7 @@ function create() {
 
     <form class="flex items-center gap-2" @submit.prevent="create">
       <UInput
+        id="task-name"
         v-model="name"
         aria-label="New task"
         placeholder="What needs to be done?"

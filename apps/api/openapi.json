@@ -84,7 +84,7 @@
                           "minLength": 1,
                           "maxLength": 100
                         },
-                        "sex": {
+                        "gender": {
                           "nullable": true,
                           "type": "string",
                           "enum": [
@@ -117,7 +117,7 @@
                       "required": [
                         "firstName",
                         "lastName",
-                        "sex",
+                        "gender",
                         "birthDate",
                         "bio",
                         "createdAt",
@@ -217,7 +217,7 @@
                           "minLength": 1,
                           "maxLength": 100
                         },
-                        "sex": {
+                        "gender": {
                           "nullable": true,
                           "type": "string",
                           "enum": [
@@ -250,7 +250,7 @@
                       "required": [
                         "firstName",
                         "lastName",
-                        "sex",
+                        "gender",
                         "birthDate",
                         "bio",
                         "createdAt",
@@ -367,7 +367,7 @@
                           "minLength": 1,
                           "maxLength": 100
                         },
-                        "sex": {
+                        "gender": {
                           "nullable": true,
                           "type": "string",
                           "enum": [
@@ -400,7 +400,7 @@
                       "required": [
                         "firstName",
                         "lastName",
-                        "sex",
+                        "gender",
                         "birthDate",
                         "bio",
                         "createdAt",
@@ -446,7 +446,7 @@
                     "minLength": 1,
                     "maxLength": 100
                   },
-                  "sex": {
+                  "gender": {
                     "nullable": true,
                     "type": "string",
                     "enum": [
@@ -472,7 +472,7 @@
               "example": {
                 "firstName": "Alex",
                 "lastName": "Morgan",
-                "sex": "prefer_not_to_say",
+                "gender": "prefer_not_to_say",
                 "birthDate": "1990-05-20",
                 "bio": "Building useful things with TypeScript."
               }
@@ -519,7 +519,7 @@
                           "minLength": 1,
                           "maxLength": 100
                         },
-                        "sex": {
+                        "gender": {
                           "nullable": true,
                           "type": "string",
                           "enum": [
@@ -552,7 +552,7 @@
                       "required": [
                         "firstName",
                         "lastName",
-                        "sex",
+                        "gender",
                         "birthDate",
                         "bio",
                         "createdAt",
