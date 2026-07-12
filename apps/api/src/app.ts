@@ -21,7 +21,10 @@ import sensiblePlugin from './plugins/sensible.js'
 export function buildApp(): FastifyInstance {
   const app = Fastify({
     logger: { level: config.LOG_LEVEL },
-    trustProxy: true
+    // Vercel's edge is the only reverse proxy in front of the API in production,
+    // so trust exactly one hop. Other environments (e.g. docker-compose) expose
+    // the API directly, so X-Forwarded-* headers must not be trusted there.
+    trustProxy: config.NODE_ENV === 'production' ? 1 : false
   })
 
   app.setValidatorCompiler(validatorCompiler)

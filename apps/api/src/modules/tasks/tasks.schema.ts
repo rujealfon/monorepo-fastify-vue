@@ -1,4 +1,4 @@
-import { boolean, pgTable, serial, text, timestamp, uuid } from 'drizzle-orm/pg-core'
+import { boolean, index, pgTable, serial, text, timestamp, uuid } from 'drizzle-orm/pg-core'
 import { createSelectSchema } from 'drizzle-zod'
 import { z } from 'zod'
 
@@ -11,7 +11,9 @@ export const tasks = pgTable('tasks', {
   done: boolean('done').notNull().default(false),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date())
-})
+}, table => [
+  index('tasks_user_id_idx').on(table.userId)
+])
 
 export const selectTasksSchema = createSelectSchema(tasks)
 export type selectTasksSchema = z.infer<typeof selectTasksSchema>
