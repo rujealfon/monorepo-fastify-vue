@@ -11,18 +11,27 @@ export function useTaskMutations(onCreate?: () => void) {
 
   return {
     create: useMutation({
-      mutation: async (body: CreateTask) => fail((await api.POST('/api/v1/tasks/', { body })).response),
+      mutation: async (body: CreateTask) => {
+        const { error, response } = await api.POST('/api/v1/tasks/', { body })
+        return fail(response, error)
+      },
       onSuccess: () => {
         onCreate?.()
         return refresh()
       }
     }),
     update: useMutation({
-      mutation: async ({ id, ...body }: UpdateTask & { id: TaskId }) => fail((await api.PATCH('/api/v1/tasks/{id}', { params: { path: { id } }, body })).response),
+      mutation: async ({ id, ...body }: UpdateTask & { id: TaskId }) => {
+        const { error, response } = await api.PATCH('/api/v1/tasks/{id}', { params: { path: { id } }, body })
+        return fail(response, error)
+      },
       onSuccess: refresh
     }),
     remove: useMutation({
-      mutation: async (id: TaskId) => fail((await api.DELETE('/api/v1/tasks/{id}', { params: { path: { id } } })).response),
+      mutation: async (id: TaskId) => {
+        const { error, response } = await api.DELETE('/api/v1/tasks/{id}', { params: { path: { id } } })
+        return fail(response, error)
+      },
       onSuccess: refresh
     })
   }

@@ -1,11 +1,13 @@
 <script setup lang="ts">
-import { reactive } from 'vue'
+import { reactive, useTemplateRef } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import { internalRedirect } from '@/features/auth/auth.utils'
 import { useAuthMutations } from '@/features/auth/mutations'
+import { apiFormErrors } from '@/shared/api/form-errors'
 
 const state = reactive({ email: '', password: '' })
+const form = useTemplateRef('form')
 const route = useRoute()
 const router = useRouter()
 const { login } = useAuthMutations()
@@ -15,7 +17,9 @@ async function submit() {
     await login.mutateAsync({ email: state.email, password: state.password })
     await router.push(internalRedirect(route.query.redirect))
   }
-  catch {}
+  catch (error) {
+    form.value?.setErrors(apiFormErrors(error))
+  }
 }
 </script>
 
@@ -32,7 +36,7 @@ async function submit() {
       </div>
     </template>
 
-    <UForm :state="state" class="space-y-4" @submit="submit">
+    <UForm ref="form" :state="state" class="space-y-4" novalidate @submit.prevent="submit">
       <UFormField name="email" label="Email" required>
         <UInput
           v-model="state.email"
@@ -58,12 +62,13 @@ async function submit() {
       </UFormField>
 
       <UAlert
-        v-if="login.error.value"
+        v-if="login.error.value && login.error.value.status !== 422"
         role="alert"
         color="error"
         variant="subtle"
         icon="i-lucide-triangle-alert"
         title="Invalid email or password."
+        :description="login.error.value?.message"
       />
 
       <UButton type="submit" label="Login" block :loading="login.asyncStatus.value === 'loading'" />
