@@ -22,6 +22,22 @@ export class SystemRoleError extends Error {
   }
 }
 
+export class RoleRankError extends Error {
+  statusCode = 403
+
+  constructor() {
+    super('You can only manage roles ranked below your own')
+  }
+}
+
+export class PermissionGrantError extends Error {
+  statusCode = 403
+
+  constructor() {
+    super('You cannot grant permissions your own role does not hold')
+  }
+}
+
 export class RoleAlreadyExistsError extends Error {
   statusCode = 409
 

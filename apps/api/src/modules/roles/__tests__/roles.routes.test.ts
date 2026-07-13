@@ -177,6 +177,94 @@ describe('admin role routes', () => {
     expect(inUse.statusCode).toBe(409)
   })
 
+  it('blocks self-escalation for role managers without manage-all', async () => {
+    const superAdmin = await createUser('roles-escalation-super@example.com', 'super_admin')
+    const rolePermissions = [
+      { action: 'create', subject: 'Role' },
+      { action: 'read', subject: 'Role' },
+      { action: 'update', subject: 'Role' },
+      { action: 'delete', subject: 'Role' }
+    ]
+
+    const managerRole = (await app.inject({
+      method: 'POST',
+      url: '/api/v1/admin/roles',
+      headers: session(superAdmin.token),
+      payload: { name: 'Role Manager', slug: 'role_manager', rank: 18, permissions: rolePermissions }
+    })).json()
+    const juniorRole = (await app.inject({
+      method: 'POST',
+      url: '/api/v1/admin/roles',
+      headers: session(superAdmin.token),
+      payload: { name: 'Junior', slug: 'junior', rank: 5 }
+    })).json()
+    const seniorRole = (await app.inject({
+      method: 'POST',
+      url: '/api/v1/admin/roles',
+      headers: session(superAdmin.token),
+      payload: { name: 'Senior', slug: 'senior', rank: 25 }
+    })).json()
+    const manager = await createUser('roles-manager@example.com', 'role_manager')
+
+    // cannot edit own role (rank not strictly dominated)
+    const selfEscalation = await app.inject({
+      method: 'PATCH',
+      url: `/api/v1/admin/roles/${managerRole.id}`,
+      headers: session(manager.token),
+      payload: { permissions: [...rolePermissions, { action: 'manage', subject: 'all' }] }
+    })
+    expect(selfEscalation.statusCode).toBe(403)
+
+    // cannot grant permissions their own ability does not hold
+    const grantEscalation = await app.inject({
+      method: 'PATCH',
+      url: `/api/v1/admin/roles/${juniorRole.id}`,
+      headers: session(manager.token),
+      payload: { permissions: [{ action: 'manage', subject: 'all' }] }
+    })
+    expect(grantEscalation.statusCode).toBe(403)
+
+    // cannot create or delete roles at or above their own rank
+    const createAbove = await app.inject({
+      method: 'POST',
+      url: '/api/v1/admin/roles',
+      headers: session(manager.token),
+      payload: { name: 'Shadow', slug: 'shadow', rank: 30 }
+    })
+    expect(createAbove.statusCode).toBe(403)
+
+    const deleteAbove = await app.inject({
+      method: 'DELETE',
+      url: `/api/v1/admin/roles/${seniorRole.id}`,
+      headers: session(manager.token)
+    })
+    expect(deleteAbove.statusCode).toBe(403)
+
+    // may manage lower-ranked roles within their own permissions
+    const allowedUpdate = await app.inject({
+      method: 'PATCH',
+      url: `/api/v1/admin/roles/${juniorRole.id}`,
+      headers: session(manager.token),
+      payload: { permissions: [{ action: 'read', subject: 'Role' }] }
+    })
+    expect(allowedUpdate.statusCode).toBe(200)
+
+    const allowedCreate = await app.inject({
+      method: 'POST',
+      url: '/api/v1/admin/roles',
+      headers: session(manager.token),
+      payload: { name: 'Reader', slug: 'reader', rank: 4, permissions: [{ action: 'read', subject: 'Role' }] }
+    })
+    expect(allowedCreate.statusCode).toBe(201)
+
+    const allowedDelete = await app.inject({
+      method: 'DELETE',
+      url: `/api/v1/admin/roles/${allowedCreate.json().id}`,
+      headers: session(manager.token)
+    })
+    expect(allowedDelete.statusCode).toBe(204)
+  })
+
   it('applies permission changes to affected users immediately', async () => {
     const superAdmin = await createUser('roles-dynamic-super@example.com', 'super_admin')
 

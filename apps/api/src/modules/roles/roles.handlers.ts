@@ -8,16 +8,16 @@ export function list() {
 }
 
 export async function create(request: FastifyRequest<{ Body: CreateRole }>, reply: FastifyReply) {
-  const role = await service.createRole(request.body)
+  const role = await service.createRole(request.actor, request.body)
   reply.code(201)
   return role
 }
 
 export function patch(request: FastifyRequest<{ Params: { id: string }, Body: UpdateRole }>) {
-  return service.updateRole(request.params.id, request.body)
+  return service.updateRole(request.actor, request.params.id, request.body)
 }
 
 export async function remove(request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) {
-  await service.deleteRole(request.params.id)
+  await service.deleteRole(request.actor, request.params.id)
   reply.code(204)
 }
