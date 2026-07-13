@@ -3,6 +3,9 @@ import type { ZodTypeProvider } from 'fastify-type-provider-zod'
 import type { TasksPageQuery } from './tasks.schema.js'
 
 import { z } from 'zod'
+
+import { httpErrorSchema, validationErrorSchema } from '#api/lib/http-error.schema.js'
+
 import * as handlers from './tasks.handlers.js'
 import { insertTasksSchema, patchTasksSchema, selectTasksSchema, tasksPageQuerySchema, tasksPageSchema } from './tasks.schema.js'
 
@@ -16,7 +19,13 @@ export const tasksRoutes: FastifyPluginAsync = async (fastify) => {
     schema: {
       tags: ['Tasks'],
       querystring: tasksPageQuerySchema,
-      response: { 200: tasksPageSchema }
+      response: {
+        200: tasksPageSchema,
+        401: httpErrorSchema,
+        422: validationErrorSchema,
+        429: httpErrorSchema,
+        500: httpErrorSchema
+      }
     }
   }, handlers.list)
 
@@ -26,7 +35,14 @@ export const tasksRoutes: FastifyPluginAsync = async (fastify) => {
     schema: {
       tags: ['Tasks'],
       body: insertTasksSchema,
-      response: { 201: selectTasksSchema }
+      response: {
+        201: selectTasksSchema,
+        401: httpErrorSchema,
+        403: httpErrorSchema,
+        422: validationErrorSchema,
+        429: httpErrorSchema,
+        500: httpErrorSchema
+      }
     }
   }, handlers.create)
 
@@ -35,7 +51,14 @@ export const tasksRoutes: FastifyPluginAsync = async (fastify) => {
     schema: {
       tags: ['Tasks'],
       params: paramsSchema,
-      response: { 200: selectTasksSchema }
+      response: {
+        200: selectTasksSchema,
+        401: httpErrorSchema,
+        404: httpErrorSchema,
+        422: validationErrorSchema,
+        429: httpErrorSchema,
+        500: httpErrorSchema
+      }
     }
   }, handlers.getOne)
 
@@ -46,7 +69,15 @@ export const tasksRoutes: FastifyPluginAsync = async (fastify) => {
       tags: ['Tasks'],
       params: paramsSchema,
       body: patchTasksSchema,
-      response: { 200: selectTasksSchema }
+      response: {
+        200: selectTasksSchema,
+        401: httpErrorSchema,
+        403: httpErrorSchema,
+        404: httpErrorSchema,
+        422: validationErrorSchema,
+        429: httpErrorSchema,
+        500: httpErrorSchema
+      }
     }
   }, handlers.patch)
 
@@ -57,7 +88,15 @@ export const tasksRoutes: FastifyPluginAsync = async (fastify) => {
     schema: {
       tags: ['Tasks'],
       params: paramsSchema,
-      response: { 204: z.void() }
+      response: {
+        204: z.void(),
+        401: httpErrorSchema,
+        403: httpErrorSchema,
+        404: httpErrorSchema,
+        422: validationErrorSchema,
+        429: httpErrorSchema,
+        500: httpErrorSchema
+      }
     }
   }, handlers.remove)
 }

@@ -6,6 +6,7 @@ import scalar from '@scalar/fastify-api-reference'
 import Fastify from 'fastify'
 import {
   jsonSchemaTransform,
+  jsonSchemaTransformObject,
   serializerCompiler,
   validatorCompiler
 } from 'fastify-type-provider-zod'
@@ -44,7 +45,8 @@ export function buildApp(): FastifyInstance {
     openapi: {
       info: { title: 'Monorepo Fastify Vue API', version: '1.0.0' }
     },
-    transform: jsonSchemaTransform
+    transform: jsonSchemaTransform,
+    transformObject: jsonSchemaTransformObject
   })
   if (config.NODE_ENV === 'development')
     app.register(scalar, { routePrefix: '/' })

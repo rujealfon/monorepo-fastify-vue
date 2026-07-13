@@ -89,4 +89,22 @@ describe('authentication views', () => {
     expect(registration.wrapper.get('[role="alert"]').text()).toContain('Registration failed')
     expect(registration.router.currentRoute.value.fullPath).toBe('/register')
   })
+
+  it('shows API validation errors on their fields', async () => {
+    api.POST.mockResolvedValue({
+      error: {
+        statusCode: 422,
+        error: 'Unprocessable Entity',
+        message: 'Validation failed',
+        details: [{ instancePath: '/email', message: 'Invalid email address' }]
+      },
+      response: { ok: false, status: 422 }
+    })
+    const registration = await mountAt(RegisterView, '/register')
+    await registration.wrapper.get('input[name="email"]').setValue('invalid')
+    await registration.wrapper.get('input[name="password"]').setValue('correct horse battery staple')
+    await registration.wrapper.get('form').trigger('submit')
+    await flushPromises()
+    expect(registration.wrapper.text()).toContain('Invalid email address')
+  })
 })

@@ -1,26 +1,31 @@
 <script setup lang="ts">
 import { useQuery } from '@pinia/colada'
-import { computed, ref } from 'vue'
+import { computed, reactive, ref, useTemplateRef } from 'vue'
 
 import { useTaskMutations } from '@/features/tasks/mutations'
 import { tasksQuery } from '@/features/tasks/queries'
+import { apiFormErrors } from '@/shared/api/form-errors'
 
-const name = ref('')
+const state = reactive({ name: '' })
+const form = useTemplateRef('form')
 const page = ref(1)
 const tasks = useQuery(() => tasksQuery(page.value))
-const { create: createMutation, update: updateMutation, remove: deleteMutation } = useTaskMutations(() => name.value = '')
+const { create: createMutation, update: updateMutation, remove: deleteMutation } = useTaskMutations(() => state.name = '')
 
 const pending = computed(() => [createMutation, updateMutation, deleteMutation]
   .some(mutation => mutation.asyncStatus.value === 'loading'))
 const error = computed(() => tasks.error.value
-  ?? createMutation.error.value
+  ?? (createMutation.error.value?.status === 422 ? null : createMutation.error.value)
   ?? updateMutation.error.value
   ?? deleteMutation.error.value)
 
-function create() {
-  const value = name.value.trim()
-  if (value)
-    createMutation.mutate({ name: value })
+async function create() {
+  try {
+    await createMutation.mutateAsync({ name: state.name.trim() })
+  }
+  catch (error) {
+    form.value?.setErrors(apiFormErrors(error))
+  }
 }
 </script>
 
@@ -35,20 +40,22 @@ function create() {
       </p>
     </div>
 
-    <form class="flex items-center gap-2" @submit.prevent="create">
-      <UInput
-        id="task-name"
-        v-model="name"
-        aria-label="New task"
-        placeholder="What needs to be done?"
-        maxlength="500"
-        required
-        icon="i-lucide-plus"
-        class="flex-1"
-        size="lg"
-      />
-      <UButton type="submit" label="Add" size="lg" :disabled="pending || !name.trim()" />
-    </form>
+    <UForm ref="form" :state="state" class="flex items-start gap-2" novalidate @submit.prevent="create">
+      <UFormField name="name" class="flex-1">
+        <UInput
+          id="task-name"
+          v-model="state.name"
+          aria-label="New task"
+          placeholder="What needs to be done?"
+          maxlength="500"
+          required
+          icon="i-lucide-plus"
+          class="w-full"
+          size="lg"
+        />
+      </UFormField>
+      <UButton type="submit" label="Add" size="lg" :disabled="pending" />
+    </UForm>
 
     <UAlert
       v-if="error"

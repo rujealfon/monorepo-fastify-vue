@@ -9,9 +9,9 @@ export function useProfileMutation() {
   const cache = useQueryCache()
   return useMutation({
     mutation: async (body: UpdateProfile) => {
-      const { data, response } = await api.PATCH('/api/v1/profile/', { body })
+      const { data, error, response } = await api.PATCH('/api/v1/profile/', { body })
       if (!response.ok || !data)
-        throw new RpcError(response.status)
+        throw new RpcError(response.status, error)
       return data
     },
     onSuccess: user => cache.setQueryData(SESSION_KEY, user)
