@@ -132,7 +132,7 @@ describe('users.service', () => {
     vi.mocked(usersRepository.findById).mockResolvedValue(sampleRow)
     vi.mocked(usersRepository.updateRole).mockResolvedValue({ ...sampleUser, role: 'admin' as const })
 
-    await expect(usersService.changeUserRole({ id: '2', role: 'admin' }, '1', 'admin'))
+    await expect(usersService.changeUserRole({ id: '2', role: 'super_admin' }, '1', 'admin'))
       .resolves
       .toMatchObject({ id: '1', role: 'admin' })
 
@@ -143,7 +143,7 @@ describe('users.service', () => {
     vi.mocked(usersRepository.findById).mockResolvedValue(sampleRow)
     vi.mocked(usersRepository.updateRole).mockResolvedValue(undefined)
 
-    await expect(usersService.changeUserRole({ id: '2', role: 'admin' }, '1', 'admin'))
+    await expect(usersService.changeUserRole({ id: '2', role: 'super_admin' }, '1', 'admin'))
       .rejects
       .toThrow(ForbiddenError)
   })
@@ -165,5 +165,4 @@ describe('users.service', () => {
       .rejects
       .toThrow(ForbiddenError)
   })
-
 })
