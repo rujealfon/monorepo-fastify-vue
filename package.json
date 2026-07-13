@@ -23,7 +23,6 @@
     "api-client:check": "pnpm api-client:generate && git diff --exit-code -- apps/api/openapi.json packages/api-client/src/schema.d.ts",
     "db:generate": "pnpm --filter @monorepo-fastify-vue/api db:generate",
     "db:migrate": "pnpm --filter @monorepo-fastify-vue/api db:migrate",
-    "db:seed": "pnpm --filter @monorepo-fastify-vue/api db:seed",
     "db:studio": "pnpm --filter @monorepo-fastify-vue/api db:studio",
     "docker:start": "docker compose start",
     "docker:stop": "docker compose stop",

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { EmailAlreadyExistsError, UnauthorizedError } from '#api/modules/users/users.errors.js'
+import { EmailAlreadyExistsError, ForbiddenError, UnauthorizedError } from '#api/modules/users/users.errors.js'
 import * as usersPassword from '#api/modules/users/users.password.js'
 import * as usersRepository from '#api/modules/users/users.repository.js'
 import * as usersService from '#api/modules/users/users.service.js'
@@ -128,39 +128,42 @@ describe('users.service', () => {
     expect(vi.mocked(usersRepository.insert).mock.calls[0][0]).not.toHaveProperty('role')
   })
 
-  it('ensureSuperAdmin creates the account with the super_admin role when missing', async () => {
-    vi.mocked(usersRepository.findByEmail).mockResolvedValue(undefined)
-    vi.mocked(usersPassword.hashPassword).mockResolvedValue('hashed')
+  it('changeUserRole updates the role only when the authorized target role is unchanged', async () => {
+    vi.mocked(usersRepository.findById).mockResolvedValue(sampleRow)
+    vi.mocked(usersRepository.updateRole).mockResolvedValue({ ...sampleUser, role: 'admin' as const })
 
-    await usersService.ensureSuperAdmin('root@example.com', 'correct horse battery staple')
+    await expect(usersService.changeUserRole({ id: '2', role: 'admin' }, '1', 'admin'))
+      .resolves
+      .toMatchObject({ id: '1', role: 'admin' })
 
-    expect(usersRepository.insert).toHaveBeenCalledWith({
-      email: 'root@example.com',
-      passwordHash: 'hashed',
-      role: 'super_admin'
-    })
-    expect(usersRepository.updateRole).not.toHaveBeenCalled()
+    expect(usersRepository.updateRole).toHaveBeenCalledWith('1', 'admin', 'user')
   })
 
-  it('ensureSuperAdmin promotes an existing account without touching the password', async () => {
-    vi.mocked(usersRepository.findByEmail).mockResolvedValue(sampleRow)
+  it('changeUserRole rejects stale role changes when the conditional update fails', async () => {
+    vi.mocked(usersRepository.findById).mockResolvedValue(sampleRow)
+    vi.mocked(usersRepository.updateRole).mockResolvedValue(undefined)
 
-    await usersService.ensureSuperAdmin('person@example.com', 'ignored password here')
-
-    expect(usersRepository.updateRole).toHaveBeenCalledWith('1', 'super_admin')
-    expect(usersRepository.insert).not.toHaveBeenCalled()
-    expect(usersPassword.hashPassword).not.toHaveBeenCalled()
+    await expect(usersService.changeUserRole({ id: '2', role: 'admin' }, '1', 'admin'))
+      .rejects
+      .toThrow(ForbiddenError)
   })
 
-  it('ensureSuperAdmin is a no-op when the account is already a super admin', async () => {
-    vi.mocked(usersRepository.findByEmail).mockResolvedValue({
-      ...sampleRow,
-      user: { ...sampleUser, role: 'super_admin' as const }
-    })
+  it('deleteUser deletes the user only when the authorized target role is unchanged', async () => {
+    vi.mocked(usersRepository.findById).mockResolvedValue(sampleRow)
+    vi.mocked(usersRepository.deleteById).mockResolvedValue(sampleUser)
 
-    await usersService.ensureSuperAdmin('person@example.com', 'ignored password here')
+    await usersService.deleteUser({ id: '2', role: 'admin' }, '1')
 
-    expect(usersRepository.updateRole).not.toHaveBeenCalled()
-    expect(usersRepository.insert).not.toHaveBeenCalled()
+    expect(usersRepository.deleteById).toHaveBeenCalledWith('1', 'user')
   })
+
+  it('deleteUser rejects stale deletes when the conditional delete fails', async () => {
+    vi.mocked(usersRepository.findById).mockResolvedValue(sampleRow)
+    vi.mocked(usersRepository.deleteById).mockResolvedValue(undefined)
+
+    await expect(usersService.deleteUser({ id: '2', role: 'admin' }, '1'))
+      .rejects
+      .toThrow(ForbiddenError)
+  })
+
 })
