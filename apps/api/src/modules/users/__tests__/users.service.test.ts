@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { EmailAlreadyExistsError, UnauthorizedError } from '#api/modules/users/users.errors.js'
+import { EmailAlreadyExistsError, SuperAdminSeedConflictError, UnauthorizedError } from '#api/modules/users/users.errors.js'
 import * as usersPassword from '#api/modules/users/users.password.js'
 import * as usersRepository from '#api/modules/users/users.repository.js'
 import * as usersService from '#api/modules/users/users.service.js'
@@ -142,12 +142,14 @@ describe('users.service', () => {
     expect(usersRepository.updateRole).not.toHaveBeenCalled()
   })
 
-  it('ensureSuperAdmin promotes an existing account without touching the password', async () => {
+  it('ensureSuperAdmin refuses to promote an existing non-super-admin account', async () => {
     vi.mocked(usersRepository.findByEmail).mockResolvedValue(sampleRow)
 
-    await usersService.ensureSuperAdmin('person@example.com', 'ignored password here')
+    await expect(usersService.ensureSuperAdmin('person@example.com', 'ignored password here'))
+      .rejects
+      .toThrow(SuperAdminSeedConflictError)
 
-    expect(usersRepository.updateRole).toHaveBeenCalledWith('1', 'super_admin')
+    expect(usersRepository.updateRole).not.toHaveBeenCalled()
     expect(usersRepository.insert).not.toHaveBeenCalled()
     expect(usersPassword.hashPassword).not.toHaveBeenCalled()
   })
