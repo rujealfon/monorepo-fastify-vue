@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { NavigationMenuItem } from '@nuxt/ui'
-import { roleAtLeast } from '@monorepo-fastify-vue/api-client'
+import { hasPermission } from '@monorepo-fastify-vue/api-client'
 import { useToast } from '@nuxt/ui/composables'
 import { useQuery } from '@pinia/colada'
 import { computed } from 'vue'
@@ -20,8 +20,10 @@ const links = computed<NavigationMenuItem[]>(() => {
     { label: 'Health', to: '/health', icon: 'i-lucide-activity' },
     { label: 'About', to: '/about', icon: 'i-lucide-info' }
   ]
-  const role = session.data.value?.role
-  if (role && roleAtLeast(role, 'admin'))
+  const permissions = session.data.value?.permissions
+  if (hasPermission(permissions, 'roles:read'))
+    items.splice(2, 0, { label: 'Roles', to: '/admin/roles', icon: 'i-lucide-shield-check' })
+  if (hasPermission(permissions, 'users:read'))
     items.splice(2, 0, { label: 'Users', to: '/admin/users', icon: 'i-lucide-users' })
   return items
 })

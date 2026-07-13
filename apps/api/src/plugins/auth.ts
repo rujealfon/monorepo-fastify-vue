@@ -1,13 +1,14 @@
 import type { FastifyReply, FastifyRequest } from 'fastify'
 
-import type { Role } from '#api/modules/users'
+import type { Permission } from '#api/modules/roles'
+import type { UserAuth } from '#api/modules/users'
 import cookie from '@fastify/cookie'
 import jwt from '@fastify/jwt'
 
 import fp from 'fastify-plugin'
 
 import { config } from '#api/config/index.js'
-import { ForbiddenError, getUserRole, roleAtLeast, UnauthorizedError } from '#api/modules/users'
+import { ForbiddenError, getUserAuth, UnauthorizedError } from '#api/modules/users'
 
 export const SESSION_COOKIE = 'session'
 export const SESSION_SECONDS = 7 * 24 * 60 * 60
@@ -29,17 +30,17 @@ export default fp(async (fastify) => {
     }
   })
 
-  fastify.decorateRequest('userRole')
+  fastify.decorateRequest('auth')
 
-  fastify.decorate('requireRole', (required: Role) =>
+  fastify.decorate('requirePermission', (required: Permission) =>
     async (request: FastifyRequest) => {
-      // fresh DB read so role changes apply immediately, without reissuing tokens
-      const role = await getUserRole(request.user.sub)
-      if (!role)
+      // fresh DB read so role/permission changes apply immediately, without reissuing tokens
+      const auth = await getUserAuth(request.user.sub)
+      if (!auth)
         throw new UnauthorizedError()
-      if (!roleAtLeast(role, required))
+      if (!auth.permissions.includes(required))
         throw new ForbiddenError()
-      request.userRole = role
+      request.auth = auth
     })
 
   fastify.decorate('sameOrigin', async (request: FastifyRequest) => {
@@ -68,14 +69,14 @@ declare module 'fastify' {
   // eslint-disable-next-line ts/consistent-type-definitions -- interface required for declaration merging
   interface FastifyInstance {
     authenticate: (request: FastifyRequest) => Promise<void>
-    requireRole: (role: Role) => (request: FastifyRequest) => Promise<void>
+    requirePermission: (permission: Permission) => (request: FastifyRequest) => Promise<void>
     sameOrigin: (request: FastifyRequest) => Promise<void>
     setSession: (reply: FastifyReply, userId: string) => void
   }
 
   // eslint-disable-next-line ts/consistent-type-definitions -- interface required for declaration merging
   interface FastifyRequest {
-    userRole?: Role
+    auth?: UserAuth
   }
 }
 

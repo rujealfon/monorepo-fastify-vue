@@ -31,7 +31,7 @@ export function patchProfile(request: FastifyRequest<{ Body: PatchProfile }>) {
 }
 
 function actor(request: FastifyRequest): service.Actor {
-  return { id: request.user.sub, role: request.userRole! }
+  return request.auth!
 }
 
 export function listUsers(request: FastifyRequest<{ Querystring: UsersPageQuery }>) {
@@ -39,7 +39,7 @@ export function listUsers(request: FastifyRequest<{ Querystring: UsersPageQuery 
 }
 
 export function changeRole(request: FastifyRequest<{ Params: UserIdParams, Body: ChangeRole }>) {
-  return service.changeUserRole(actor(request), request.params.id, request.body.role)
+  return service.changeUserRole(actor(request), request.params.id, request.body.roleId)
 }
 
 export async function removeUser(request: FastifyRequest<{ Params: UserIdParams }>, reply: FastifyReply) {

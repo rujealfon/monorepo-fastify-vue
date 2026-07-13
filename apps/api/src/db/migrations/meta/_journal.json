@@ -29,6 +29,20 @@
       "when": 1783909461933,
       "tag": "0003_dizzy_ultimatum",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1783915688107,
+      "tag": "0004_yielding_shen",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1783915730204,
+      "tag": "0005_fearless_machine_man",
+      "breakpoints": true
     }
   ]
 }

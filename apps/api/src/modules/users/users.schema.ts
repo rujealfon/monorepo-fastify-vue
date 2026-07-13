@@ -2,20 +2,16 @@ import { date, pgEnum, pgTable, text, timestamp, uuid, varchar } from 'drizzle-o
 import { createSelectSchema } from 'drizzle-zod'
 import { z } from 'zod'
 
-// value order is the role hierarchy: index = rank
-export const roleEnum = pgEnum('role', ['user', 'admin', 'super_admin'])
+import { permissionSchema, roleRefSchema, roles } from '#api/modules/roles/roles.schema.js'
 
 export const users = pgTable('users', {
   id: uuid('id').primaryKey().defaultRandom(),
   email: varchar('email', { length: 254 }).notNull().unique(),
   passwordHash: varchar('password_hash', { length: 255 }).notNull(),
-  role: roleEnum('role').notNull().default('user'),
+  roleId: uuid('role_id').notNull().references(() => roles.id, { onDelete: 'restrict' }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date())
 })
-
-export const roleSchema = z.enum(roleEnum.enumValues)
-export type Role = z.infer<typeof roleSchema>
 
 export const genderEnum = pgEnum('gender', ['male', 'female', 'intersex', 'prefer_not_to_say'])
 
@@ -72,11 +68,17 @@ export const publicProfileSchema = createSelectSchema(profiles, {
 }).omit({ userId: true })
 
 export const publicUserSchema = createSelectSchema(users)
-  .omit({ passwordHash: true })
-  .extend({ profile: publicProfileSchema })
+  .omit({ passwordHash: true, roleId: true })
+  .extend({
+    role: roleRefSchema,
+    permissions: z.array(permissionSchema),
+    profile: publicProfileSchema
+  })
 export type PublicUser = z.infer<typeof publicUserSchema>
 
-export const adminUserSchema = createSelectSchema(users).omit({ passwordHash: true })
+export const adminUserSchema = createSelectSchema(users)
+  .omit({ passwordHash: true, roleId: true })
+  .extend({ role: roleRefSchema })
 export type AdminUser = z.infer<typeof adminUserSchema>
 
 export const usersPageQuerySchema = z.object({
@@ -95,8 +97,8 @@ export const usersPageSchema = z.object({
   })
 })
 
-export const changeRoleSchema = z.object({ role: roleSchema })
-  .meta({ examples: [{ role: 'admin' }] })
+export const changeRoleSchema = z.object({ roleId: z.uuid() })
+  .meta({ examples: [{ roleId: '3f8e2f0a-6b1a-4f0e-9c2d-1a2b3c4d5e6f' }] })
 export type ChangeRole = z.infer<typeof changeRoleSchema>
 
 export const userIdParamsSchema = z.object({ id: z.uuid() })

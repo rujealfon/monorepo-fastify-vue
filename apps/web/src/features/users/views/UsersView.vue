@@ -1,27 +1,28 @@
 <script setup lang="ts">
-import type { AdminUser, Role } from '@monorepo-fastify-vue/api-client'
-import { outranks, USER_ROLES } from '@monorepo-fastify-vue/api-client'
+import type { AdminUser } from '@monorepo-fastify-vue/api-client'
+import { hasPermission } from '@monorepo-fastify-vue/api-client'
 import { useQuery } from '@pinia/colada'
 import { computed, ref } from 'vue'
 
 import { sessionQuery } from '@/features/auth'
+import { rolesQuery } from '@/features/roles'
 import { useAdminUserMutations } from '@/features/users/mutations'
 import { adminUsersQuery } from '@/features/users/queries'
 
 const page = ref(1)
 const session = useQuery(sessionQuery)
 const users = useQuery(() => adminUsersQuery(page.value))
+const canManage = computed(() => hasPermission(session.data.value?.permissions, 'users:manage'))
+const canReadRoles = computed(() => hasPermission(session.data.value?.permissions, 'roles:read'))
+const roles = useQuery(() => ({ ...rolesQuery, enabled: canReadRoles.value }))
 const { changeRole: changeRoleMutation, remove: removeMutation } = useAdminUserMutations()
 
 const deleteTarget = ref<AdminUser | null>(null)
 
-const roleLabels: Record<Role, string> = {
-  user: 'Standard User',
-  admin: 'Admin',
-  super_admin: 'Super Admin'
-}
-
-const actorRole = computed(() => session.data.value?.role)
+const actorIsSuperAdmin = computed(() => {
+  const role = session.data.value?.role
+  return !!role && role.isSystem && role.name === 'super_admin'
+})
 
 const pending = computed(() => [changeRoleMutation, removeMutation]
   .some(mutation => mutation.asyncStatus.value === 'loading'))
@@ -29,28 +30,22 @@ const error = computed(() => users.error.value
   ?? changeRoleMutation.error.value
   ?? removeMutation.error.value)
 
+const isSuperAdminHolder = (user: AdminUser) => user.role.isSystem && user.role.name === 'super_admin'
+
 // UX mirror of the server rules: the API remains the enforcement point.
-function canManage(user: AdminUser) {
-  const actor = actorRole.value
-  if (!actor || user.id === session.data.value?.id)
+function manageable(user: AdminUser) {
+  if (!canManage.value || user.id === session.data.value?.id)
     return false
-  return actor === 'super_admin' || outranks(actor, user.role)
+  return actorIsSuperAdmin.value || !isSuperAdminHolder(user)
 }
 
-function roleItems(user: AdminUser) {
-  const actor = actorRole.value
-  if (!actor)
-    return []
-  const assignable = actor === 'super_admin'
-    ? USER_ROLES
-    : USER_ROLES.filter(role => outranks(actor, role))
-  const options = assignable.includes(user.role) ? assignable : [...assignable, user.role]
-  return options.map(role => ({ label: roleLabels[role], value: role }))
-}
+const roleItems = computed(() => (roles.data.value?.data ?? [])
+  .filter(role => actorIsSuperAdmin.value || !(role.isSystem && role.name === 'super_admin'))
+  .map(role => ({ label: role.name, value: role.id })))
 
-function onRoleChange(user: AdminUser, role: Role) {
-  if (role !== user.role)
-    changeRoleMutation.mutate({ id: user.id, role })
+function onRoleChange(user: AdminUser, roleId: string) {
+  if (roleId !== user.role.id)
+    changeRoleMutation.mutate({ id: user.id, roleId })
 }
 
 function confirmDelete() {
@@ -105,14 +100,14 @@ function confirmDelete() {
             Joined {{ new Date(user.createdAt).toLocaleDateString() }}
           </p>
         </div>
-        <template v-if="canManage(user)">
+        <template v-if="manageable(user) && canReadRoles">
           <USelect
             :aria-label="`Role for ${user.email}`"
-            :model-value="user.role"
-            :items="roleItems(user)"
+            :model-value="user.role.id"
+            :items="roleItems"
             :disabled="pending"
             class="w-40"
-            @update:model-value="onRoleChange(user, $event as Role)"
+            @update:model-value="onRoleChange(user, $event as string)"
           />
           <UButton
             :aria-label="`Delete ${user.email}`"
@@ -124,7 +119,7 @@ function confirmDelete() {
             @click="deleteTarget = user"
           />
         </template>
-        <UBadge v-else :label="roleLabels[user.role]" color="neutral" variant="subtle" />
+        <UBadge v-else :label="user.role.name" color="neutral" variant="subtle" />
       </li>
     </ul>
 

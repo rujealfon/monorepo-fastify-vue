@@ -1,6 +1,6 @@
-import type { Role } from '@monorepo-fastify-vue/api-client'
+import type { Permission } from '@monorepo-fastify-vue/api-client'
 
-import { roleAtLeast } from '@monorepo-fastify-vue/api-client'
+import { hasPermission } from '@monorepo-fastify-vue/api-client'
 import { useQueryCache } from '@pinia/colada'
 import { createRouter, createWebHistory } from 'vue-router'
 
@@ -11,6 +11,7 @@ import { authRoutes, sessionQuery } from '@/features/auth'
 import { healthRoutes } from '@/features/health'
 import { homeRoutes } from '@/features/home'
 import { profileRoutes } from '@/features/profile'
+import { adminRoleRoutes } from '@/features/roles'
 import { taskRoutes } from '@/features/tasks'
 import { adminUserRoutes } from '@/features/users'
 
@@ -18,7 +19,7 @@ declare module 'vue-router' {
   // eslint-disable-next-line ts/consistent-type-definitions -- interface required for declaration merging
   interface RouteMeta {
     requiresAuth?: boolean
-    requiresRole?: Role
+    requiresPermission?: Permission
   }
 }
 
@@ -28,7 +29,7 @@ const router = createRouter({
     {
       path: '/',
       component: DefaultLayout,
-      children: [...homeRoutes, ...aboutRoutes, ...healthRoutes, ...taskRoutes, ...profileRoutes, ...adminUserRoutes]
+      children: [...homeRoutes, ...aboutRoutes, ...healthRoutes, ...taskRoutes, ...profileRoutes, ...adminUserRoutes, ...adminRoleRoutes]
     },
     {
       path: '/',
@@ -52,7 +53,7 @@ router.beforeEach(async (to) => {
   if (!user)
     return { path: '/login', query: { redirect: to.fullPath } }
 
-  if (to.meta.requiresRole && !roleAtLeast(user.role, to.meta.requiresRole))
+  if (to.meta.requiresPermission && !hasPermission(user.permissions, to.meta.requiresPermission))
     return { path: '/' }
 })
 

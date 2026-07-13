@@ -8,6 +8,432 @@
     "schemas": {}
   },
   "paths": {
+    "/api/v1/admin/permissions/": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "group": {
+                            "type": "string"
+                          },
+                          "permissions": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "value": {
+                                  "type": "string",
+                                  "enum": [
+                                    "users:read",
+                                    "users:manage",
+                                    "roles:read",
+                                    "roles:manage"
+                                  ]
+                                },
+                                "label": {
+                                  "type": "string"
+                                },
+                                "description": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "value",
+                                "label",
+                                "description"
+                              ],
+                              "additionalProperties": false
+                            }
+                          }
+                        },
+                        "required": [
+                          "group",
+                          "permissions"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/roles/": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                          },
+                          "name": {
+                            "type": "string",
+                            "maxLength": 50
+                          },
+                          "description": {
+                            "nullable": true,
+                            "type": "string",
+                            "maxLength": 255
+                          },
+                          "isSystem": {
+                            "type": "boolean"
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "updatedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "permissions": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "enum": [
+                                "users:read",
+                                "users:manage",
+                                "roles:read",
+                                "roles:manage"
+                              ]
+                            }
+                          },
+                          "userCount": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 9007199254740991
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name",
+                          "description",
+                          "isSystem",
+                          "createdAt",
+                          "updatedAt",
+                          "permissions",
+                          "userCount"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 50
+                  },
+                  "description": {
+                    "nullable": true,
+                    "type": "string",
+                    "maxLength": 255
+                  },
+                  "permissions": {
+                    "default": [],
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "users:read",
+                        "users:manage",
+                        "roles:read",
+                        "roles:manage"
+                      ]
+                    }
+                  }
+                },
+                "required": [
+                  "name"
+                ]
+              },
+              "example": {
+                "name": "support",
+                "description": "Read-only user access",
+                "permissions": [
+                  "users:read"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    },
+                    "name": {
+                      "type": "string",
+                      "maxLength": 50
+                    },
+                    "description": {
+                      "nullable": true,
+                      "type": "string",
+                      "maxLength": 255
+                    },
+                    "isSystem": {
+                      "type": "boolean"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "permissions": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "users:read",
+                          "users:manage",
+                          "roles:read",
+                          "roles:manage"
+                        ]
+                      }
+                    },
+                    "userCount": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "description",
+                    "isSystem",
+                    "createdAt",
+                    "updatedAt",
+                    "permissions",
+                    "userCount"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/roles/{id}": {
+      "patch": {
+        "tags": [
+          "Admin"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 50
+                  },
+                  "description": {
+                    "nullable": true,
+                    "type": "string",
+                    "maxLength": 255
+                  },
+                  "permissions": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "users:read",
+                        "users:manage",
+                        "roles:read",
+                        "roles:manage"
+                      ]
+                    }
+                  }
+                }
+              },
+              "example": {
+                "permissions": [
+                  "users:read",
+                  "users:manage"
+                ]
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    },
+                    "name": {
+                      "type": "string",
+                      "maxLength": 50
+                    },
+                    "description": {
+                      "nullable": true,
+                      "type": "string",
+                      "maxLength": 255
+                    },
+                    "isSystem": {
+                      "type": "boolean"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "permissions": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "users:read",
+                          "users:manage",
+                          "roles:read",
+                          "roles:manage"
+                        ]
+                      }
+                    },
+                    "userCount": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "description",
+                    "isSystem",
+                    "createdAt",
+                    "updatedAt",
+                    "permissions",
+                    "userCount"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/admin/users/": {
       "get": {
         "tags": [
@@ -61,14 +487,6 @@
                             "type": "string",
                             "maxLength": 254
                           },
-                          "role": {
-                            "type": "string",
-                            "enum": [
-                              "user",
-                              "admin",
-                              "super_admin"
-                            ]
-                          },
                           "createdAt": {
                             "type": "string",
                             "format": "date-time"
@@ -76,14 +494,36 @@
                           "updatedAt": {
                             "type": "string",
                             "format": "date-time"
+                          },
+                          "role": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "format": "uuid",
+                                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "isSystem": {
+                                "type": "boolean"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "name",
+                              "isSystem"
+                            ],
+                            "additionalProperties": false
                           }
                         },
                         "required": [
                           "id",
                           "email",
-                          "role",
                           "createdAt",
-                          "updatedAt"
+                          "updatedAt",
+                          "role"
                         ],
                         "additionalProperties": false
                       }
@@ -147,21 +587,18 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "role": {
+                  "roleId": {
                     "type": "string",
-                    "enum": [
-                      "user",
-                      "admin",
-                      "super_admin"
-                    ]
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
                   }
                 },
                 "required": [
-                  "role"
+                  "roleId"
                 ]
               },
               "example": {
-                "role": "admin"
+                "roleId": "3f8e2f0a-6b1a-4f0e-9c2d-1a2b3c4d5e6f"
               }
             }
           }
@@ -195,14 +632,6 @@
                       "type": "string",
                       "maxLength": 254
                     },
-                    "role": {
-                      "type": "string",
-                      "enum": [
-                        "user",
-                        "admin",
-                        "super_admin"
-                      ]
-                    },
                     "createdAt": {
                       "type": "string",
                       "format": "date-time"
@@ -210,14 +639,36 @@
                     "updatedAt": {
                       "type": "string",
                       "format": "date-time"
+                    },
+                    "role": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "isSystem": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name",
+                        "isSystem"
+                      ],
+                      "additionalProperties": false
                     }
                   },
                   "required": [
                     "id",
                     "email",
-                    "role",
                     "createdAt",
-                    "updatedAt"
+                    "updatedAt",
+                    "role"
                   ],
                   "additionalProperties": false
                 }
@@ -309,14 +760,6 @@
                       "type": "string",
                       "maxLength": 254
                     },
-                    "role": {
-                      "type": "string",
-                      "enum": [
-                        "user",
-                        "admin",
-                        "super_admin"
-                      ]
-                    },
                     "createdAt": {
                       "type": "string",
                       "format": "date-time"
@@ -324,6 +767,40 @@
                     "updatedAt": {
                       "type": "string",
                       "format": "date-time"
+                    },
+                    "role": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "isSystem": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name",
+                        "isSystem"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "permissions": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "users:read",
+                          "users:manage",
+                          "roles:read",
+                          "roles:manage"
+                        ]
+                      }
                     },
                     "profile": {
                       "type": "object",
@@ -385,9 +862,10 @@
                   "required": [
                     "id",
                     "email",
-                    "role",
                     "createdAt",
                     "updatedAt",
+                    "role",
+                    "permissions",
                     "profile"
                   ],
                   "additionalProperties": false
@@ -451,14 +929,6 @@
                       "type": "string",
                       "maxLength": 254
                     },
-                    "role": {
-                      "type": "string",
-                      "enum": [
-                        "user",
-                        "admin",
-                        "super_admin"
-                      ]
-                    },
                     "createdAt": {
                       "type": "string",
                       "format": "date-time"
@@ -466,6 +936,40 @@
                     "updatedAt": {
                       "type": "string",
                       "format": "date-time"
+                    },
+                    "role": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "isSystem": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name",
+                        "isSystem"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "permissions": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "users:read",
+                          "users:manage",
+                          "roles:read",
+                          "roles:manage"
+                        ]
+                      }
                     },
                     "profile": {
                       "type": "object",
@@ -527,9 +1031,10 @@
                   "required": [
                     "id",
                     "email",
-                    "role",
                     "createdAt",
                     "updatedAt",
+                    "role",
+                    "permissions",
                     "profile"
                   ],
                   "additionalProperties": false
@@ -610,14 +1115,6 @@
                       "type": "string",
                       "maxLength": 254
                     },
-                    "role": {
-                      "type": "string",
-                      "enum": [
-                        "user",
-                        "admin",
-                        "super_admin"
-                      ]
-                    },
                     "createdAt": {
                       "type": "string",
                       "format": "date-time"
@@ -625,6 +1122,40 @@
                     "updatedAt": {
                       "type": "string",
                       "format": "date-time"
+                    },
+                    "role": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "isSystem": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name",
+                        "isSystem"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "permissions": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "users:read",
+                          "users:manage",
+                          "roles:read",
+                          "roles:manage"
+                        ]
+                      }
                     },
                     "profile": {
                       "type": "object",
@@ -686,9 +1217,10 @@
                   "required": [
                     "id",
                     "email",
-                    "role",
                     "createdAt",
                     "updatedAt",
+                    "role",
+                    "permissions",
                     "profile"
                   ],
                   "additionalProperties": false
@@ -771,14 +1303,6 @@
                       "type": "string",
                       "maxLength": 254
                     },
-                    "role": {
-                      "type": "string",
-                      "enum": [
-                        "user",
-                        "admin",
-                        "super_admin"
-                      ]
-                    },
                     "createdAt": {
                       "type": "string",
                       "format": "date-time"
@@ -786,6 +1310,40 @@
                     "updatedAt": {
                       "type": "string",
                       "format": "date-time"
+                    },
+                    "role": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "isSystem": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name",
+                        "isSystem"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "permissions": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "users:read",
+                          "users:manage",
+                          "roles:read",
+                          "roles:manage"
+                        ]
+                      }
                     },
                     "profile": {
                       "type": "object",
@@ -847,9 +1405,10 @@
                   "required": [
                     "id",
                     "email",
-                    "role",
                     "createdAt",
                     "updatedAt",
+                    "role",
+                    "permissions",
                     "profile"
                   ],
                   "additionalProperties": false

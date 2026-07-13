@@ -1,18 +1,19 @@
 import type { FastifyInstance } from 'fastify'
-import type { Role } from '#api/modules/users'
 
 import { eq, sql } from 'drizzle-orm'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { buildApp } from '#api/app.js'
 import { db } from '#api/db/index.js'
+import { roles } from '#api/modules/roles'
 import { profiles, users } from '#api/modules/users'
 
 describe('admin user routes', () => {
   let app: FastifyInstance
+  let roleIds: Record<'user' | 'admin' | 'super_admin', string>
 
-  async function createUser(email: string, role: Role = 'user') {
-    const [user] = await db.insert(users).values({ email, passwordHash: 'x', role }).returning()
+  async function createUser(email: string, roleName: keyof typeof roleIds = 'user') {
+    const [user] = await db.insert(users).values({ email, passwordHash: 'x', roleId: roleIds[roleName] }).returning()
     await db.insert(profiles).values({ userId: user.id })
     return { ...user, token: app.jwt.sign({ sub: user.id }) }
   }
@@ -25,6 +26,8 @@ describe('admin user routes', () => {
     app = buildApp()
     await app.ready()
     await db.execute(sql`truncate table users cascade`)
+    const systemRoles = await db.select().from(roles)
+    roleIds = Object.fromEntries(systemRoles.map(role => [role.name, role.id])) as typeof roleIds
   })
 
   afterAll(async () => app.close())
@@ -32,7 +35,7 @@ describe('admin user routes', () => {
   it('rejects unauthenticated requests on all admin endpoints', async () => {
     const id = '00000000-0000-0000-0000-000000000000'
     const list = await app.inject({ method: 'GET', url: '/api/v1/admin/users' })
-    const patch = await app.inject({ method: 'PATCH', url: `/api/v1/admin/users/${id}/role`, payload: { role: 'admin' } })
+    const patch = await app.inject({ method: 'PATCH', url: `/api/v1/admin/users/${id}/role`, payload: { roleId: id } })
     const remove = await app.inject({ method: 'DELETE', url: `/api/v1/admin/users/${id}` })
     expect([list.statusCode, patch.statusCode, remove.statusCode]).toEqual([401, 401, 401])
   })
@@ -45,7 +48,7 @@ describe('admin user routes', () => {
     expect(response.statusCode).toBe(401)
   })
 
-  it('forbids standard users and lists users for admin and super admin', async () => {
+  it('forbids users without users:read and lists users with role objects for admins', async () => {
     const standard = await createUser('standard@example.com')
     const admin = await createUser('admin@example.com', 'admin')
     const superAdmin = await createUser('super@example.com', 'super_admin')
@@ -59,101 +62,109 @@ describe('admin user routes', () => {
       const body = response.json()
       expect(body.pagination).toMatchObject({ page: 1, limit: 20 })
       expect(body.data.length).toBeGreaterThanOrEqual(3)
+      expect(body.data[0].role).toMatchObject({ name: expect.any(String), isSystem: expect.any(Boolean) })
       expect(response.body).not.toContain('passwordHash')
     }
   })
 
-  it('enforces the role-management matrix', async () => {
+  it('enforces the role-assignment rules', async () => {
     const admin = await createUser('matrix-admin@example.com', 'admin')
-    const otherAdmin = await createUser('matrix-admin-2@example.com', 'admin')
     const superAdmin = await createUser('matrix-super@example.com', 'super_admin')
     const standard = await createUser('matrix-user@example.com')
 
-    // admin cannot grant a role at or above their own
+    // users:manage allows assigning non-super_admin roles
     const grantAdmin = await app.inject({
       method: 'PATCH',
       url: `/api/v1/admin/users/${standard.id}/role`,
       headers: session(admin.token),
-      payload: { role: 'admin' }
+      payload: { roleId: roleIds.admin }
     })
-    expect(grantAdmin.statusCode).toBe(403)
+    expect(grantAdmin.statusCode).toBe(200)
+    expect(grantAdmin.json()).toMatchObject({ id: standard.id, role: { name: 'admin', isSystem: true } })
 
-    // admin cannot manage another admin
-    const demoteAdmin = await app.inject({
-      method: 'PATCH',
-      url: `/api/v1/admin/users/${otherAdmin.id}/role`,
-      headers: session(admin.token),
-      payload: { role: 'user' }
-    })
-    expect(demoteAdmin.statusCode).toBe(403)
-
-    // admin may assign roles below their own to users they outrank
-    const keepUser = await app.inject({
+    // only super admins may hand out the super_admin role
+    const grantSuper = await app.inject({
       method: 'PATCH',
       url: `/api/v1/admin/users/${standard.id}/role`,
       headers: session(admin.token),
-      payload: { role: 'user' }
+      payload: { roleId: roleIds.super_admin }
     })
-    expect(keepUser.statusCode).toBe(200)
+    expect(grantSuper.statusCode).toBe(403)
 
-    // super admin can promote and demote anyone
-    const promote = await app.inject({
+    // only super admins may change a super admin's role
+    const demoteSuper = await app.inject({
+      method: 'PATCH',
+      url: `/api/v1/admin/users/${superAdmin.id}/role`,
+      headers: session(admin.token),
+      payload: { roleId: roleIds.user }
+    })
+    expect(demoteSuper.statusCode).toBe(403)
+
+    const superGrantsSuper = await app.inject({
       method: 'PATCH',
       url: `/api/v1/admin/users/${standard.id}/role`,
       headers: session(superAdmin.token),
-      payload: { role: 'admin' }
+      payload: { roleId: roleIds.super_admin }
     })
-    expect(promote.statusCode).toBe(200)
-    expect(promote.json()).toMatchObject({ id: standard.id, role: 'admin' })
+    expect(superGrantsSuper.statusCode).toBe(200)
 
-    const demote = await app.inject({
+    const superDemotes = await app.inject({
       method: 'PATCH',
-      url: `/api/v1/admin/users/${otherAdmin.id}/role`,
+      url: `/api/v1/admin/users/${standard.id}/role`,
       headers: session(superAdmin.token),
-      payload: { role: 'user' }
+      payload: { roleId: roleIds.user }
     })
-    expect(demote.statusCode).toBe(200)
-    expect(demote.json()).toMatchObject({ role: 'user' })
+    expect(superDemotes.statusCode).toBe(200)
+    expect(superDemotes.json()).toMatchObject({ role: { name: 'user' } })
 
-    // nobody can change their own role
+    // nobody changes their own role
     const selfChange = await app.inject({
       method: 'PATCH',
       url: `/api/v1/admin/users/${superAdmin.id}/role`,
       headers: session(superAdmin.token),
-      payload: { role: 'user' }
+      payload: { roleId: roleIds.user }
     })
     expect(selfChange.statusCode).toBe(403)
 
-    // unknown target and invalid role payloads
-    const missing = await app.inject({
+    const missingUser = await app.inject({
       method: 'PATCH',
       url: '/api/v1/admin/users/00000000-0000-0000-0000-000000000000/role',
       headers: session(superAdmin.token),
-      payload: { role: 'admin' }
+      payload: { roleId: roleIds.user }
     })
-    expect(missing.statusCode).toBe(404)
+    expect(missingUser.statusCode).toBe(404)
+
+    const missingRole = await app.inject({
+      method: 'PATCH',
+      url: `/api/v1/admin/users/${standard.id}/role`,
+      headers: session(superAdmin.token),
+      payload: { roleId: '00000000-0000-0000-0000-000000000000' }
+    })
+    expect(missingRole.statusCode).toBe(404)
 
     const invalidRole = await app.inject({
       method: 'PATCH',
       url: `/api/v1/admin/users/${standard.id}/role`,
       headers: session(superAdmin.token),
-      payload: { role: 'owner' }
+      payload: { roleId: 'not-a-uuid' }
     })
     expect(invalidRole.statusCode).toBe(422)
   })
 
-  it('enforces the deletion matrix', async () => {
+  it('enforces the deletion rules', async () => {
     const admin = await createUser('delete-admin@example.com', 'admin')
     const otherAdmin = await createUser('delete-admin-2@example.com', 'admin')
     const superAdmin = await createUser('delete-super@example.com', 'super_admin')
+    const otherSuper = await createUser('delete-super-2@example.com', 'super_admin')
     const standard = await createUser('delete-user@example.com')
 
-    const adminDeletesAdmin = await app.inject({
+    // users:manage cannot touch super admin holders
+    const adminDeletesSuper = await app.inject({
       method: 'DELETE',
-      url: `/api/v1/admin/users/${otherAdmin.id}`,
+      url: `/api/v1/admin/users/${otherSuper.id}`,
       headers: session(admin.token)
     })
-    expect(adminDeletesAdmin.statusCode).toBe(403)
+    expect(adminDeletesSuper.statusCode).toBe(403)
 
     const selfDelete = await app.inject({
       method: 'DELETE',
@@ -161,6 +172,13 @@ describe('admin user routes', () => {
       headers: session(superAdmin.token)
     })
     expect(selfDelete.statusCode).toBe(403)
+
+    const adminDeletesAdmin = await app.inject({
+      method: 'DELETE',
+      url: `/api/v1/admin/users/${otherAdmin.id}`,
+      headers: session(admin.token)
+    })
+    expect(adminDeletesAdmin.statusCode).toBe(204)
 
     const adminDeletesUser = await app.inject({
       method: 'DELETE',
@@ -170,12 +188,12 @@ describe('admin user routes', () => {
     expect(adminDeletesUser.statusCode).toBe(204)
     expect(await db.select().from(users).where(eq(users.id, standard.id))).toEqual([])
 
-    const superDeletesAdmin = await app.inject({
+    const superDeletesSuper = await app.inject({
       method: 'DELETE',
-      url: `/api/v1/admin/users/${otherAdmin.id}`,
+      url: `/api/v1/admin/users/${otherSuper.id}`,
       headers: session(superAdmin.token)
     })
-    expect(superDeletesAdmin.statusCode).toBe(204)
+    expect(superDeletesSuper.statusCode).toBe(204)
 
     const missing = await app.inject({
       method: 'DELETE',
@@ -185,13 +203,13 @@ describe('admin user routes', () => {
     expect(missing.statusCode).toBe(404)
   })
 
-  it('reads the role fresh from the database on every request', async () => {
+  it('reads permissions fresh from the database on every request', async () => {
     const admin = await createUser('fresh-admin@example.com', 'admin')
 
     const before = await app.inject({ method: 'GET', url: '/api/v1/admin/users', headers: session(admin.token) })
     expect(before.statusCode).toBe(200)
 
-    await db.update(users).set({ role: 'user' }).where(eq(users.id, admin.id))
+    await db.update(users).set({ roleId: roleIds.user }).where(eq(users.id, admin.id))
 
     const after = await app.inject({ method: 'GET', url: '/api/v1/admin/users', headers: session(admin.token) })
     expect(after.statusCode).toBe(403)

@@ -1,5 +1,4 @@
 export { EmailAlreadyExistsError, ForbiddenError, UnauthorizedError, UserNotFoundError } from './users.errors.js'
-export { roleAtLeast } from './users.roles.js'
 export { adminUsersRoutes, authRoutes, profileRoutes } from './users.routes.js'
 export * from './users.schema.js'
-export { getUserRole } from './users.service.js'
+export { getUserAuth, type UserAuth } from './users.service.js'

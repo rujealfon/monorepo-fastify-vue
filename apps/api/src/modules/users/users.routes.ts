@@ -47,9 +47,9 @@ export const adminUsersRoutes: FastifyPluginAsync = async (fastify) => {
   const app = fastify.withTypeProvider<ZodTypeProvider>()
 
   app.addHook('onRequest', app.authenticate)
-  app.addHook('onRequest', app.requireRole('admin'))
 
   app.get<{ Querystring: UsersPageQuery }>('/', {
+    onRequest: app.requirePermission('users:read'),
     schema: {
       tags: ['Admin'],
       querystring: usersPageQuerySchema,
@@ -58,6 +58,7 @@ export const adminUsersRoutes: FastifyPluginAsync = async (fastify) => {
   }, handlers.listUsers)
 
   app.patch<{ Params: UserIdParams, Body: ChangeRole }>('/:id/role', {
+    onRequest: app.requirePermission('users:manage'),
     preHandler: app.sameOrigin,
     schema: {
       tags: ['Admin'],
@@ -69,6 +70,7 @@ export const adminUsersRoutes: FastifyPluginAsync = async (fastify) => {
 
   // eslint-disable-next-line drizzle/enforce-delete-with-where -- this is a Fastify route, not a Drizzle query
   app.delete<{ Params: UserIdParams }>('/:id', {
+    onRequest: app.requirePermission('users:manage'),
     preHandler: app.sameOrigin,
     schema: {
       tags: ['Admin'],

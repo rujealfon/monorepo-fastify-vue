@@ -1,18 +1,22 @@
-import type { Role } from '@monorepo-fastify-vue/api-client'
 import { useMutation, useQueryCache } from '@pinia/colada'
 
+import { ROLE_KEYS } from '@/features/roles'
 import { ADMIN_USER_KEYS } from '@/features/users/queries'
 import { fail } from '@/features/users/users.utils'
 import { api } from '@/shared/api/client'
 
 export function useAdminUserMutations() {
   const queryCache = useQueryCache()
-  const refresh = () => queryCache.invalidateQueries({ key: ADMIN_USER_KEYS.root })
+  // role assignments change the per-role user counts too
+  const refresh = () => Promise.all([
+    queryCache.invalidateQueries({ key: ADMIN_USER_KEYS.root }),
+    queryCache.invalidateQueries({ key: ROLE_KEYS.root })
+  ])
 
   return {
     changeRole: useMutation({
-      mutation: async ({ id, role }: { id: string, role: Role }) =>
-        fail((await api.PATCH('/api/v1/admin/users/{id}/role', { params: { path: { id } }, body: { role } })).response),
+      mutation: async ({ id, roleId }: { id: string, roleId: string }) =>
+        fail((await api.PATCH('/api/v1/admin/users/{id}/role', { params: { path: { id } }, body: { roleId } })).response),
       onSuccess: refresh
     }),
     remove: useMutation({

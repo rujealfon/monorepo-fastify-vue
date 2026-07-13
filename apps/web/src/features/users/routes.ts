@@ -5,6 +5,6 @@ export const adminUserRoutes: RouteRecordRaw[] = [
     path: '/admin/users',
     name: 'admin-users',
     component: () => import('./views/UsersView.vue'),
-    meta: { requiresAuth: true, requiresRole: 'admin' }
+    meta: { requiresAuth: true, requiresPermission: 'users:read' }
   }
 ]

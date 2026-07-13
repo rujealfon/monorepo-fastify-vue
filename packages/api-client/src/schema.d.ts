@@ -4,6 +4,235 @@
  */
 
 export interface paths {
+    "/api/v1/admin/permissions/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data: {
+                                group: string;
+                                permissions: {
+                                    /** @enum {string} */
+                                    value: "users:read" | "users:manage" | "roles:read" | "roles:manage";
+                                    label: string;
+                                    description: string;
+                                }[];
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/roles/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data: {
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                                description: string | null;
+                                isSystem: boolean;
+                                /** Format: date-time */
+                                createdAt: string;
+                                /** Format: date-time */
+                                updatedAt: string;
+                                permissions: ("users:read" | "users:manage" | "roles:read" | "roles:manage")[];
+                                userCount: number;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    /**
+                     * @example {
+                     *       "name": "support",
+                     *       "description": "Read-only user access",
+                     *       "permissions": [
+                     *         "users:read"
+                     *       ]
+                     *     }
+                     */
+                    "application/json": {
+                        name: string;
+                        description?: string | null;
+                        /** @default [] */
+                        permissions?: ("users:read" | "users:manage" | "roles:read" | "roles:manage")[];
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                            description: string | null;
+                            isSystem: boolean;
+                            /** Format: date-time */
+                            createdAt: string;
+                            /** Format: date-time */
+                            updatedAt: string;
+                            permissions: ("users:read" | "users:manage" | "roles:read" | "roles:manage")[];
+                            userCount: number;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/roles/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": unknown;
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    /**
+                     * @example {
+                     *       "permissions": [
+                     *         "users:read",
+                     *         "users:manage"
+                     *       ]
+                     *     }
+                     */
+                    "application/json": {
+                        name?: string;
+                        description?: string | null;
+                        permissions?: ("users:read" | "users:manage" | "roles:read" | "roles:manage")[];
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** Format: uuid */
+                            id: string;
+                            name: string;
+                            description: string | null;
+                            isSystem: boolean;
+                            /** Format: date-time */
+                            createdAt: string;
+                            /** Format: date-time */
+                            updatedAt: string;
+                            permissions: ("users:read" | "users:manage" | "roles:read" | "roles:manage")[];
+                            userCount: number;
+                        };
+                    };
+                };
+            };
+        };
+        trace?: never;
+    };
     "/api/v1/admin/users/": {
         parameters: {
             query?: never;
@@ -34,12 +263,16 @@ export interface paths {
                                 /** Format: uuid */
                                 id: string;
                                 email: string;
-                                /** @enum {string} */
-                                role: "user" | "admin" | "super_admin";
                                 /** Format: date-time */
                                 createdAt: string;
                                 /** Format: date-time */
                                 updatedAt: string;
+                                role: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    name: string;
+                                    isSystem: boolean;
+                                };
                             }[];
                             pagination: {
                                 page: number;
@@ -86,12 +319,12 @@ export interface paths {
                 content: {
                     /**
                      * @example {
-                     *       "role": "admin"
+                     *       "roleId": "3f8e2f0a-6b1a-4f0e-9c2d-1a2b3c4d5e6f"
                      *     }
                      */
                     "application/json": {
-                        /** @enum {string} */
-                        role: "user" | "admin" | "super_admin";
+                        /** Format: uuid */
+                        roleId: string;
                     };
                 };
             };
@@ -106,12 +339,16 @@ export interface paths {
                             /** Format: uuid */
                             id: string;
                             email: string;
-                            /** @enum {string} */
-                            role: "user" | "admin" | "super_admin";
                             /** Format: date-time */
                             createdAt: string;
                             /** Format: date-time */
                             updatedAt: string;
+                            role: {
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                                isSystem: boolean;
+                            };
                         };
                     };
                 };
@@ -198,12 +435,17 @@ export interface paths {
                             /** Format: uuid */
                             id: string;
                             email: string;
-                            /** @enum {string} */
-                            role: "user" | "admin" | "super_admin";
                             /** Format: date-time */
                             createdAt: string;
                             /** Format: date-time */
                             updatedAt: string;
+                            role: {
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                                isSystem: boolean;
+                            };
+                            permissions: ("users:read" | "users:manage" | "roles:read" | "roles:manage")[];
                             profile: {
                                 firstName: string | null;
                                 lastName: string | null;
@@ -270,12 +512,17 @@ export interface paths {
                             /** Format: uuid */
                             id: string;
                             email: string;
-                            /** @enum {string} */
-                            role: "user" | "admin" | "super_admin";
                             /** Format: date-time */
                             createdAt: string;
                             /** Format: date-time */
                             updatedAt: string;
+                            role: {
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                                isSystem: boolean;
+                            };
+                            permissions: ("users:read" | "users:manage" | "roles:read" | "roles:manage")[];
                             profile: {
                                 firstName: string | null;
                                 lastName: string | null;
@@ -399,12 +646,17 @@ export interface paths {
                             /** Format: uuid */
                             id: string;
                             email: string;
-                            /** @enum {string} */
-                            role: "user" | "admin" | "super_admin";
                             /** Format: date-time */
                             createdAt: string;
                             /** Format: date-time */
                             updatedAt: string;
+                            role: {
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                                isSystem: boolean;
+                            };
+                            permissions: ("users:read" | "users:manage" | "roles:read" | "roles:manage")[];
                             profile: {
                                 firstName: string | null;
                                 lastName: string | null;
@@ -468,12 +720,17 @@ export interface paths {
                             /** Format: uuid */
                             id: string;
                             email: string;
-                            /** @enum {string} */
-                            role: "user" | "admin" | "super_admin";
                             /** Format: date-time */
                             createdAt: string;
                             /** Format: date-time */
                             updatedAt: string;
+                            role: {
+                                /** Format: uuid */
+                                id: string;
+                                name: string;
+                                isSystem: boolean;
+                            };
+                            permissions: ("users:read" | "users:manage" | "roles:read" | "roles:manage")[];
                             profile: {
                                 firstName: string | null;
                                 lastName: string | null;
