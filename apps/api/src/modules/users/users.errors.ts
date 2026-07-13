@@ -29,3 +29,9 @@ export class UserNotFoundError extends Error {
     super('User not found')
   }
 }
+
+export class SuperAdminSeedConflictError extends Error {
+  constructor(email: string) {
+    super(`Refusing to promote existing non-super-admin account ${email} during super admin seeding`)
+  }
+}
