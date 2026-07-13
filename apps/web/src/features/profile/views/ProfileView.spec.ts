@@ -10,11 +10,17 @@ import ProfileView from './ProfileView.vue'
 const api = vi.hoisted(() => ({ GET: vi.fn(), PATCH: vi.fn(), POST: vi.fn() }))
 vi.mock('@/shared/api/client', () => ({ api }))
 
+const USelectStub = {
+  props: ['modelValue'],
+  emits: ['update:modelValue'],
+  template: '<select data-testid="gender" :value="modelValue" @change="$emit(\'update:modelValue\', $event.target.value)"><option value="prefer_not_to_say">Prefer not to say</option></select>'
+}
+
 describe('profile view', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     const response = { ok: true, status: 200 }
-    const profile = { firstName: 'Person', lastName: null, sex: null, birthDate: null, bio: null, createdAt: '', updatedAt: '' }
+    const profile = { firstName: 'Person', lastName: null, gender: null, birthDate: null, bio: null, createdAt: '', updatedAt: '' }
     api.GET.mockResolvedValue({ data: { id: '1', email: 'person@example.com', profile, createdAt: '', updatedAt: '' }, response })
     api.PATCH.mockResolvedValue({ data: { id: '1', email: 'person@example.com', profile: { ...profile, firstName: 'Updated' }, createdAt: '', updatedAt: '' }, response })
     api.POST.mockResolvedValue({ response: { ok: true, status: 204 } })
@@ -30,21 +36,21 @@ describe('profile view', () => {
     })
     await router.push('/profile')
     const pinia = createPinia()
-    const wrapper = mount(ProfileView, { global: { plugins: [pinia, PiniaColada, router] } })
+    const wrapper = mount(ProfileView, { global: { plugins: [pinia, PiniaColada, router], stubs: { Select: USelectStub } } })
     await flushPromises()
 
-    await wrapper.get('#profile-first-name').setValue('Updated')
-    await wrapper.get('#profile-last-name').setValue('Person')
-    await wrapper.get('#profile-sex').setValue('prefer_not_to_say')
-    await wrapper.get('#profile-birth-date').setValue('1990-05-20')
-    await wrapper.get('#profile-bio').setValue('Hello')
+    await wrapper.get('input[name="firstName"]').setValue('Updated')
+    await wrapper.get('input[name="lastName"]').setValue('Person')
+    await wrapper.get('[data-testid="gender"]').setValue('prefer_not_to_say')
+    await wrapper.get('input[name="birthDate"]').setValue('1990-05-20')
+    await wrapper.get('textarea[name="bio"]').setValue('Hello')
     await wrapper.get('form').trigger('submit')
     await flushPromises()
     expect(api.PATCH).toHaveBeenCalledWith('/api/v1/profile/', {
       body: {
         firstName: 'Updated',
         lastName: 'Person',
-        sex: 'prefer_not_to_say',
+        gender: 'prefer_not_to_say',
         birthDate: '1990-05-20',
         bio: 'Hello'
       }
@@ -69,7 +75,7 @@ describe('profile view', () => {
       ]
     })
     await router.push('/profile')
-    const wrapper = mount(ProfileView, { global: { plugins: [createPinia(), PiniaColada, router] } })
+    const wrapper = mount(ProfileView, { global: { plugins: [createPinia(), PiniaColada, router], stubs: { Select: USelectStub } } })
     await flushPromises()
 
     await wrapper.get('form').trigger('submit')

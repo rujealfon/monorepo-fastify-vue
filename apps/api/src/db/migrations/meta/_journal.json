@@ -15,6 +15,13 @@
       "when": 1783862691215,
       "tag": "0001_amazing_phil_sheldon",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1783866123456,
+      "tag": "0002_rename_sex_to_gender",
+      "breakpoints": true
     }
   ]
 }

@@ -20,7 +20,7 @@ const sampleProfile = {
   userId: '1',
   firstName: null,
   lastName: null,
-  sex: null,
+  gender: null,
   birthDate: null,
   bio: null,
   createdAt: new Date(),

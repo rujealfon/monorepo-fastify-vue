@@ -43,3 +43,7 @@ temp/
 .eslintcache
 *.timestamp-*-*.mjs
 *.local
+
+# Nuxt UI (Vite) generated declarations
+auto-imports.d.ts
+components.d.ts

@@ -1,71 +1,52 @@
 <script setup lang="ts">
+import { computed } from 'vue'
+
 import { useHealth } from '@/features/health/composables/useHealth'
 
 const { status, error, loading, checkHealth } = useHealth()
+
+const badge = computed(() => {
+  if (status.value === 'unavailable')
+    return { color: 'error' as const, icon: 'i-lucide-circle-x' }
+  if (status.value === 'checking')
+    return { color: 'neutral' as const, icon: 'i-lucide-loader-circle' }
+  return { color: 'success' as const, icon: 'i-lucide-circle-check' }
+})
 </script>
 
 <template>
-  <main class="health">
-    <h1>Health</h1>
+  <div class="mx-auto flex max-w-lg flex-col gap-6">
+    <div>
+      <h1 class="text-2xl font-semibold text-highlighted">
+        Health
+      </h1>
+      <p class="text-muted">
+        Live status of the API.
+      </p>
+    </div>
 
-    <p class="status" :class="{ down: status === 'unavailable', checking: status === 'checking' }">
-      {{ status }}
-    </p>
+    <UCard class="items-center text-center" :ui="{ body: 'flex flex-col items-center gap-4' }">
+      <UBadge :color="badge.color" variant="subtle" size="lg" :icon="badge.icon" class="capitalize">
+        {{ status }}
+      </UBadge>
 
-    <p v-if="error" class="error">
-      {{ error }}
-    </p>
+      <UAlert
+        v-if="error"
+        color="error"
+        variant="subtle"
+        icon="i-lucide-triangle-alert"
+        :title="error"
+        class="w-full text-left"
+      />
 
-    <button type="button" :disabled="loading" @click="checkHealth">
-      {{ loading ? 'Checking...' : 'Check again' }}
-    </button>
-  </main>
+      <UButton
+        icon="i-lucide-refresh-cw"
+        :label="loading ? 'Checking...' : 'Check again'"
+        :loading="loading"
+        color="neutral"
+        variant="outline"
+        @click="checkHealth"
+      />
+    </UCard>
+  </div>
 </template>
-
-<style scoped>
-.health {
-  display: grid;
-  gap: 1rem;
-}
-
-h1 {
-  font-size: 2rem;
-  line-height: 1.1;
-}
-
-.status {
-  width: fit-content;
-  min-width: 6rem;
-  padding: 0.5rem 0.75rem;
-  border: 1px solid var(--color-border);
-  border-radius: 6px;
-  color: hsla(160, 100%, 37%, 1);
-  font-size: 1.25rem;
-  font-weight: 600;
-  text-align: center;
-}
-
-.status.down,
-.error {
-  color: #c2410c;
-}
-
-.status.checking {
-  color: var(--color-text);
-}
-
-button {
-  width: fit-content;
-  padding: 0.5rem 0.75rem;
-  border: 1px solid var(--color-border);
-  border-radius: 6px;
-  background: transparent;
-  color: var(--color-text);
-  cursor: pointer;
-}
-
-button:disabled {
-  cursor: wait;
-  opacity: 0.7;
-}
-</style>

@@ -14,7 +14,7 @@ describe('user schemas', () => {
   it.each([
     { firstName: 'x'.repeat(101) },
     { lastName: 'x'.repeat(101) },
-    { sex: 'unknown' },
+    { gender: 'unknown' },
     { birthDate: '20-05-1990' },
     { bio: 'x'.repeat(501) }
   ])('rejects invalid profile input', (input) => {
@@ -25,7 +25,7 @@ describe('user schemas', () => {
     expect(patchProfileSchema.safeParse({
       firstName: null,
       lastName: null,
-      sex: null,
+      gender: null,
       birthDate: null,
       bio: null
     }).success).toBe(true)

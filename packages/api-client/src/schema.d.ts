@@ -54,7 +54,7 @@ export interface paths {
                                 firstName: string | null;
                                 lastName: string | null;
                                 /** @enum {string|null} */
-                                sex: "male" | "female" | "intersex" | "prefer_not_to_say" | null;
+                                gender: "male" | "female" | "intersex" | "prefer_not_to_say" | null;
                                 /** Format: date */
                                 birthDate: string | null;
                                 bio: string | null;
@@ -124,7 +124,7 @@ export interface paths {
                                 firstName: string | null;
                                 lastName: string | null;
                                 /** @enum {string|null} */
-                                sex: "male" | "female" | "intersex" | "prefer_not_to_say" | null;
+                                gender: "male" | "female" | "intersex" | "prefer_not_to_say" | null;
                                 /** Format: date */
                                 birthDate: string | null;
                                 bio: string | null;
@@ -251,7 +251,7 @@ export interface paths {
                                 firstName: string | null;
                                 lastName: string | null;
                                 /** @enum {string|null} */
-                                sex: "male" | "female" | "intersex" | "prefer_not_to_say" | null;
+                                gender: "male" | "female" | "intersex" | "prefer_not_to_say" | null;
                                 /** Format: date */
                                 birthDate: string | null;
                                 bio: string | null;
@@ -283,7 +283,7 @@ export interface paths {
                      * @example {
                      *       "firstName": "Alex",
                      *       "lastName": "Morgan",
-                     *       "sex": "prefer_not_to_say",
+                     *       "gender": "prefer_not_to_say",
                      *       "birthDate": "1990-05-20",
                      *       "bio": "Building useful things with TypeScript."
                      *     }
@@ -292,7 +292,7 @@ export interface paths {
                         firstName?: string | null;
                         lastName?: string | null;
                         /** @enum {string|null} */
-                        sex?: "male" | "female" | "intersex" | "prefer_not_to_say" | null;
+                        gender?: "male" | "female" | "intersex" | "prefer_not_to_say" | null;
                         /** Format: date */
                         birthDate?: string | null;
                         bio?: string | null;
@@ -318,7 +318,7 @@ export interface paths {
                                 firstName: string | null;
                                 lastName: string | null;
                                 /** @enum {string|null} */
-                                sex: "male" | "female" | "intersex" | "prefer_not_to_say" | null;
+                                gender: "male" | "female" | "intersex" | "prefer_not_to_say" | null;
                                 /** Format: date */
                                 birthDate: string | null;
                                 bio: string | null;

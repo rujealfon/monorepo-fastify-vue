@@ -14,16 +14,23 @@ const update = useProfileMutation()
 const { logout } = useAuthMutations()
 const firstName = ref('')
 const lastName = ref('')
-const sex = ref<NonNullable<UpdateProfile['sex']> | ''>('')
+const gender = ref<NonNullable<UpdateProfile['gender']> | ''>('')
 const birthDate = ref('')
 const bio = ref('')
+const genderOptions: Array<{ label: string, value: NonNullable<UpdateProfile['gender']> | '' }> = [
+  { label: 'Not specified', value: '' },
+  { label: 'Female', value: 'female' },
+  { label: 'Male', value: 'male' },
+  { label: 'Intersex', value: 'intersex' },
+  { label: 'Prefer not to say', value: 'prefer_not_to_say' }
+]
 const pending = computed(() => update.asyncStatus.value === 'loading' || logout.asyncStatus.value === 'loading')
 
 watchEffect(() => {
   const profile = session.data.value?.profile
   firstName.value = profile?.firstName ?? ''
   lastName.value = profile?.lastName ?? ''
-  sex.value = profile?.sex ?? ''
+  gender.value = profile?.gender ?? ''
   birthDate.value = profile?.birthDate ?? ''
   bio.value = profile?.bio ?? ''
 })
@@ -33,7 +40,7 @@ async function save() {
     await update.mutateAsync({
       firstName: firstName.value.trim() || null,
       lastName: lastName.value.trim() || null,
-      sex: sex.value || null,
+      gender: gender.value || null,
       birthDate: birthDate.value || null,
       bio: bio.value.trim() || null
     })
@@ -51,43 +58,81 @@ async function signOut() {
 </script>
 
 <template>
-  <main>
-    <h1>Profile</h1>
-    <p>{{ session.data.value?.email }}</p>
-    <form @submit.prevent="save">
-      <label for="profile-first-name">First name
-        <input id="profile-first-name" v-model="firstName" autocomplete="given-name" maxlength="100">
-      </label>
-      <label for="profile-last-name">Last name
-        <input id="profile-last-name" v-model="lastName" autocomplete="family-name" maxlength="100">
-      </label>
-      <label for="profile-sex">Sex
-        <select id="profile-sex" v-model="sex">
-          <option value="">Not specified</option>
-          <option value="female">Female</option>
-          <option value="male">Male</option>
-          <option value="intersex">Intersex</option>
-          <option value="prefer_not_to_say">Prefer not to say</option>
-        </select>
-      </label>
-      <label for="profile-birth-date">Birth date
-        <input id="profile-birth-date" v-model="birthDate" type="date">
-      </label>
-      <label for="profile-bio">Bio
-        <textarea id="profile-bio" v-model="bio" maxlength="500" />
-      </label>
-      <p v-if="update.error.value" role="alert">
-        Could not update your profile.
-      </p>
-      <button :disabled="pending" type="submit">
-        Save
-      </button>
-    </form>
-    <button :disabled="pending" type="button" @click="signOut">
-      Logout
-    </button>
-    <p v-if="logout.error.value" role="alert">
-      Could not log out.
-    </p>
-  </main>
+  <div class="mx-auto flex max-w-xl flex-col gap-6">
+    <div class="flex items-center gap-4">
+      <UAvatar icon="i-lucide-user" size="xl" />
+      <div>
+        <h1 class="text-2xl font-semibold text-highlighted">
+          Profile
+        </h1>
+        <p class="text-muted">
+          {{ session.data.value?.email }}
+        </p>
+      </div>
+    </div>
+
+    <UCard :ui="{ body: 'space-y-4' }">
+      <form class="grid grid-cols-1 gap-4 sm:grid-cols-2" @submit.prevent="save">
+        <UFormField name="firstName" label="First name" class="w-full">
+          <UInput v-model="firstName" autocomplete="given-name" maxlength="100" class="w-full" />
+        </UFormField>
+        <UFormField name="lastName" label="Last name" class="w-full">
+          <UInput v-model="lastName" autocomplete="family-name" maxlength="100" class="w-full" />
+        </UFormField>
+        <UFormField name="gender" label="Gender" class="w-full">
+          <USelect v-model="gender" :items="genderOptions" class="w-full" />
+        </UFormField>
+        <UFormField name="birthDate" label="Birth date" class="w-full">
+          <UInput v-model="birthDate" type="date" class="w-full" />
+        </UFormField>
+        <UFormField name="bio" label="Bio" class="col-span-full">
+          <UTextarea v-model="bio" maxlength="500" :rows="3" autoresize class="w-full" />
+        </UFormField>
+
+        <UAlert
+          v-if="update.error.value"
+          role="alert"
+          color="error"
+          variant="subtle"
+          icon="i-lucide-triangle-alert"
+          title="Could not update your profile."
+          class="col-span-full"
+        />
+
+        <div class="col-span-full flex justify-end">
+          <UButton type="submit" label="Save" :disabled="pending" :loading="update.asyncStatus.value === 'loading'" />
+        </div>
+      </form>
+    </UCard>
+
+    <UCard>
+      <div class="flex items-center justify-between gap-4">
+        <div>
+          <p class="font-medium text-default">
+            Sign out
+          </p>
+          <p class="text-sm text-muted">
+            End your session on this device.
+          </p>
+        </div>
+        <UButton
+          label="Logout"
+          icon="i-lucide-log-out"
+          color="error"
+          variant="outline"
+          :disabled="pending"
+          @click="signOut"
+        />
+      </div>
+      <UAlert
+        v-if="logout.error.value"
+        role="alert"
+        color="error"
+        variant="subtle"
+        icon="i-lucide-triangle-alert"
+        title="Could not log out."
+        class="mt-4"
+      />
+    </UCard>
+  </div>
 </template>

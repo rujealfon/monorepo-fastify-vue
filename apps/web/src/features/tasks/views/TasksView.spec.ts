@@ -59,14 +59,14 @@ describe('tasksView', () => {
     expect(api.POST).toHaveBeenCalledWith('/api/v1/tasks/', { body: { name: 'New task' } })
     expect(api.GET.mock.calls.length).toBeGreaterThan(readsBeforeCreate)
 
-    await wrapper.get('input[type="checkbox"]').trigger('change')
+    await wrapper.get('button[role="checkbox"]').trigger('click')
     await flushPromises()
     expect(api.PATCH).toHaveBeenCalledWith('/api/v1/tasks/{id}', {
       params: { path: { id: 1 } },
       body: { done: true }
     })
 
-    await wrapper.get('li button').trigger('click')
+    await wrapper.get('li button[aria-label^="Delete"]').trigger('click')
     await flushPromises()
     expect(api.DELETE).toHaveBeenCalledWith('/api/v1/tasks/{id}', {
       params: { path: { id: 1 } }

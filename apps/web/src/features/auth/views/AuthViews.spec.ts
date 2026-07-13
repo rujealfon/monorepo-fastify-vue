@@ -15,7 +15,7 @@ vi.mock('@/shared/api/client', () => ({ api }))
 const user = {
   id: '1',
   email: 'person@example.com',
-  profile: { firstName: null, lastName: null, sex: null, birthDate: null, bio: null, createdAt: '', updatedAt: '' },
+  profile: { firstName: null, lastName: null, gender: null, birthDate: null, bio: null, createdAt: '', updatedAt: '' },
   createdAt: '',
   updatedAt: ''
 }
@@ -42,16 +42,16 @@ describe('authentication views', () => {
   it('logs in and honors only internal redirects', async () => {
     api.POST.mockResolvedValue({ data: user, response: { ok: true, status: 200 } })
     const { pinia, router, wrapper } = await mountAt(LoginView, '/login?redirect=/tasks')
-    await wrapper.get('#login-email').setValue(user.email)
-    await wrapper.get('#login-password').setValue('correct horse battery staple')
+    await wrapper.get('input[name="email"]').setValue(user.email)
+    await wrapper.get('input[name="password"]').setValue('correct horse battery staple')
     await wrapper.get('form').trigger('submit')
     await flushPromises()
     expect(router.currentRoute.value.fullPath).toBe('/tasks')
     expect(useQueryCache(pinia).getQueryData(SESSION_KEY)).toEqual(user)
 
     const unsafe = await mountAt(LoginView, '/login?redirect=//evil.example')
-    await unsafe.wrapper.get('#login-email').setValue(user.email)
-    await unsafe.wrapper.get('#login-password').setValue('correct horse battery staple')
+    await unsafe.wrapper.get('input[name="email"]').setValue(user.email)
+    await unsafe.wrapper.get('input[name="password"]').setValue('correct horse battery staple')
     await unsafe.wrapper.get('form').trigger('submit')
     await flushPromises()
     expect(unsafe.router.currentRoute.value.fullPath).toBe('/profile')
@@ -60,16 +60,16 @@ describe('authentication views', () => {
   it('shows login errors and registers a user', async () => {
     api.POST.mockResolvedValueOnce({ response: { ok: false, status: 401 } })
     const login = await mountAt(LoginView, '/login')
-    await login.wrapper.get('#login-email').setValue(user.email)
-    await login.wrapper.get('#login-password').setValue('incorrect password')
+    await login.wrapper.get('input[name="email"]').setValue(user.email)
+    await login.wrapper.get('input[name="password"]').setValue('incorrect password')
     await login.wrapper.get('form').trigger('submit')
     await flushPromises()
     expect(login.wrapper.get('[role="alert"]').text()).toContain('Invalid')
 
     api.POST.mockResolvedValueOnce({ data: user, response: { ok: true, status: 201 } })
     const registration = await mountAt(RegisterView, '/register')
-    await registration.wrapper.get('#register-email').setValue(user.email)
-    await registration.wrapper.get('#register-password').setValue('correct horse battery staple')
+    await registration.wrapper.get('input[name="email"]').setValue(user.email)
+    await registration.wrapper.get('input[name="password"]').setValue('correct horse battery staple')
     await registration.wrapper.get('form').trigger('submit')
     await flushPromises()
     expect(api.POST).toHaveBeenLastCalledWith('/api/v1/auth/register', {
@@ -82,8 +82,8 @@ describe('authentication views', () => {
   it('shows registration errors without redirecting', async () => {
     api.POST.mockResolvedValue({ response: { ok: false, status: 409 } })
     const registration = await mountAt(RegisterView, '/register')
-    await registration.wrapper.get('#register-email').setValue(user.email)
-    await registration.wrapper.get('#register-password').setValue('correct horse battery staple')
+    await registration.wrapper.get('input[name="email"]').setValue(user.email)
+    await registration.wrapper.get('input[name="password"]').setValue('correct horse battery staple')
     await registration.wrapper.get('form').trigger('submit')
     await flushPromises()
     expect(registration.wrapper.get('[role="alert"]').text()).toContain('Registration failed')

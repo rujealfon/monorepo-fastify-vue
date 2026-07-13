@@ -10,13 +10,13 @@ export const users = pgTable('users', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date())
 })
 
-export const sexEnum = pgEnum('sex', ['male', 'female', 'intersex', 'prefer_not_to_say'])
+export const genderEnum = pgEnum('gender', ['male', 'female', 'intersex', 'prefer_not_to_say'])
 
 export const profiles = pgTable('profiles', {
   userId: uuid('user_id').primaryKey().references(() => users.id, { onDelete: 'cascade' }),
   firstName: varchar('first_name', { length: 100 }),
   lastName: varchar('last_name', { length: 100 }),
-  sex: sexEnum('sex'),
+  gender: genderEnum('gender'),
   birthDate: date('birth_date', { mode: 'string' }),
   bio: text('bio'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
@@ -41,7 +41,7 @@ export type LoginUser = z.infer<typeof loginUserSchema>
 export const patchProfileSchema = z.object({
   firstName: nameSchema,
   lastName: nameSchema,
-  sex: z.enum(sexEnum.enumValues).nullable(),
+  gender: z.enum(genderEnum.enumValues).nullable(),
   birthDate: birthDateSchema,
   bio: z.string().trim().max(500).nullable()
 }).partial().refine(profile => Object.keys(profile).length > 0, {
@@ -50,7 +50,7 @@ export const patchProfileSchema = z.object({
   examples: [{
     firstName: 'Alex',
     lastName: 'Morgan',
-    sex: 'prefer_not_to_say',
+    gender: 'prefer_not_to_say',
     birthDate: '1990-05-20',
     bio: 'Building useful things with TypeScript.'
   }]

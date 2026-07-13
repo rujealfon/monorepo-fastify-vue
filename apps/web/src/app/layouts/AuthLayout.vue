@@ -3,24 +3,11 @@ import { RouterLink, RouterView } from 'vue-router'
 </script>
 
 <template>
-  <div class="auth-layout">
-    <RouterLink to="/" aria-label="Home">
-      <img alt="Vue logo" src="@/assets/images/logo.svg" width="96" height="96">
+  <div class="flex min-h-dvh flex-col items-center justify-center gap-6 bg-default p-6">
+    <RouterLink to="/" class="flex items-center gap-2 text-lg font-semibold text-highlighted" aria-label="Home">
+      <UIcon name="i-lucide-check-check" class="size-7 text-primary" />
+      Task Manager
     </RouterLink>
     <RouterView />
   </div>
 </template>
-
-<style scoped>
-.auth-layout {
-  display: grid;
-  grid-column: 1 / -1;
-  gap: 2rem;
-  width: min(100%, 28rem);
-  margin: auto;
-}
-
-.auth-layout > a {
-  justify-self: center;
-}
-</style>
