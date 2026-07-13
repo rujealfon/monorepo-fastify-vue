@@ -99,6 +99,27 @@ describe('admin role routes', () => {
     expect(duplicate.statusCode).toBe(409)
   })
 
+  it('rejects permission rules carrying conditions until enforcement evaluates them', async () => {
+    const superAdmin = await createUser('roles-conditions-super@example.com', 'super_admin')
+    const conditionalPermissions = [{ action: 'read', subject: 'User', conditions: { ownerId: 'self' } }]
+
+    const created = await app.inject({
+      method: 'POST',
+      url: '/api/v1/admin/roles',
+      headers: session(superAdmin.token),
+      payload: { name: 'Scoped', slug: 'scoped', rank: 5, permissions: conditionalPermissions }
+    })
+    expect(created.statusCode).toBe(422)
+
+    const updated = await app.inject({
+      method: 'PATCH',
+      url: `/api/v1/admin/roles/${await roleId('admin')}`,
+      headers: session(superAdmin.token),
+      payload: { permissions: conditionalPermissions }
+    })
+    expect(updated.statusCode).toBe(422)
+  })
+
   it('updates custom roles but protects system roles', async () => {
     const superAdmin = await createUser('roles-update-super@example.com', 'super_admin')
     const [custom] = await db.insert(roles).values({ name: 'Support', slug: 'support', rank: 12 }).returning()

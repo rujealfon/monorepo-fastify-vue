@@ -42,7 +42,7 @@ export function insert({ permissions, ...data }: CreateRole) {
     const role = await tx.insert(roles).values(data).returning().then(rows => rows[0])
     if (permissions.length)
       await tx.insert(rolePermissions).values(permissions.map(permission => ({ ...permission, roleId: role.id })))
-    return { ...role, permissions: permissions.map(({ action, subject, conditions }) => ({ action, subject, conditions: conditions ?? null })) }
+    return { ...role, permissions: permissions.map(({ action, subject }) => ({ action, subject, conditions: null })) }
   })
 }
 

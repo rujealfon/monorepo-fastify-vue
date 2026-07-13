@@ -40,11 +40,20 @@ export const roleWithPermissionsSchema = roleSchema.extend({
 })
 export type RoleWithPermissions = z.infer<typeof roleWithPermissionsSchema>
 
+// Input rules are action/subject only: authorize() checks subject types, not
+// resource instances, so CASL never evaluates `conditions` — accepting one
+// would grant broader access than the rule reads. The column stays for when
+// enforcement passes real instances.
+export const permissionInputSchema = z.strictObject({
+  action: permissionRuleSchema.shape.action,
+  subject: permissionRuleSchema.shape.subject
+})
+
 export const createRoleSchema = z.object({
   name: z.string().trim().min(1).max(100),
   slug: z.string().trim().regex(/^[a-z][a-z0-9_]*$/, 'Slug must be lowercase snake_case').max(100),
   rank: z.number().int().positive(),
-  permissions: z.array(permissionRuleSchema.extend({ conditions: permissionRuleSchema.shape.conditions.optional() })).default([])
+  permissions: z.array(permissionInputSchema).default([])
 }).meta({ examples: [{ name: 'Moderator', slug: 'moderator', rank: 15, permissions: [{ action: 'read', subject: 'User' }] }] })
 export type CreateRole = z.infer<typeof createRoleSchema>
 

@@ -80,9 +80,6 @@ export interface paths {
                         permissions?: {
                             action: string;
                             subject: string;
-                            conditions?: {
-                                [key: string]: unknown;
-                            } | null;
                         }[];
                     };
                 };
@@ -186,9 +183,6 @@ export interface paths {
                         permissions?: {
                             action: string;
                             subject: string;
-                            conditions?: {
-                                [key: string]: unknown;
-                            } | null;
                         }[];
                     };
                 };

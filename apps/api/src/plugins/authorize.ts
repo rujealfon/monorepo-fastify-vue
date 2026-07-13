@@ -8,6 +8,10 @@ import { findActor, ForbiddenError, UnauthorizedError } from '#api/modules/users
 
 // Authorization is deliberately loaded fresh from the database on every request:
 // the JWT only carries `sub`, so role or permission changes take effect immediately.
+//
+// The check runs against subject TYPES (plain strings), not resource instances,
+// so CASL cannot evaluate per-row `conditions` here — which is why the roles
+// input schema rejects them (see permissionInputSchema in roles.schema.ts).
 export default fp(async (fastify) => {
   fastify.decorate('authorize', (action: string, subject: string) =>
     async (request: FastifyRequest) => {

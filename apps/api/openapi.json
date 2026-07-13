@@ -147,17 +147,13 @@
                           "type": "string",
                           "minLength": 1,
                           "maxLength": 100
-                        },
-                        "conditions": {
-                          "nullable": true,
-                          "type": "object",
-                          "additionalProperties": {}
                         }
                       },
                       "required": [
                         "action",
                         "subject"
-                      ]
+                      ],
+                      "additionalProperties": false
                     }
                   }
                 },
@@ -309,17 +305,13 @@
                           "type": "string",
                           "minLength": 1,
                           "maxLength": 100
-                        },
-                        "conditions": {
-                          "nullable": true,
-                          "type": "object",
-                          "additionalProperties": {}
                         }
                       },
                       "required": [
                         "action",
                         "subject"
-                      ]
+                      ],
+                      "additionalProperties": false
                     }
                   }
                 }
