@@ -12,6 +12,7 @@ const sampleUser = {
   id: '1',
   email: 'person@example.com',
   passwordHash: 'hash',
+  role: 'user' as const,
   createdAt: new Date(),
   updatedAt: new Date()
 }
@@ -115,5 +116,51 @@ describe('users.service', () => {
     vi.mocked(usersRepository.updateProfile).mockResolvedValue(sampleRow)
 
     await expect(usersService.updateProfile('1', { firstName: 'Alex' })).resolves.toMatchObject({ id: '1' })
+  })
+
+  it('register does not set a role so new accounts default to user', async () => {
+    vi.mocked(usersPassword.hashPassword).mockResolvedValue('hashed')
+    vi.mocked(usersRepository.insert).mockResolvedValue(sampleRow)
+
+    await usersService.register({ email: 'person@example.com', password: 'correct horse battery staple' })
+
+    expect(usersRepository.insert).toHaveBeenCalledWith({ email: 'person@example.com', passwordHash: 'hashed' })
+    expect(vi.mocked(usersRepository.insert).mock.calls[0][0]).not.toHaveProperty('role')
+  })
+
+  it('ensureSuperAdmin creates the account with the super_admin role when missing', async () => {
+    vi.mocked(usersRepository.findByEmail).mockResolvedValue(undefined)
+    vi.mocked(usersPassword.hashPassword).mockResolvedValue('hashed')
+
+    await usersService.ensureSuperAdmin('root@example.com', 'correct horse battery staple')
+
+    expect(usersRepository.insert).toHaveBeenCalledWith({
+      email: 'root@example.com',
+      passwordHash: 'hashed',
+      role: 'super_admin'
+    })
+    expect(usersRepository.updateRole).not.toHaveBeenCalled()
+  })
+
+  it('ensureSuperAdmin promotes an existing account without touching the password', async () => {
+    vi.mocked(usersRepository.findByEmail).mockResolvedValue(sampleRow)
+
+    await usersService.ensureSuperAdmin('person@example.com', 'ignored password here')
+
+    expect(usersRepository.updateRole).toHaveBeenCalledWith('1', 'super_admin')
+    expect(usersRepository.insert).not.toHaveBeenCalled()
+    expect(usersPassword.hashPassword).not.toHaveBeenCalled()
+  })
+
+  it('ensureSuperAdmin is a no-op when the account is already a super admin', async () => {
+    vi.mocked(usersRepository.findByEmail).mockResolvedValue({
+      ...sampleRow,
+      user: { ...sampleUser, role: 'super_admin' as const }
+    })
+
+    await usersService.ensureSuperAdmin('person@example.com', 'ignored password here')
+
+    expect(usersRepository.updateRole).not.toHaveBeenCalled()
+    expect(usersRepository.insert).not.toHaveBeenCalled()
   })
 })

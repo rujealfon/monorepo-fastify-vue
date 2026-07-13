@@ -1,6 +1,6 @@
-import type { PatchProfile, RegisterUser } from './users.schema.js'
+import type { PatchProfile, RegisterUser, Role } from './users.schema.js'
 
-import { eq } from 'drizzle-orm'
+import { asc, count, eq } from 'drizzle-orm'
 
 import { db } from '#api/db/index.js'
 
@@ -22,7 +22,30 @@ export function findById(id: string) {
   return find(eq(users.id, id))
 }
 
-export function insert(data: Omit<RegisterUser, 'password'> & { passwordHash: string }) {
+export function findRoleById(id: string) {
+  return db.select({ role: users.role })
+    .from(users)
+    .where(eq(users.id, id))
+    .then(rows => rows.at(0)?.role)
+}
+
+export async function findPage(page: number, limit: number) {
+  const [data, [{ total }]] = await Promise.all([
+    db.select().from(users).orderBy(asc(users.createdAt), asc(users.id)).limit(limit).offset((page - 1) * limit),
+    db.select({ total: count() }).from(users)
+  ])
+  return { data, total }
+}
+
+export function updateRole(id: string, role: Role) {
+  return db.update(users).set({ role }).where(eq(users.id, id)).returning().then(rows => rows.at(0))
+}
+
+export function deleteById(id: string) {
+  return db.delete(users).where(eq(users.id, id)).returning().then(rows => rows.at(0))
+}
+
+export function insert(data: Omit<RegisterUser, 'password'> & { passwordHash: string, role?: Role }) {
   return db.transaction(async (tx) => {
     const user = await tx.insert(users).values(data).returning().then(rows => rows[0])
     const profile = await tx.insert(profiles).values({ userId: user.id }).returning().then(rows => rows[0])

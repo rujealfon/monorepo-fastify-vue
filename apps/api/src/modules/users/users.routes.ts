@@ -1,11 +1,11 @@
 import type { FastifyPluginAsync } from 'fastify'
 import type { ZodTypeProvider } from 'fastify-type-provider-zod'
-import type { LoginUser, PatchProfile, RegisterUser } from './users.schema.js'
+import type { ChangeRole, LoginUser, PatchProfile, RegisterUser, UserIdParams, UsersPageQuery } from './users.schema.js'
 
 import { z } from 'zod'
 
 import * as handlers from './users.handlers.js'
-import { loginUserSchema, patchProfileSchema, publicUserSchema, registerUserSchema } from './users.schema.js'
+import { adminUserSchema, changeRoleSchema, loginUserSchema, patchProfileSchema, publicUserSchema, registerUserSchema, userIdParamsSchema, usersPageQuerySchema, usersPageSchema } from './users.schema.js'
 
 export const authRoutes: FastifyPluginAsync = async (fastify) => {
   const app = fastify.withTypeProvider<ZodTypeProvider>()
@@ -41,4 +41,39 @@ export const profileRoutes: FastifyPluginAsync = async (fastify) => {
     preHandler: app.sameOrigin,
     schema: { tags: ['Profile'], body: patchProfileSchema, response: { 200: publicUserSchema } }
   }, handlers.patchProfile)
+}
+
+export const adminUsersRoutes: FastifyPluginAsync = async (fastify) => {
+  const app = fastify.withTypeProvider<ZodTypeProvider>()
+
+  app.addHook('onRequest', app.authenticate)
+  app.addHook('onRequest', app.requireRole('admin'))
+
+  app.get<{ Querystring: UsersPageQuery }>('/', {
+    schema: {
+      tags: ['Admin'],
+      querystring: usersPageQuerySchema,
+      response: { 200: usersPageSchema }
+    }
+  }, handlers.listUsers)
+
+  app.patch<{ Params: UserIdParams, Body: ChangeRole }>('/:id/role', {
+    preHandler: app.sameOrigin,
+    schema: {
+      tags: ['Admin'],
+      params: userIdParamsSchema,
+      body: changeRoleSchema,
+      response: { 200: adminUserSchema }
+    }
+  }, handlers.changeRole)
+
+  // eslint-disable-next-line drizzle/enforce-delete-with-where -- this is a Fastify route, not a Drizzle query
+  app.delete<{ Params: UserIdParams }>('/:id', {
+    preHandler: app.sameOrigin,
+    schema: {
+      tags: ['Admin'],
+      params: userIdParamsSchema,
+      response: { 204: z.void() }
+    }
+  }, handlers.removeUser)
 }

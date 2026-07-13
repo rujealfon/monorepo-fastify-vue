@@ -2,9 +2,10 @@ import type { FastifyPluginAsync } from 'fastify'
 
 import { healthRoutes } from '#api/modules/health'
 import { tasksRoutes } from '#api/modules/tasks'
-import { authRoutes, profileRoutes } from '#api/modules/users'
+import { adminUsersRoutes, authRoutes, profileRoutes } from '#api/modules/users'
 
 export const modules: FastifyPluginAsync = async (app) => {
+  await app.register(adminUsersRoutes, { prefix: '/api/v1/admin/users' })
   await app.register(authRoutes, { prefix: '/api/v1/auth' })
   await app.register(healthRoutes, { prefix: '/api/v1/health' })
   await app.register(profileRoutes, { prefix: '/api/v1/profile' })

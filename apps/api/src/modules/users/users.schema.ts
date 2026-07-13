@@ -2,13 +2,20 @@ import { date, pgEnum, pgTable, text, timestamp, uuid, varchar } from 'drizzle-o
 import { createSelectSchema } from 'drizzle-zod'
 import { z } from 'zod'
 
+// value order is the role hierarchy: index = rank
+export const roleEnum = pgEnum('role', ['user', 'admin', 'super_admin'])
+
 export const users = pgTable('users', {
   id: uuid('id').primaryKey().defaultRandom(),
   email: varchar('email', { length: 254 }).notNull().unique(),
   passwordHash: varchar('password_hash', { length: 255 }).notNull(),
+  role: roleEnum('role').notNull().default('user'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date())
 })
+
+export const roleSchema = z.enum(roleEnum.enumValues)
+export type Role = z.infer<typeof roleSchema>
 
 export const genderEnum = pgEnum('gender', ['male', 'female', 'intersex', 'prefer_not_to_say'])
 
@@ -68,3 +75,29 @@ export const publicUserSchema = createSelectSchema(users)
   .omit({ passwordHash: true })
   .extend({ profile: publicProfileSchema })
 export type PublicUser = z.infer<typeof publicUserSchema>
+
+export const adminUserSchema = createSelectSchema(users).omit({ passwordHash: true })
+export type AdminUser = z.infer<typeof adminUserSchema>
+
+export const usersPageQuerySchema = z.object({
+  page: z.coerce.number().int().positive().default(1),
+  limit: z.coerce.number().int().positive().max(100).default(20)
+}).meta({ examples: [{ page: 1, limit: 20 }] })
+export type UsersPageQuery = z.infer<typeof usersPageQuerySchema>
+
+export const usersPageSchema = z.object({
+  data: z.array(adminUserSchema),
+  pagination: z.object({
+    page: z.number().int().positive(),
+    limit: z.number().int().positive(),
+    total: z.number().int().nonnegative(),
+    totalPages: z.number().int().nonnegative()
+  })
+})
+
+export const changeRoleSchema = z.object({ role: roleSchema })
+  .meta({ examples: [{ role: 'admin' }] })
+export type ChangeRole = z.infer<typeof changeRoleSchema>
+
+export const userIdParamsSchema = z.object({ id: z.uuid() })
+export type UserIdParams = z.infer<typeof userIdParamsSchema>

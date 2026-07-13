@@ -1,3 +1,6 @@
+import type { Role } from '@monorepo-fastify-vue/api-client'
+
+import { roleAtLeast } from '@monorepo-fastify-vue/api-client'
 import { useQueryCache } from '@pinia/colada'
 import { createRouter, createWebHistory } from 'vue-router'
 
@@ -9,6 +12,15 @@ import { healthRoutes } from '@/features/health'
 import { homeRoutes } from '@/features/home'
 import { profileRoutes } from '@/features/profile'
 import { taskRoutes } from '@/features/tasks'
+import { adminUserRoutes } from '@/features/users'
+
+declare module 'vue-router' {
+  // eslint-disable-next-line ts/consistent-type-definitions -- interface required for declaration merging
+  interface RouteMeta {
+    requiresAuth?: boolean
+    requiresRole?: Role
+  }
+}
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -16,7 +28,7 @@ const router = createRouter({
     {
       path: '/',
       component: DefaultLayout,
-      children: [...homeRoutes, ...aboutRoutes, ...healthRoutes, ...taskRoutes, ...profileRoutes]
+      children: [...homeRoutes, ...aboutRoutes, ...healthRoutes, ...taskRoutes, ...profileRoutes, ...adminUserRoutes]
     },
     {
       path: '/',
@@ -39,6 +51,9 @@ router.beforeEach(async (to) => {
 
   if (!user)
     return { path: '/login', query: { redirect: to.fullPath } }
+
+  if (to.meta.requiresRole && !roleAtLeast(user.role, to.meta.requiresRole))
+    return { path: '/' }
 })
 
 export default router

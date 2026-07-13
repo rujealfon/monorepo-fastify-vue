@@ -4,6 +4,158 @@
  */
 
 export interface paths {
+    "/api/v1/admin/users/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    page?: number;
+                    limit?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data: {
+                                /** Format: uuid */
+                                id: string;
+                                email: string;
+                                /** @enum {string} */
+                                role: "user" | "admin" | "super_admin";
+                                /** Format: date-time */
+                                createdAt: string;
+                                /** Format: date-time */
+                                updatedAt: string;
+                            }[];
+                            pagination: {
+                                page: number;
+                                limit: number;
+                                total: number;
+                                totalPages: number;
+                            };
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/users/{id}/role": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    /**
+                     * @example {
+                     *       "role": "admin"
+                     *     }
+                     */
+                    "application/json": {
+                        /** @enum {string} */
+                        role: "user" | "admin" | "super_admin";
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** Format: uuid */
+                            id: string;
+                            email: string;
+                            /** @enum {string} */
+                            role: "user" | "admin" | "super_admin";
+                            /** Format: date-time */
+                            createdAt: string;
+                            /** Format: date-time */
+                            updatedAt: string;
+                        };
+                    };
+                };
+            };
+        };
+        trace?: never;
+    };
+    "/api/v1/admin/users/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": unknown;
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/register": {
         parameters: {
             query?: never;
@@ -46,6 +198,8 @@ export interface paths {
                             /** Format: uuid */
                             id: string;
                             email: string;
+                            /** @enum {string} */
+                            role: "user" | "admin" | "super_admin";
                             /** Format: date-time */
                             createdAt: string;
                             /** Format: date-time */
@@ -116,6 +270,8 @@ export interface paths {
                             /** Format: uuid */
                             id: string;
                             email: string;
+                            /** @enum {string} */
+                            role: "user" | "admin" | "super_admin";
                             /** Format: date-time */
                             createdAt: string;
                             /** Format: date-time */
@@ -243,6 +399,8 @@ export interface paths {
                             /** Format: uuid */
                             id: string;
                             email: string;
+                            /** @enum {string} */
+                            role: "user" | "admin" | "super_admin";
                             /** Format: date-time */
                             createdAt: string;
                             /** Format: date-time */
@@ -310,6 +468,8 @@ export interface paths {
                             /** Format: uuid */
                             id: string;
                             email: string;
+                            /** @enum {string} */
+                            role: "user" | "admin" | "super_admin";
                             /** Format: date-time */
                             createdAt: string;
                             /** Format: date-time */

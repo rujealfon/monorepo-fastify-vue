@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { NavigationMenuItem } from '@nuxt/ui'
+import { roleAtLeast } from '@monorepo-fastify-vue/api-client'
 import { useToast } from '@nuxt/ui/composables'
 import { useQuery } from '@pinia/colada'
 import { computed } from 'vue'
@@ -12,12 +13,18 @@ const session = useQuery(sessionQuery)
 const { logout } = useAuthMutations()
 const toast = useToast()
 
-const links: NavigationMenuItem[] = [
-  { label: 'Home', to: '/', icon: 'i-lucide-house' },
-  { label: 'Tasks', to: '/tasks', icon: 'i-lucide-list-checks' },
-  { label: 'Health', to: '/health', icon: 'i-lucide-activity' },
-  { label: 'About', to: '/about', icon: 'i-lucide-info' }
-]
+const links = computed<NavigationMenuItem[]>(() => {
+  const items: NavigationMenuItem[] = [
+    { label: 'Home', to: '/', icon: 'i-lucide-house' },
+    { label: 'Tasks', to: '/tasks', icon: 'i-lucide-list-checks' },
+    { label: 'Health', to: '/health', icon: 'i-lucide-activity' },
+    { label: 'About', to: '/about', icon: 'i-lucide-info' }
+  ]
+  const role = session.data.value?.role
+  if (role && roleAtLeast(role, 'admin'))
+    items.splice(2, 0, { label: 'Users', to: '/admin/users', icon: 'i-lucide-users' })
+  return items
+})
 
 async function signOut() {
   try {

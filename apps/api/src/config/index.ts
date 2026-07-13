@@ -7,7 +7,10 @@ const envSchema = z.object({
   DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
   JWT_SECRET: z.string().min(32, 'JWT_SECRET must be at least 32 characters'),
   // CORS_ORIGIN is only needed if the API and web app deploy to separate origins.
-  LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal', 'silent']).default('info')
+  LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal', 'silent']).default('info'),
+  // Only required by the db:seed script that bootstraps the first super admin.
+  SUPER_ADMIN_EMAIL: z.string().trim().toLowerCase().max(254).email().optional(),
+  SUPER_ADMIN_PASSWORD: z.string().min(12).max(128).optional()
 })
 
 // eslint-disable-next-line node/no-process-env
