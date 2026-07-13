@@ -2,6 +2,7 @@ import { eq, sql } from 'drizzle-orm'
 import { describe, expect, it } from 'vitest'
 
 import { db } from '#api/db/index.js'
+import { roles } from '#api/modules/roles/roles.schema.js'
 import * as repository from '#api/modules/users/users.repository.js'
 import { users } from '#api/modules/users/users.schema.js'
 
@@ -24,7 +25,8 @@ describe('users repository', () => {
     `)
 
     try {
-      await expect(repository.insert({ email: 'rollback@example.com', passwordHash: 'hash' })).rejects.toThrow()
+      const [{ id: roleId }] = await db.select().from(roles).where(eq(roles.slug, 'user'))
+      await expect(repository.insert({ email: 'rollback@example.com', passwordHash: 'hash', roleId })).rejects.toThrow()
       const rows = await db.select().from(users).where(eq(users.email, 'rollback@example.com'))
       expect(rows).toHaveLength(0)
     }

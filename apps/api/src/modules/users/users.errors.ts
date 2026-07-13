@@ -13,3 +13,19 @@ export class UnauthorizedError extends Error {
     super('Invalid credentials or session')
   }
 }
+
+export class ForbiddenError extends Error {
+  statusCode = 403
+
+  constructor() {
+    super('You are not allowed to perform this action')
+  }
+}
+
+export class UserNotFoundError extends Error {
+  statusCode = 404
+
+  constructor() {
+    super('User not found')
+  }
+}

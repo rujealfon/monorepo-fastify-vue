@@ -1,5 +1,5 @@
 import type { FastifyReply, FastifyRequest } from 'fastify'
-import type { LoginUser, PatchProfile, RegisterUser } from './users.schema.js'
+import type { AdminUsersPageQuery, LoginUser, PatchProfile, PatchUserRole, RegisterUser } from './users.schema.js'
 
 import { SESSION_COOKIE } from '#api/plugins/auth.js'
 
@@ -28,4 +28,17 @@ export function profile(request: FastifyRequest) {
 
 export function patchProfile(request: FastifyRequest<{ Body: PatchProfile }>) {
   return service.updateProfile(request.user.sub, request.body)
+}
+
+export function listUsers(request: FastifyRequest<{ Querystring: AdminUsersPageQuery }>) {
+  return service.listUsers(request.query.page, request.query.limit)
+}
+
+export function patchUserRole(request: FastifyRequest<{ Params: { id: string }, Body: PatchUserRole }>) {
+  return service.changeUserRole(request.actor, request.params.id, request.body.role)
+}
+
+export async function removeUser(request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) {
+  await service.deleteUser(request.actor, request.params.id)
+  reply.code(204)
 }

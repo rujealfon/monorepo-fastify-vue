@@ -13,6 +13,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@casl/ability": "^7.0.1",
     "@monorepo-fastify-vue/api-client": "workspace:^",
     "@nuxt/ui": "^4.9.0",
     "@pinia/colada": "^1.3.1",

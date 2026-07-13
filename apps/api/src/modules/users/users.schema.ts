@@ -2,10 +2,13 @@ import { date, pgEnum, pgTable, text, timestamp, uuid, varchar } from 'drizzle-o
 import { createSelectSchema } from 'drizzle-zod'
 import { z } from 'zod'
 
+import { permissionRuleSchema, roles, roleSummarySchema } from '#api/modules/roles/roles.schema.js'
+
 export const users = pgTable('users', {
   id: uuid('id').primaryKey().defaultRandom(),
   email: varchar('email', { length: 254 }).notNull().unique(),
   passwordHash: varchar('password_hash', { length: 255 }).notNull(),
+  roleId: uuid('role_id').notNull().references(() => roles.id, { onDelete: 'restrict' }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date())
 })
@@ -65,6 +68,36 @@ export const publicProfileSchema = createSelectSchema(profiles, {
 }).omit({ userId: true })
 
 export const publicUserSchema = createSelectSchema(users)
-  .omit({ passwordHash: true })
-  .extend({ profile: publicProfileSchema })
+  .omit({ passwordHash: true, roleId: true })
+  .extend({
+    profile: publicProfileSchema,
+    role: roleSummarySchema,
+    permissions: z.array(permissionRuleSchema)
+  })
 export type PublicUser = z.infer<typeof publicUserSchema>
+
+export const adminUserSchema = createSelectSchema(users)
+  .pick({ id: true, email: true, createdAt: true })
+  .extend({ role: roleSummarySchema })
+export type AdminUser = z.infer<typeof adminUserSchema>
+
+export const adminUsersPageQuerySchema = z.object({
+  page: z.coerce.number().int().positive().default(1),
+  limit: z.coerce.number().int().positive().max(100).default(20)
+}).meta({ examples: [{ page: 1, limit: 20 }] })
+export type AdminUsersPageQuery = z.infer<typeof adminUsersPageQuerySchema>
+
+export const adminUsersPageSchema = z.object({
+  data: z.array(adminUserSchema),
+  pagination: z.object({
+    page: z.number().int().positive(),
+    limit: z.number().int().positive(),
+    total: z.number().int().nonnegative(),
+    totalPages: z.number().int().nonnegative()
+  })
+})
+
+export const patchUserRoleSchema = z.object({
+  role: z.string().trim().min(1).max(100)
+}).meta({ examples: [{ role: 'admin' }] })
+export type PatchUserRole = z.infer<typeof patchUserRoleSchema>

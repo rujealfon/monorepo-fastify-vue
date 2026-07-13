@@ -8,3 +8,10 @@ export type RegisterUser = RegisterPath['post']['requestBody']['content']['appli
 export type LoginUser = LoginPath['post']['requestBody']['content']['application/json']
 export type UpdateProfile = ProfilePath['patch']['requestBody']['content']['application/json']
 export type User = ProfilePath['get']['responses'][200]['content']['application/json']
+
+type AdminUsersPath = paths['/api/v1/admin/users/']
+
+export type AdminUsersPage = AdminUsersPath['get']['responses'][200]['content']['application/json']
+export type AdminUser = AdminUsersPage['data'][number]
+export type Role = User['role']
+export type Permission = User['permissions'][number]

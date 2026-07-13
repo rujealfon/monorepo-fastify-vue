@@ -1,3 +1,6 @@
-export { EmailAlreadyExistsError, UnauthorizedError } from './users.errors.js'
-export { authRoutes, profileRoutes } from './users.routes.js'
+export { EmailAlreadyExistsError, ForbiddenError, UnauthorizedError, UserNotFoundError } from './users.errors.js'
+export type { Actor } from './users.repository.js'
+export { findActor } from './users.repository.js'
+export { adminUsersRoutes, authRoutes, profileRoutes } from './users.routes.js'
 export * from './users.schema.js'
+export { ensureSuperAdmin } from './users.service.js'

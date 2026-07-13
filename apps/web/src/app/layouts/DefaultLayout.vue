@@ -5,19 +5,23 @@ import { useQuery } from '@pinia/colada'
 import { computed } from 'vue'
 import { RouterLink, RouterView, useRouter } from 'vue-router'
 
-import { sessionQuery, useAuthMutations } from '@/features/auth'
+import { sessionQuery, useAppAbility, useAuthMutations } from '@/features/auth'
 
 const router = useRouter()
 const session = useQuery(sessionQuery)
+const ability = useAppAbility()
 const { logout } = useAuthMutations()
 const toast = useToast()
 
-const links: NavigationMenuItem[] = [
+const links = computed<NavigationMenuItem[]>(() => [
   { label: 'Home', to: '/', icon: 'i-lucide-house' },
   { label: 'Tasks', to: '/tasks', icon: 'i-lucide-list-checks' },
   { label: 'Health', to: '/health', icon: 'i-lucide-activity' },
-  { label: 'About', to: '/about', icon: 'i-lucide-info' }
-]
+  { label: 'About', to: '/about', icon: 'i-lucide-info' },
+  ...(ability.value.can('read', 'User')
+    ? [{ label: 'Users', to: '/admin/users', icon: 'i-lucide-users' }]
+    : [])
+])
 
 async function signOut() {
   try {

@@ -1,17 +1,30 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+import * as rolesModule from '#api/modules/roles'
 import { EmailAlreadyExistsError, UnauthorizedError } from '#api/modules/users/users.errors.js'
 import * as usersPassword from '#api/modules/users/users.password.js'
 import * as usersRepository from '#api/modules/users/users.repository.js'
 import * as usersService from '#api/modules/users/users.service.js'
 
+vi.mock('#api/modules/roles')
 vi.mock('#api/modules/users/users.repository.js')
 vi.mock('#api/modules/users/users.password.js')
+
+const sampleRole = {
+  id: 'role-1',
+  name: 'Standard User',
+  slug: 'user',
+  rank: 10,
+  isSystem: true,
+  createdAt: new Date(),
+  updatedAt: new Date()
+}
 
 const sampleUser = {
   id: '1',
   email: 'person@example.com',
   passwordHash: 'hash',
+  roleId: sampleRole.id,
   createdAt: new Date(),
   updatedAt: new Date()
 }
@@ -27,11 +40,17 @@ const sampleProfile = {
   updatedAt: new Date()
 }
 
-const sampleRow = { user: sampleUser, profile: sampleProfile }
+const sampleRow = {
+  user: sampleUser,
+  profile: sampleProfile,
+  role: { id: sampleRole.id, slug: sampleRole.slug, name: sampleRole.name, rank: sampleRole.rank }
+}
 
 describe('users.service', () => {
   beforeEach(() => {
     vi.resetAllMocks()
+    vi.mocked(rolesModule.findRoleBySlug).mockResolvedValue(sampleRole)
+    vi.mocked(rolesModule.getRolePermissions).mockResolvedValue([])
   })
 
   it('register hashes the password and returns the public user', async () => {
@@ -41,9 +60,11 @@ describe('users.service', () => {
     const user = await usersService.register({ email: 'person@example.com', password: 'correct horse battery staple' })
 
     expect(usersPassword.hashPassword).toHaveBeenCalledWith('correct horse battery staple')
-    expect(usersRepository.insert).toHaveBeenCalledWith({ email: 'person@example.com', passwordHash: 'hashed' })
+    expect(usersRepository.insert).toHaveBeenCalledWith({ email: 'person@example.com', passwordHash: 'hashed', roleId: sampleRole.id })
     expect(user).not.toHaveProperty('passwordHash')
     expect(user.profile).not.toHaveProperty('userId')
+    expect(user.role).toMatchObject({ slug: 'user' })
+    expect(user.permissions).toEqual([])
   })
 
   it('register maps a unique-violation cause to EmailAlreadyExistsError', async () => {

@@ -1,7 +1,8 @@
-import { sql } from 'drizzle-orm'
+import { eq, sql } from 'drizzle-orm'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { db } from '#api/db/index.js'
+import { roles } from '#api/modules/roles/roles.schema.js'
 import * as tasksRepository from '#api/modules/tasks/tasks.repository.js'
 import { users } from '#api/modules/users/users.schema.js'
 
@@ -13,9 +14,10 @@ describe('tasks.repository', () => {
     await db.execute(sql`truncate table tasks restart identity cascade`)
     await db.execute(sql`truncate table users cascade`)
 
+    const [{ id: roleId }] = await db.select().from(roles).where(eq(roles.slug, 'user'))
     const [user, otherUser] = await db.insert(users).values([
-      { email: 'tasks-repo-owner@example.com', passwordHash: 'hash' },
-      { email: 'tasks-repo-other@example.com', passwordHash: 'hash' }
+      { email: 'tasks-repo-owner@example.com', passwordHash: 'hash', roleId },
+      { email: 'tasks-repo-other@example.com', passwordHash: 'hash', roleId }
     ]).returning()
     userId = user.id
     otherUserId = otherUser.id
