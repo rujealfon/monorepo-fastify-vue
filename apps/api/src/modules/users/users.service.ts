@@ -78,9 +78,9 @@ export async function changeUserRole(actor: Actor, targetId: string, newRole: Ro
   if (!allowed)
     throw new ForbiddenError()
 
-  const updated = await repository.updateRole(targetId, newRole)
+  const updated = await repository.updateRole(targetId, newRole, target.user.role)
   if (!updated)
-    throw new UserNotFoundError()
+    throw new ForbiddenError('User role changed; retry with the latest role')
   return adminUser(updated)
 }
 
@@ -95,7 +95,9 @@ export async function deleteUser(actor: Actor, targetId: string) {
   if (actor.role !== 'super_admin' && !outranks(actor.role, target.user.role))
     throw new ForbiddenError()
 
-  await repository.deleteById(targetId)
+  const deleted = await repository.deleteById(targetId, target.user.role)
+  if (!deleted)
+    throw new ForbiddenError('User role changed; retry with the latest role')
 }
 
 export async function ensureSuperAdmin(email: string, password: string) {
