@@ -1,6 +1,6 @@
 import type { AdminUser, LoginUser, PatchProfile, PublicUser, RegisterUser, Role } from './users.schema.js'
 
-import { EmailAlreadyExistsError, ForbiddenError, SuperAdminSeedConflictError, UnauthorizedError, UserNotFoundError } from './users.errors.js'
+import { EmailAlreadyExistsError, ForbiddenError, UnauthorizedError, UserNotFoundError } from './users.errors.js'
 import { hashPassword, verifyPassword } from './users.password.js'
 import * as repository from './users.repository.js'
 import { outranks } from './users.roles.js'
