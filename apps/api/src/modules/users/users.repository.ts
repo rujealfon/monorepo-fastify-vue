@@ -1,6 +1,6 @@
 import type { PatchProfile, RegisterUser, Role } from './users.schema.js'
 
-import { asc, count, eq } from 'drizzle-orm'
+import { and, asc, count, eq } from 'drizzle-orm'
 
 import { db } from '#api/db/index.js'
 
@@ -37,12 +37,20 @@ export async function findPage(page: number, limit: number) {
   return { data, total }
 }
 
-export function updateRole(id: string, role: Role) {
-  return db.update(users).set({ role }).where(eq(users.id, id)).returning().then(rows => rows.at(0))
+export function updateRole(id: string, role: Role, expectedCurrentRole?: Role) {
+  const where = expectedCurrentRole
+    ? and(eq(users.id, id), eq(users.role, expectedCurrentRole))
+    : eq(users.id, id)
+
+  return db.update(users).set({ role }).where(where).returning().then(rows => rows.at(0))
 }
 
-export function deleteById(id: string) {
-  return db.delete(users).where(eq(users.id, id)).returning().then(rows => rows.at(0))
+export function deleteById(id: string, expectedCurrentRole?: Role) {
+  const where = expectedCurrentRole
+    ? and(eq(users.id, id), eq(users.role, expectedCurrentRole))
+    : eq(users.id, id)
+
+  return db.delete(users).where(where).returning().then(rows => rows.at(0))
 }
 
 export function insert(data: Omit<RegisterUser, 'password'> & { passwordHash: string, role?: Role }) {
