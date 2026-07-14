@@ -48,6 +48,17 @@ describe('tasks routes', () => {
     expect(responses.map(response => response.statusCode)).toEqual([401, 401])
   })
 
+  it('rejects cross-site mutations', async () => {
+    const headers = { ...auth, origin: 'https://evil.example' }
+    const responses = await Promise.all([
+      app.inject({ method: 'POST', url: '/api/v1/tasks', headers, payload: { name: 'blocked' } }),
+      app.inject({ method: 'PATCH', url: '/api/v1/tasks/1', headers, payload: { done: true } }),
+      app.inject({ method: 'DELETE', url: '/api/v1/tasks/1', headers })
+    ])
+
+    expect(responses.map(response => response.statusCode)).toEqual([403, 403, 403])
+  })
+
   it('creates, lists, fetches, patches and deletes a task', async () => {
     const createResponse = await app.inject({
       method: 'POST',

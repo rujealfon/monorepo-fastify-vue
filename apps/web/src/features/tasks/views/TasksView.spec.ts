@@ -93,4 +93,18 @@ describe('tasksView', () => {
     await flushPromises()
     expect(wrapper.text()).toContain('API request failed with HTTP 500')
   })
+
+  it.each([
+    ['PATCH', 'button[role="checkbox"]'],
+    ['DELETE', 'li button[aria-label^="Delete"]']
+  ] as const)('shows %s failures', async (method, selector) => {
+    api[method].mockResolvedValue({ response: { ok: false, status: 500 } })
+    const wrapper = mount(TasksView, {
+      global: { plugins: [createPinia(), [PiniaColada, { queryOptions: { staleTime: 0 } }]] }
+    })
+    await flushPromises()
+    await wrapper.get(selector).trigger('click')
+    await flushPromises()
+    expect(wrapper.text()).toContain('API request failed with HTTP 500')
+  })
 })
