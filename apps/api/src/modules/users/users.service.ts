@@ -102,15 +102,17 @@ export async function createRole(data: CreateRole) {
   }
 }
 
-export async function updateRole(id: string, data: PatchRole) {
+export async function updateRole(actorId: string, id: string, data: PatchRole) {
   try {
-    const role = await repository.updateRole(id, data)
+    const role = await repository.updateRole(actorId, id, data)
     if (role === 'missing-role')
       throw new RoleNotFoundError()
     if (role === 'missing-permission')
       throw new PermissionNotFoundError()
     if (role === 'protected-role')
       throw new ForbiddenError('This system role cannot be changed that way')
+    if (role === 'forbidden-system-role')
+      throw new ForbiddenError('You must hold the admin role to change a system role')
     return role
   }
   catch (error) {

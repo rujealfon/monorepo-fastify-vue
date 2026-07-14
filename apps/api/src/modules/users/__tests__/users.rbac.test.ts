@@ -162,4 +162,46 @@ describe('dynamic RBAC routes', () => {
     const victimUser = (victim.json().data as { id: string, roles: { name: string }[] }[]).find(user => user.id === victimId)!
     expect(victimUser.roles.some(role => role.name === 'admin')).toBe(false)
   })
+
+  it('prevents a non-admin holder of roles.update from tampering with the default user role permissions', async () => {
+    const attackerRegistration = await app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/register',
+      payload: { email: 'role-tamperer@example.com', password }
+    })
+    const attackerId = attackerRegistration.json().id
+    const attacker = cookie(attackerRegistration)
+
+    const rolesResponse = await app.inject({ method: 'GET', url: '/api/v1/admin/roles', headers: admin })
+    const allRoles = rolesResponse.json() as { id: string, name: string }[]
+    const userRole = allRoles.find(role => role.name === 'user')!
+
+    const permissions = (await app.inject({ method: 'GET', url: '/api/v1/admin/permissions', headers: admin })).json() as { id: string, key: string }[]
+    const rolesUpdate = permissions.find(permission => permission.key === 'roles.update')!
+    const rolesReader = permissions.find(permission => permission.key === 'roles.read')!
+    const tamperer = await app.inject({
+      method: 'POST',
+      url: '/api/v1/admin/roles',
+      headers: admin,
+      payload: { name: 'role-tamperer', permissionIds: [rolesUpdate.id, rolesReader.id] }
+    })
+    await app.inject({
+      method: 'PUT',
+      url: `/api/v1/admin/users/${attackerId}/roles`,
+      headers: admin,
+      payload: { roleIds: [tamperer.json().id] }
+    })
+
+    const escalate = await app.inject({
+      method: 'PATCH',
+      url: `/api/v1/admin/roles/${userRole.id}`,
+      headers: attacker,
+      payload: { permissionIds: [rolesUpdate.id, rolesReader.id] }
+    })
+    expect(escalate.statusCode).toBe(403)
+
+    const rolesAfter = (await app.inject({ method: 'GET', url: '/api/v1/admin/roles', headers: admin })).json() as { id: string, permissions: { key: string }[] }[]
+    const userRoleAfter = rolesAfter.find(role => role.id === userRole.id)!
+    expect(userRoleAfter.permissions.some(permission => permission.key === 'roles.update')).toBe(false)
+  })
 })

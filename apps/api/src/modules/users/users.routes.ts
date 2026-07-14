@@ -104,6 +104,7 @@ export const managementRoutes: FastifyPluginAsync = async (fastify) => {
 
   app.get<{ Querystring: UsersPageQuery }>('/users', {
     onRequest: app.authorize('users.read'),
+    preHandler: app.sameOrigin,
     schema: {
       tags: ['Access control'],
       querystring: usersPageQuerySchema,
@@ -131,6 +132,7 @@ export const managementRoutes: FastifyPluginAsync = async (fastify) => {
 
   app.get('/roles', {
     onRequest: app.authorize('roles.read'),
+    preHandler: app.sameOrigin,
     schema: {
       tags: ['Access control'],
       response: { 200: z.array(roleSchema), 401: httpErrorSchema, 403: httpErrorSchema }
@@ -192,6 +194,7 @@ export const managementRoutes: FastifyPluginAsync = async (fastify) => {
 
   app.get('/permissions', {
     onRequest: app.authorize('permissions.read'),
+    preHandler: app.sameOrigin,
     schema: {
       tags: ['Access control'],
       response: { 200: z.array(permissionSchema), 401: httpErrorSchema, 403: httpErrorSchema }
