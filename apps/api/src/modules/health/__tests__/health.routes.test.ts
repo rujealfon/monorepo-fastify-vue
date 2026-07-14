@@ -68,6 +68,9 @@ describe('health routes', () => {
     const health = await app.inject({ method: 'GET', url: '/api/v1/health/live' })
     expect(health.statusCode).toBe(200)
 
+    const healthWithQuery = await app.inject({ method: 'GET', url: '/api/v1/health/live?ts=123' })
+    expect(healthWithQuery.statusCode).toBe(200)
+
     const execute = vi.spyOn(app.db, 'execute')
     execute.mockClear()
     const readiness = await app.inject({ method: 'GET', url: '/api/v1/health/ready' })
