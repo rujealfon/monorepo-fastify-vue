@@ -27,6 +27,13 @@ export default fp(async (fastify) => {
     : undefined
 
   if (valkey) {
+    // ioredis emits 'error' on connection failures and failed reconnects; per Node's
+    // EventEmitter contract, an 'error' event with no listener throws and crashes the
+    // process. Listening here just logs it instead.
+    valkey.on('error', (err) => {
+      fastify.log.error({ err }, 'Valkey connection error')
+    })
+
     fastify.addHook('onClose', async () => {
       await valkey.quit()
     })
@@ -39,6 +46,11 @@ export default fp(async (fastify) => {
     },
     max: 100,
     timeWindow: '1 minute',
-    redis: valkey
+    redis: valkey,
+    // Fail open: rate limiting is defense-in-depth here (auth already relies on
+    // sameSite cookies + sec-fetch-site checks, see plugins/auth.ts), not the only
+    // control. Without this, a Valkey outage would 500 every /api/v1/* request,
+    // including the health/ready probe, instead of just losing the rate-limit guard.
+    skipOnError: true
   })
 })
