@@ -137,4 +137,29 @@ describe('dynamic RBAC routes', () => {
     })
     expect(removeFinalAdmin.statusCode).toBe(409)
   })
+
+  it('prevents a non-admin holder of users.roles.update from granting a system role', async () => {
+    const victimRegistration = await app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/register',
+      payload: { email: 'victim@example.com', password }
+    })
+    const victimId = victimRegistration.json().id
+
+    const rolesResponse = await app.inject({ method: 'GET', url: '/api/v1/admin/roles', headers: admin })
+    const allRoles = rolesResponse.json() as { id: string, name: string }[]
+    const adminRole = allRoles.find(role => role.name === 'admin')!
+
+    const escalate = await app.inject({
+      method: 'PUT',
+      url: `/api/v1/admin/users/${victimId}/roles`,
+      headers: member,
+      payload: { roleIds: [adminRole.id] }
+    })
+    expect(escalate.statusCode).toBe(403)
+
+    const victim = await app.inject({ method: 'GET', url: '/api/v1/admin/users', headers: admin })
+    const victimUser = (victim.json().data as { id: string, roles: { name: string }[] }[]).find(user => user.id === victimId)!
+    expect(victimUser.roles.some(role => role.name === 'admin')).toBe(false)
+  })
 })
