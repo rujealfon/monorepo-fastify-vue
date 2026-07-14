@@ -22,7 +22,10 @@ const columns: TableColumn<ManagedUser>[] = [
   { accessorKey: 'createdAt', header: 'Created' }
 ]
 
-const roleOptions = computed(() => availableRoles.data.value?.map(role => ({ label: role.name, value: role.id })) ?? [])
+const isAdmin = computed(() => session.data.value?.roles.some(role => role.name === 'admin') === true)
+const roleOptions = computed(() => (availableRoles.data.value ?? [])
+  .filter(role => isAdmin.value || !role.system)
+  .map(role => ({ label: role.name, value: role.id })))
 const error = computed(() => users.error.value ?? availableRoles.error.value ?? replaceUserRoles.error.value)
 
 function assign(user: ManagedUser, roleIds: string[]) {
