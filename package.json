@@ -24,6 +24,7 @@
     "db:generate": "pnpm --filter @monorepo-fastify-vue/api db:generate",
     "db:migrate": "pnpm --filter @monorepo-fastify-vue/api db:migrate",
     "db:studio": "pnpm --filter @monorepo-fastify-vue/api db:studio",
+    "admin:promote": "docker compose exec -T api pnpm --filter @monorepo-fastify-vue/api admin:promote",
     "docker:start": "docker compose start",
     "docker:stop": "docker compose stop",
     "docker:restart": "docker compose restart",

@@ -1,3 +1,4 @@
+export type { CreateRole, ManagedUser, ManagedUsersPage, Permission, PermissionKey, ReplaceUserRoles, Role, UpdateRole } from './access-control/types.js'
 export { createApiClient, createApiClient as default } from './client.js'
 export type { ApiClient } from './client.js'
 export { RpcError } from './errors.js'

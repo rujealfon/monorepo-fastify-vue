@@ -2,8 +2,7 @@ import type { CreateTask, TaskId, UpdateTask } from '@monorepo-fastify-vue/api-c
 import { useMutation, useQueryCache } from '@pinia/colada'
 
 import { TASK_KEYS } from '@/features/tasks/queries'
-import { fail } from '@/features/tasks/tasks.utils'
-import { api } from '@/shared/api/client'
+import { api, fail } from '@/shared/api/client'
 
 export function useTaskMutations(onCreate?: () => void) {
   const queryCache = useQueryCache()

@@ -1,9 +1,11 @@
+import type { PermissionKey } from '@monorepo-fastify-vue/api-client'
 import { useQueryCache } from '@pinia/colada'
 import { createRouter, createWebHistory } from 'vue-router'
 
 import AuthLayout from '@/app/layouts/AuthLayout.vue'
 import DefaultLayout from '@/app/layouts/DefaultLayout.vue'
 import { aboutRoutes } from '@/features/about'
+import { adminRoutes } from '@/features/admin'
 import { authRoutes, sessionQuery } from '@/features/auth'
 import { healthRoutes } from '@/features/health'
 import { homeRoutes } from '@/features/home'
@@ -16,7 +18,7 @@ const router = createRouter({
     {
       path: '/',
       component: DefaultLayout,
-      children: [...homeRoutes, ...aboutRoutes, ...healthRoutes, ...taskRoutes, ...profileRoutes]
+      children: [...homeRoutes, ...aboutRoutes, ...healthRoutes, ...taskRoutes, ...profileRoutes, ...adminRoutes]
     },
     {
       path: '/',
@@ -27,7 +29,8 @@ const router = createRouter({
 })
 
 router.beforeEach(async (to) => {
-  if (!to.meta.requiresAuth)
+  const permission = to.meta.permission as PermissionKey | undefined
+  if (!to.meta.requiresAuth && !permission)
     return
 
   const cache = useQueryCache()
@@ -39,6 +42,9 @@ router.beforeEach(async (to) => {
 
   if (!user)
     return { path: '/login', query: { redirect: to.fullPath } }
+
+  if (permission && !user.permissions.includes(permission))
+    return { path: '/' }
 })
 
 export default router

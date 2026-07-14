@@ -1,7 +1,6 @@
 import { defineQueryOptions } from '@pinia/colada'
 
-import { fail } from '@/features/tasks/tasks.utils'
-import { api } from '@/shared/api/client'
+import { api, fail } from '@/shared/api/client'
 
 export const TASK_KEYS = {
   root: ['tasks'] as const,

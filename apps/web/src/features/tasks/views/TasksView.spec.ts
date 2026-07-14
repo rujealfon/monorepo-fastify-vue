@@ -12,7 +12,10 @@ const api = vi.hoisted(() => ({
   POST: vi.fn()
 }))
 
-vi.mock('@/shared/api/client', () => ({ api }))
+vi.mock('@/shared/api/client', async importOriginal => ({
+  ...await importOriginal<typeof import('@/shared/api/client')>(),
+  api
+}))
 
 describe('tasksView', () => {
   beforeEach(() => {

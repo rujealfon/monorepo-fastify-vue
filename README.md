@@ -9,6 +9,7 @@ A monorepo setup using pnpm workspaces with a Fastify API and Vue / Vite client 
 - Single-project Vercel deployment: Vue is built to `dist/`, and `/api/*` is handled by Fastify through a Vercel function
 - OpenAPI spec generated from the same Zod schemas via `fastify-type-provider-zod`, with Scalar at `/` in development
 - Module-owned Zod validators with drizzle-zod
+- Dynamic multi-role RBAC with database-managed role and permission assignments
 - Shared ESLint config
 - Shared tsconfig
 
@@ -132,6 +133,21 @@ In development, Scalar is available at [http://localhost:3000](http://localhost:
 | `pnpm db:generate` | Generate migrations from schema changes |
 | `pnpm db:migrate` | Apply pending migrations |
 | `pnpm db:studio` | Open Drizzle Studio |
+| `pnpm admin:promote <email>` | Grant the protected admin role to an existing account |
+
+New accounts receive the editable system `user` role. After applying the RBAC migration, bootstrap the first administrator with `pnpm admin:promote <email>`; the account must already exist. For a locally running API instead of Docker Compose, use `pnpm --filter @monorepo-fastify-vue/api admin:promote <email>`.
+
+### Adding a permission
+
+Permission keys are code-defined and cannot be created through the UI. To add one:
+
+1. Add the key to `PERMISSION_KEYS` in `apps/api/src/modules/users/users.schema.ts`.
+2. Add a migration that inserts the key and its description into `permissions`.
+3. Protect the relevant route with `app.authorize('new.permission')`.
+4. Run `pnpm api-client:generate`, then apply the migration with `pnpm db:migrate` or `pnpm docker:db:migrate`.
+5. Assign the permission to roles from the Roles page.
+
+Role-permission assignments are dynamic, but permission definitions require a deployment. A permission has no effect until application code checks it; arbitrary permission CRUD is intentionally not supported.
 
 ## Tasks
 

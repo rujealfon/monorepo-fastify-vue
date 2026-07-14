@@ -12,12 +12,22 @@ const session = useQuery(sessionQuery)
 const { logout } = useAuthMutations()
 const toast = useToast()
 
-const links: NavigationMenuItem[] = [
+const baseLinks: NavigationMenuItem[] = [
   { label: 'Home', to: '/', icon: 'i-lucide-house' },
   { label: 'Tasks', to: '/tasks', icon: 'i-lucide-list-checks' },
   { label: 'Health', to: '/health', icon: 'i-lucide-activity' },
   { label: 'About', to: '/about', icon: 'i-lucide-info' }
 ]
+
+const links = computed<NavigationMenuItem[]>(() => [
+  ...baseLinks,
+  ...(session.data.value?.permissions.includes('users.read')
+    ? [{ label: 'Users', to: '/admin/users', icon: 'i-lucide-users' }]
+    : []),
+  ...(session.data.value?.permissions.includes('roles.read')
+    ? [{ label: 'Roles', to: '/admin/roles', icon: 'i-lucide-shield-check' }]
+    : [])
+])
 
 async function signOut() {
   try {

@@ -32,18 +32,28 @@ describe('authentication router guard', () => {
     expect(api.GET).toHaveBeenCalledOnce()
 
     const cache = useQueryCache(pinia)
-    cache.setQueryData(SESSION_KEY, {
+    const user = {
       id: '1',
       email: 'person@example.com',
+      roles: [{ id: 'role-1', name: 'user', system: true }],
+      permissions: ['profile.read', 'profile.update', 'tasks.read', 'tasks.create', 'tasks.update', 'tasks.delete'] as const,
       profile: { firstName: null, lastName: null, gender: null, birthDate: null, bio: null, createdAt: '', updatedAt: '' },
       createdAt: '',
       updatedAt: ''
-    })
+    }
+    cache.setQueryData(SESSION_KEY, user)
     await router.push('/profile')
     expect(router.currentRoute.value.fullPath).toBe('/profile')
 
     await router.push('/tasks')
     expect(router.currentRoute.value.fullPath).toBe('/tasks')
+
+    await router.push('/admin/users')
+    expect(router.currentRoute.value.fullPath).toBe('/')
+
+    cache.setQueryData(SESSION_KEY, { ...user, permissions: [...user.permissions, 'users.read'] })
+    await router.push('/admin/users')
+    expect(router.currentRoute.value.fullPath).toBe('/admin/users')
 
     await router.push('/register')
     await cache.invalidateQueries({ key: SESSION_KEY })

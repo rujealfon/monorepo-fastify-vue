@@ -1,3 +1,5 @@
+import type { PermissionKey } from '#api/modules/users/users.schema.js'
+
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { EmailAlreadyExistsError, UnauthorizedError } from '#api/modules/users/users.errors.js'
@@ -27,7 +29,12 @@ const sampleProfile = {
   updatedAt: new Date()
 }
 
-const sampleRow = { user: sampleUser, profile: sampleProfile }
+const sampleRow = {
+  user: sampleUser,
+  profile: sampleProfile,
+  roles: [{ id: '2', name: 'user', system: true }],
+  permissions: ['profile.read', 'profile.update', 'tasks.read', 'tasks.create', 'tasks.update', 'tasks.delete'] satisfies PermissionKey[]
+}
 
 describe('users.service', () => {
   beforeEach(() => {
