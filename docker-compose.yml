@@ -57,6 +57,8 @@ services:
       target: development
     restart: unless-stopped
     command: pnpm --filter @monorepo-fastify-vue/api exec drizzle-kit studio --host 0.0.0.0
+    env_file:
+      - ./apps/api/.env
     environment:
       DATABASE_URL: postgresql://root:root@postgres:5432/fastify_vue
     ports:

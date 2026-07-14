@@ -46,6 +46,17 @@ export class PermissionNotFoundError extends Error {
   }
 }
 
+export class PermissionPolicyValidationError extends Error {
+  statusCode = 422
+  details: { message: string }[]
+
+  constructor() {
+    const message = 'Policy conditions must be valid task expressions; non-task permissions require a null condition'
+    super(message)
+    this.details = [{ message }]
+  }
+}
+
 export class RoleConflictError extends Error {
   statusCode = 409
 

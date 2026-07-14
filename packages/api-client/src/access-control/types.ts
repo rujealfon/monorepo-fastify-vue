@@ -5,6 +5,7 @@ type UserRolesPath = paths['/api/v1/admin/users/{id}/roles']
 type RolesPath = paths['/api/v1/admin/roles']
 type RolePath = paths['/api/v1/admin/roles/{id}']
 type PermissionsPath = paths['/api/v1/admin/permissions']
+type AuditEventsPath = paths['/api/v1/admin/audit-events']
 
 export type ManagedUsersPage = UsersPath['get']['responses'][200]['content']['application/json']
 export type ManagedUser = ManagedUsersPage['data'][number]
@@ -14,3 +15,7 @@ export type CreateRole = RolesPath['post']['requestBody']['content']['applicatio
 export type UpdateRole = RolePath['patch']['requestBody']['content']['application/json']
 export type Permission = PermissionsPath['get']['responses'][200]['content']['application/json'][number]
 export type PermissionKey = Permission['key']
+export type PolicyExpression = NonNullable<CreateRole['permissionPolicies'][number]['condition']>
+export type AuditEventsPage = AuditEventsPath['get']['responses'][200]['content']['application/json']
+export type AuditEventsQuery = NonNullable<AuditEventsPath['get']['parameters']['query']>
+export type AuditEvent = AuditEventsPage['data'][number]

@@ -1,12 +1,26 @@
 <script setup lang="ts">
-import type { Role } from '@monorepo-fastify-vue/api-client'
+import type { CreateRole, Permission, PolicyExpression, Role } from '@monorepo-fastify-vue/api-client'
 import type { TableColumn } from '@nuxt/ui'
 import { useQuery } from '@pinia/colada'
 import { computed, reactive, ref } from 'vue'
 
+import PolicyExpressionBuilder from '@/features/admin/components/PolicyExpressionBuilder.vue'
 import { useAccessMutations } from '@/features/admin/mutations'
 import { permissionsQuery, rolesQuery } from '@/features/admin/queries'
 import { sessionQuery } from '@/features/auth'
+
+const ownCondition: PolicyExpression = {
+  type: 'compare',
+  field: 'task.ownerId',
+  operator: 'eq',
+  value: { type: 'field', field: 'actor.id' }
+}
+const customCondition: PolicyExpression = {
+  type: 'compare',
+  field: 'task.name',
+  operator: 'contains',
+  value: { type: 'literal', value: '' }
+}
 
 const session = useQuery(sessionQuery)
 const roles = useQuery(rolesQuery)
@@ -18,18 +32,13 @@ const editOpen = ref(false)
 const deleteOpen = ref(false)
 const editing = ref<Role>()
 const deleting = ref<Role>()
-const state = reactive({ name: '', description: '', permissionIds: [] as string[] })
+const state = reactive({ name: '', description: '', permissionPolicies: [] as CreateRole['permissionPolicies'] })
 
 const columns: TableColumn<Role>[] = [
   { accessorKey: 'name', header: 'Role' },
-  { id: 'permissions', header: 'Permissions' },
+  { id: 'policies', header: 'Policies' },
   { id: 'actions' }
 ]
-const permissionOptions = computed(() => permissions.data.value?.map(permission => ({
-  label: permission.key,
-  value: permission.id,
-  description: permission.description
-})) ?? [])
 const error = computed(() => roles.error.value
   ?? permissions.error.value
   ?? createRole.error.value
@@ -39,7 +48,7 @@ const pending = computed(() => [createRole, updateRole, deleteRole].some(mutatio
 
 function openCreate() {
   editing.value = undefined
-  Object.assign(state, { name: '', description: '', permissionIds: [] })
+  Object.assign(state, { name: '', description: '', permissionPolicies: [] })
   editOpen.value = true
 }
 
@@ -48,7 +57,11 @@ function openEdit(role: Role) {
   Object.assign(state, {
     name: role.name,
     description: role.description ?? '',
-    permissionIds: role.permissions.map(permission => permission.id)
+    permissionPolicies: role.policies.map(policy => ({
+      permissionId: policy.permissionId,
+      effect: policy.effect,
+      condition: policy.condition
+    }))
   })
   editOpen.value = true
 }
@@ -58,7 +71,7 @@ async function save() {
     const body = {
       name: state.name,
       description: state.description || null,
-      permissionIds: state.permissionIds
+      permissionPolicies: state.permissionPolicies
     }
     if (editing.value)
       await updateRole.mutateAsync({ id: editing.value.id, body })
@@ -69,6 +82,40 @@ async function save() {
   catch {
     // Mutation state renders the API error above the table.
   }
+}
+
+function policyFor(permissionId: string, effect: 'allow' | 'deny') {
+  return state.permissionPolicies.find(policy => policy.permissionId === permissionId && policy.effect === effect)
+}
+
+function togglePolicy(permission: Permission, effect: 'allow' | 'deny', selected: boolean | 'indeterminate') {
+  const index = state.permissionPolicies.findIndex(policy => policy.permissionId === permission.id && policy.effect === effect)
+  if (selected && index === -1)
+    state.permissionPolicies.push({ permissionId: permission.id, effect, condition: null })
+  else if (!selected && index !== -1)
+    state.permissionPolicies.splice(index, 1)
+}
+
+function presetFor(permissionId: string, effect: 'allow' | 'deny') {
+  const condition = policyFor(permissionId, effect)?.condition
+  if (condition === null)
+    return 'all'
+  return JSON.stringify(condition) === JSON.stringify(ownCondition) ? 'own' : 'custom'
+}
+
+function setPreset(permissionId: string, effect: 'allow' | 'deny', preset: unknown) {
+  if (preset === 'all')
+    setCondition(permissionId, effect, null)
+  else if (preset === 'own')
+    setCondition(permissionId, effect, structuredClone(ownCondition))
+  else if (preset === 'custom')
+    setCondition(permissionId, effect, structuredClone(customCondition))
+}
+
+function setCondition(permissionId: string, effect: 'allow' | 'deny', condition: PolicyExpression | null) {
+  const policy = policyFor(permissionId, effect)
+  if (policy)
+    policy.condition = condition
 }
 
 async function remove() {
@@ -92,7 +139,7 @@ async function remove() {
           Roles
         </h1>
         <p class="text-muted">
-          Compose application access from enforced permissions.
+          Compose allow and deny policies. Matching denies always win.
         </p>
       </div>
       <UButton
@@ -103,13 +150,7 @@ async function remove() {
       />
     </div>
 
-    <UAlert
-      v-if="error"
-      color="error"
-      variant="subtle"
-      icon="i-lucide-triangle-alert"
-      :title="error.message"
-    />
+    <UAlert v-if="error" color="error" variant="subtle" icon="i-lucide-triangle-alert" :title="error.message" />
 
     <UTable
       :data="roles.data.value"
@@ -129,16 +170,19 @@ async function remove() {
         </div>
       </template>
 
-      <template #permissions-cell="{ row }">
-        <div class="flex max-w-xl flex-wrap gap-1">
+      <template #policies-cell="{ row }">
+        <div v-if="row.original.name === 'admin'" class="text-sm text-muted">
+          Full access (protected)
+        </div>
+        <div v-else class="flex max-w-xl flex-wrap gap-1">
           <UBadge
-            v-for="permission in row.original.permissions"
-            :key="permission.id"
-            :label="permission.key"
-            color="neutral"
+            v-for="policy in row.original.policies"
+            :key="policy.id"
+            :label="`${policy.effect}: ${policy.permission.key}${policy.condition ? ' (conditional)' : ''}`"
+            :color="policy.effect === 'deny' ? 'error' : 'success'"
             variant="subtle"
           />
-          <span v-if="!row.original.permissions.length" class="text-sm text-muted">No permissions</span>
+          <span v-if="!row.original.policies.length" class="text-sm text-muted">No policies</span>
         </div>
       </template>
 
@@ -164,32 +208,54 @@ async function remove() {
       </template>
     </UTable>
 
-    <UModal v-model:open="editOpen" :title="editing ? `Edit ${editing.name}` : 'Create role'" description="Choose the permissions granted by this role.">
+    <UModal v-model:open="editOpen" :title="editing ? `Edit ${editing.name}` : 'Create role'" description="Configure one allow and one deny policy per permission." :ui="{ content: 'sm:max-w-5xl' }">
       <template #body>
         <form id="role-form" class="space-y-4" @submit.prevent="save">
           <UFormField label="Name" name="name" required>
-            <UInput
-              v-model="state.name"
-              class="w-full"
-              placeholder="project-manager"
-              pattern="[a-z0-9]+(?:-[a-z0-9]+)*"
-              maxlength="64"
-              required
-              :disabled="editing?.system"
-            />
+            <UInput v-model="state.name" class="w-full" placeholder="project-manager" pattern="[a-z0-9]+(?:-[a-z0-9]+)*" maxlength="64" required :disabled="editing?.system" />
           </UFormField>
           <UFormField label="Description" name="description">
             <UInput v-model="state.description" class="w-full" maxlength="255" />
           </UFormField>
-          <UFormField label="Permissions" name="permissionIds">
-            <USelectMenu
-              v-model="state.permissionIds"
-              :items="permissionOptions"
-              value-key="value"
-              multiple
-              class="w-full"
-              placeholder="No permissions"
-            />
+          <UFormField label="Policies" name="permissionPolicies">
+            <div class="divide-y divide-default rounded-md border border-default">
+              <div v-for="permission in permissions.data.value" :key="permission.id" class="space-y-3 px-3 py-3">
+                <div>
+                  <p class="font-medium text-highlighted">
+                    {{ permission.key }}
+                  </p>
+                  <p class="text-sm text-muted">
+                    {{ permission.description }}
+                  </p>
+                </div>
+                <div v-for="effect in (['allow', 'deny'] as const)" :key="effect" class="space-y-2 rounded-md bg-muted/40 p-2">
+                  <div class="flex items-center gap-3">
+                    <UCheckbox
+                      :aria-label="`${effect} ${permission.key}`"
+                      :model-value="Boolean(policyFor(permission.id, effect))"
+                      @update:model-value="togglePolicy(permission, effect, $event)"
+                    />
+                    <span class="w-12 text-sm font-medium capitalize">{{ effect }}</span>
+                    <USelect
+                      v-if="permission.conditionFields.length && policyFor(permission.id, effect)"
+                      :aria-label="`${effect} ${permission.key} preset`"
+                      :model-value="presetFor(permission.id, effect)"
+                      :items="[{ label: 'All', value: 'all' }, { label: 'Own', value: 'own' }, { label: 'Custom', value: 'custom' }]"
+                      value-key="value"
+                      class="w-28"
+                      @update:model-value="setPreset(permission.id, effect, $event)"
+                    />
+                    <span v-else-if="policyFor(permission.id, effect)" class="text-sm text-muted">Unconditional</span>
+                  </div>
+                  <PolicyExpressionBuilder
+                    v-if="policyFor(permission.id, effect)?.condition && presetFor(permission.id, effect) === 'custom'"
+                    :model-value="policyFor(permission.id, effect)!.condition!"
+                    :fields="permission.conditionFields"
+                    @update:model-value="setCondition(permission.id, effect, $event)"
+                  />
+                </div>
+              </div>
+            </div>
           </UFormField>
         </form>
       </template>

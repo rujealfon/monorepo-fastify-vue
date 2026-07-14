@@ -1,4 +1,6 @@
 export { EmailAlreadyExistsError, ForbiddenError, UnauthorizedError } from './users.errors.js'
+export { compilePolicyPredicate, evaluatePolicyDecision, hasPotentialAllow, validatePolicyExpression } from './users.policy.js'
+export type { AuthorizationContext, PolicyDecision, PolicyTask } from './users.policy.js'
 export { authRoutes, managementRoutes, profileRoutes } from './users.routes.js'
 export * from './users.schema.js'
-export { hasPermission, promoteByEmail } from './users.service.js'
+export { promoteByEmail, resolveAuthorization } from './users.service.js'

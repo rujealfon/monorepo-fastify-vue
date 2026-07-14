@@ -12,6 +12,14 @@ const api = vi.hoisted(() => ({
   POST: vi.fn()
 }))
 
+const response = { ok: true, status: 200 }
+const user = {
+  id: 'owner-1',
+  email: 'owner@example.com',
+  permissions: ['tasks.read', 'tasks.create', 'tasks.update', 'tasks.delete']
+}
+let taskResult: unknown
+
 vi.mock('@/shared/api/client', async importOriginal => ({
   ...await importOriginal<typeof import('@/shared/api/client')>(),
   api
@@ -20,14 +28,16 @@ vi.mock('@/shared/api/client', async importOriginal => ({
 describe('tasksView', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    const response = { ok: true, status: 200 }
-    api.GET.mockResolvedValue({
+    taskResult = {
       data: {
-        data: [{ id: 1, name: 'Ship CRUD', done: false, createdAt: '', updatedAt: '' }],
+        data: [{ id: 1, userId: 'owner-1', ownerEmail: 'owner@example.com', name: 'Ship CRUD', done: false, createdAt: '', updatedAt: '', actions: { update: true, delete: true } }],
         pagination: { page: 1, limit: 20, total: 21, totalPages: 2 }
       },
       response
-    })
+    }
+    api.GET.mockImplementation((path: string) => Promise.resolve(path === '/api/v1/profile/'
+      ? { data: user, response }
+      : taskResult))
     api.POST.mockResolvedValue({ response })
     api.PATCH.mockResolvedValue({ response })
     api.DELETE.mockResolvedValue({ response })
@@ -43,13 +53,13 @@ describe('tasksView', () => {
     expect(api.GET).toHaveBeenCalledWith('/api/v1/tasks/', { params: { query: { page: 1, limit: 20 } } })
     expect(wrapper.get('nav button:first-child').attributes('disabled')).toBeDefined()
 
-    api.GET.mockResolvedValueOnce({
+    taskResult = {
       data: {
-        data: [{ id: 1, name: 'Ship CRUD', done: false, createdAt: '', updatedAt: '' }],
+        data: [{ id: 1, userId: 'owner-1', ownerEmail: 'owner@example.com', name: 'Ship CRUD', done: false, createdAt: '', updatedAt: '', actions: { update: true, delete: true } }],
         pagination: { page: 2, limit: 20, total: 21, totalPages: 2 }
       },
       response: { ok: true, status: 200 }
-    })
+    }
     await wrapper.get('nav button:last-child').trigger('click')
     await flushPromises()
     expect(api.GET).toHaveBeenCalledWith('/api/v1/tasks/', { params: { query: { page: 2, limit: 20 } } })
@@ -77,12 +87,41 @@ describe('tasksView', () => {
   })
 
   it('shows query failures', async () => {
-    api.GET.mockResolvedValue({ response: { ok: false, status: 503 } })
+    taskResult = { response: { ok: false, status: 503 } }
     const wrapper = mount(TasksView, {
       global: { plugins: [createPinia(), [PiniaColada, { queryOptions: { staleTime: 0 } }]] }
     })
     await flushPromises()
     expect(wrapper.text()).toContain('API request failed with HTTP 503')
+  })
+
+  it('shows owners and limits controls by each task scope', async () => {
+    taskResult = {
+      data: {
+        data: [{ id: 2, userId: 'other-2', ownerEmail: 'other@example.com', name: 'Foreign task', done: false, createdAt: '', updatedAt: '', actions: { update: false, delete: true } }],
+        pagination: { page: 1, limit: 20, total: 1, totalPages: 1 }
+      },
+      response
+    }
+    api.GET.mockImplementation((path: string) => Promise.resolve(path === '/api/v1/profile/'
+      ? {
+          data: {
+            ...user,
+            permissions: ['tasks.read', 'tasks.update', 'tasks.delete']
+          },
+          response
+        }
+      : taskResult))
+
+    const wrapper = mount(TasksView, {
+      global: { plugins: [createPinia(), [PiniaColada, { queryOptions: { staleTime: 0 } }]] }
+    })
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('other@example.com')
+    expect(wrapper.find('#task-name').exists()).toBe(false)
+    expect(wrapper.get('button[role="checkbox"]').attributes('disabled')).toBeDefined()
+    expect(wrapper.find('li button[aria-label^="Delete"]').exists()).toBe(true)
   })
 
   it('shows mutation failures', async () => {

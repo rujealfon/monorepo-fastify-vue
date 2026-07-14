@@ -6,6 +6,147 @@
   },
   "components": {
     "schemas": {
+      "PolicyExpressionInput": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "all",
+                  "any"
+                ]
+              },
+              "children": {
+                "minItems": 1,
+                "maxItems": 10,
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/PolicyExpressionInput"
+                }
+              }
+            },
+            "required": [
+              "type",
+              "children"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "not"
+                ]
+              },
+              "child": {
+                "$ref": "#/components/schemas/PolicyExpressionInput"
+              }
+            },
+            "required": [
+              "type",
+              "child"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "compare"
+                ]
+              },
+              "field": {
+                "type": "string",
+                "enum": [
+                  "actor.id",
+                  "actor.email",
+                  "actor.roles",
+                  "task.id",
+                  "task.ownerId",
+                  "task.ownerEmail",
+                  "task.name",
+                  "task.done"
+                ]
+              },
+              "operator": {
+                "type": "string",
+                "enum": [
+                  "eq",
+                  "neq",
+                  "in",
+                  "notIn",
+                  "contains",
+                  "startsWith",
+                  "endsWith"
+                ]
+              },
+              "value": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "enum": [
+                          "literal"
+                        ]
+                      },
+                      "value": {}
+                    },
+                    "required": [
+                      "type",
+                      "value"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "enum": [
+                          "field"
+                        ]
+                      },
+                      "field": {
+                        "type": "string",
+                        "enum": [
+                          "actor.id",
+                          "actor.email",
+                          "actor.roles",
+                          "task.id",
+                          "task.ownerId",
+                          "task.ownerEmail",
+                          "task.name",
+                          "task.done"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "field"
+                    ],
+                    "additionalProperties": false
+                  }
+                ]
+              }
+            },
+            "required": [
+              "type",
+              "field",
+              "operator",
+              "value"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      },
       "HttpErrorInput": {
         "type": "object",
         "properties": {
@@ -51,6 +192,147 @@
           "error",
           "message",
           "details"
+        ]
+      },
+      "PolicyExpression": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "all",
+                  "any"
+                ]
+              },
+              "children": {
+                "minItems": 1,
+                "maxItems": 10,
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/PolicyExpression"
+                }
+              }
+            },
+            "required": [
+              "type",
+              "children"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "not"
+                ]
+              },
+              "child": {
+                "$ref": "#/components/schemas/PolicyExpression"
+              }
+            },
+            "required": [
+              "type",
+              "child"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "compare"
+                ]
+              },
+              "field": {
+                "type": "string",
+                "enum": [
+                  "actor.id",
+                  "actor.email",
+                  "actor.roles",
+                  "task.id",
+                  "task.ownerId",
+                  "task.ownerEmail",
+                  "task.name",
+                  "task.done"
+                ]
+              },
+              "operator": {
+                "type": "string",
+                "enum": [
+                  "eq",
+                  "neq",
+                  "in",
+                  "notIn",
+                  "contains",
+                  "startsWith",
+                  "endsWith"
+                ]
+              },
+              "value": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "enum": [
+                          "literal"
+                        ]
+                      },
+                      "value": {}
+                    },
+                    "required": [
+                      "type",
+                      "value"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "enum": [
+                          "field"
+                        ]
+                      },
+                      "field": {
+                        "type": "string",
+                        "enum": [
+                          "actor.id",
+                          "actor.email",
+                          "actor.roles",
+                          "task.id",
+                          "task.ownerId",
+                          "task.ownerEmail",
+                          "task.name",
+                          "task.done"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "field"
+                    ],
+                    "additionalProperties": false
+                  }
+                ]
+              }
+            },
+            "required": [
+              "type",
+              "field",
+              "operator",
+              "value"
+            ],
+            "additionalProperties": false
+          }
         ]
       },
       "HttpError": {
@@ -264,7 +546,8 @@
                           "roles.create",
                           "roles.update",
                           "roles.delete",
-                          "permissions.read"
+                          "permissions.read",
+                          "audit.read"
                         ]
                       }
                     }
@@ -495,7 +778,8 @@
                           "roles.create",
                           "roles.update",
                           "roles.delete",
-                          "permissions.read"
+                          "permissions.read",
+                          "audit.read"
                         ]
                       }
                     }
@@ -1067,7 +1351,7 @@
                         "type": "string",
                         "format": "date-time"
                       },
-                      "permissions": {
+                      "policies": {
                         "type": "array",
                         "items": {
                           "type": "object",
@@ -1077,33 +1361,78 @@
                               "format": "uuid",
                               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
                             },
-                            "key": {
+                            "roleId": {
+                              "type": "string",
+                              "format": "uuid",
+                              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                            },
+                            "permissionId": {
+                              "type": "string",
+                              "format": "uuid",
+                              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                            },
+                            "effect": {
                               "type": "string",
                               "enum": [
-                                "profile.read",
-                                "profile.update",
-                                "tasks.read",
-                                "tasks.create",
-                                "tasks.update",
-                                "tasks.delete",
-                                "users.read",
-                                "users.roles.update",
-                                "roles.read",
-                                "roles.create",
-                                "roles.update",
-                                "roles.delete",
-                                "permissions.read"
+                                "allow",
+                                "deny"
                               ]
                             },
-                            "description": {
-                              "type": "string",
-                              "maxLength": 255
+                            "condition": {
+                              "nullable": true,
+                              "allOf": [
+                                {
+                                  "$ref": "#/components/schemas/PolicyExpression"
+                                }
+                              ]
+                            },
+                            "permission": {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string",
+                                  "format": "uuid",
+                                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                                },
+                                "key": {
+                                  "type": "string",
+                                  "enum": [
+                                    "profile.read",
+                                    "profile.update",
+                                    "tasks.read",
+                                    "tasks.create",
+                                    "tasks.update",
+                                    "tasks.delete",
+                                    "users.read",
+                                    "users.roles.update",
+                                    "roles.read",
+                                    "roles.create",
+                                    "roles.update",
+                                    "roles.delete",
+                                    "permissions.read",
+                                    "audit.read"
+                                  ]
+                                },
+                                "description": {
+                                  "type": "string",
+                                  "maxLength": 255
+                                }
+                              },
+                              "required": [
+                                "id",
+                                "key",
+                                "description"
+                              ],
+                              "additionalProperties": false
                             }
                           },
                           "required": [
                             "id",
-                            "key",
-                            "description"
+                            "roleId",
+                            "permissionId",
+                            "effect",
+                            "condition",
+                            "permission"
                           ],
                           "additionalProperties": false
                         }
@@ -1116,7 +1445,7 @@
                       "system",
                       "createdAt",
                       "updatedAt",
-                      "permissions"
+                      "policies"
                     ],
                     "additionalProperties": false
                   }
@@ -1168,18 +1497,43 @@
                     "type": "string",
                     "maxLength": 255
                   },
-                  "permissionIds": {
+                  "permissionPolicies": {
                     "type": "array",
                     "items": {
-                      "type": "string",
-                      "format": "uuid",
-                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                      "type": "object",
+                      "properties": {
+                        "permissionId": {
+                          "type": "string",
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                        },
+                        "effect": {
+                          "type": "string",
+                          "enum": [
+                            "allow",
+                            "deny"
+                          ]
+                        },
+                        "condition": {
+                          "nullable": true,
+                          "allOf": [
+                            {
+                              "$ref": "#/components/schemas/PolicyExpressionInput"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "permissionId",
+                        "effect",
+                        "condition"
+                      ]
                     }
                   }
                 },
                 "required": [
                   "name",
-                  "permissionIds"
+                  "permissionPolicies"
                 ]
               }
             }
@@ -1218,7 +1572,7 @@
                       "type": "string",
                       "format": "date-time"
                     },
-                    "permissions": {
+                    "policies": {
                       "type": "array",
                       "items": {
                         "type": "object",
@@ -1228,33 +1582,78 @@
                             "format": "uuid",
                             "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
                           },
-                          "key": {
+                          "roleId": {
+                            "type": "string",
+                            "format": "uuid",
+                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                          },
+                          "permissionId": {
+                            "type": "string",
+                            "format": "uuid",
+                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                          },
+                          "effect": {
                             "type": "string",
                             "enum": [
-                              "profile.read",
-                              "profile.update",
-                              "tasks.read",
-                              "tasks.create",
-                              "tasks.update",
-                              "tasks.delete",
-                              "users.read",
-                              "users.roles.update",
-                              "roles.read",
-                              "roles.create",
-                              "roles.update",
-                              "roles.delete",
-                              "permissions.read"
+                              "allow",
+                              "deny"
                             ]
                           },
-                          "description": {
-                            "type": "string",
-                            "maxLength": 255
+                          "condition": {
+                            "nullable": true,
+                            "allOf": [
+                              {
+                                "$ref": "#/components/schemas/PolicyExpression"
+                              }
+                            ]
+                          },
+                          "permission": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "format": "uuid",
+                                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                              },
+                              "key": {
+                                "type": "string",
+                                "enum": [
+                                  "profile.read",
+                                  "profile.update",
+                                  "tasks.read",
+                                  "tasks.create",
+                                  "tasks.update",
+                                  "tasks.delete",
+                                  "users.read",
+                                  "users.roles.update",
+                                  "roles.read",
+                                  "roles.create",
+                                  "roles.update",
+                                  "roles.delete",
+                                  "permissions.read",
+                                  "audit.read"
+                                ]
+                              },
+                              "description": {
+                                "type": "string",
+                                "maxLength": 255
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "key",
+                              "description"
+                            ],
+                            "additionalProperties": false
                           }
                         },
                         "required": [
                           "id",
-                          "key",
-                          "description"
+                          "roleId",
+                          "permissionId",
+                          "effect",
+                          "condition",
+                          "permission"
                         ],
                         "additionalProperties": false
                       }
@@ -1267,7 +1666,7 @@
                     "system",
                     "createdAt",
                     "updatedAt",
-                    "permissions"
+                    "policies"
                   ],
                   "additionalProperties": false
                 }
@@ -1350,12 +1749,37 @@
                     "type": "string",
                     "maxLength": 255
                   },
-                  "permissionIds": {
+                  "permissionPolicies": {
                     "type": "array",
                     "items": {
-                      "type": "string",
-                      "format": "uuid",
-                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                      "type": "object",
+                      "properties": {
+                        "permissionId": {
+                          "type": "string",
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                        },
+                        "effect": {
+                          "type": "string",
+                          "enum": [
+                            "allow",
+                            "deny"
+                          ]
+                        },
+                        "condition": {
+                          "nullable": true,
+                          "allOf": [
+                            {
+                              "$ref": "#/components/schemas/PolicyExpressionInput"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "permissionId",
+                        "effect",
+                        "condition"
+                      ]
                     }
                   }
                 }
@@ -1408,7 +1832,7 @@
                       "type": "string",
                       "format": "date-time"
                     },
-                    "permissions": {
+                    "policies": {
                       "type": "array",
                       "items": {
                         "type": "object",
@@ -1418,33 +1842,78 @@
                             "format": "uuid",
                             "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
                           },
-                          "key": {
+                          "roleId": {
+                            "type": "string",
+                            "format": "uuid",
+                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                          },
+                          "permissionId": {
+                            "type": "string",
+                            "format": "uuid",
+                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                          },
+                          "effect": {
                             "type": "string",
                             "enum": [
-                              "profile.read",
-                              "profile.update",
-                              "tasks.read",
-                              "tasks.create",
-                              "tasks.update",
-                              "tasks.delete",
-                              "users.read",
-                              "users.roles.update",
-                              "roles.read",
-                              "roles.create",
-                              "roles.update",
-                              "roles.delete",
-                              "permissions.read"
+                              "allow",
+                              "deny"
                             ]
                           },
-                          "description": {
-                            "type": "string",
-                            "maxLength": 255
+                          "condition": {
+                            "nullable": true,
+                            "allOf": [
+                              {
+                                "$ref": "#/components/schemas/PolicyExpression"
+                              }
+                            ]
+                          },
+                          "permission": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "format": "uuid",
+                                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                              },
+                              "key": {
+                                "type": "string",
+                                "enum": [
+                                  "profile.read",
+                                  "profile.update",
+                                  "tasks.read",
+                                  "tasks.create",
+                                  "tasks.update",
+                                  "tasks.delete",
+                                  "users.read",
+                                  "users.roles.update",
+                                  "roles.read",
+                                  "roles.create",
+                                  "roles.update",
+                                  "roles.delete",
+                                  "permissions.read",
+                                  "audit.read"
+                                ]
+                              },
+                              "description": {
+                                "type": "string",
+                                "maxLength": 255
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "key",
+                              "description"
+                            ],
+                            "additionalProperties": false
                           }
                         },
                         "required": [
                           "id",
-                          "key",
-                          "description"
+                          "roleId",
+                          "permissionId",
+                          "effect",
+                          "condition",
+                          "permission"
                         ],
                         "additionalProperties": false
                       }
@@ -1457,7 +1926,7 @@
                     "system",
                     "createdAt",
                     "updatedAt",
-                    "permissions"
+                    "policies"
                   ],
                   "additionalProperties": false
                 }
@@ -1629,18 +2098,36 @@
                           "roles.create",
                           "roles.update",
                           "roles.delete",
-                          "permissions.read"
+                          "permissions.read",
+                          "audit.read"
                         ]
                       },
                       "description": {
                         "type": "string",
                         "maxLength": 255
+                      },
+                      "conditionFields": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "enum": [
+                            "actor.id",
+                            "actor.email",
+                            "actor.roles",
+                            "task.id",
+                            "task.ownerId",
+                            "task.ownerEmail",
+                            "task.name",
+                            "task.done"
+                          ]
+                        }
                       }
                     },
                     "required": [
                       "id",
                       "key",
-                      "description"
+                      "description",
+                      "conditionFields"
                     ],
                     "additionalProperties": false
                   }
@@ -1664,6 +2151,255 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/HttpError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/audit-events": {
+      "get": {
+        "tags": [
+          "Audit"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "default": 1,
+              "type": "integer",
+              "minimum": 0,
+              "exclusiveMinimum": true,
+              "maximum": 9007199254740991
+            },
+            "in": "query",
+            "name": "page",
+            "required": false
+          },
+          {
+            "schema": {
+              "default": 20,
+              "type": "integer",
+              "minimum": 0,
+              "exclusiveMinimum": true,
+              "maximum": 100
+            },
+            "in": "query",
+            "name": "limit",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "string",
+              "maxLength": 64
+            },
+            "in": "query",
+            "name": "eventType",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "string",
+              "maxLength": 16
+            },
+            "in": "query",
+            "name": "outcome",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "string",
+              "maxLength": 254
+            },
+            "in": "query",
+            "name": "actor",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "string",
+              "maxLength": 64
+            },
+            "in": "query",
+            "name": "permission",
+            "required": false
+          },
+          {
+            "schema": {},
+            "in": "query",
+            "name": "from",
+            "required": false
+          },
+          {
+            "schema": {},
+            "in": "query",
+            "name": "to",
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                          },
+                          "actorId": {
+                            "nullable": true,
+                            "type": "string",
+                            "format": "uuid",
+                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                          },
+                          "actorEmail": {
+                            "type": "string",
+                            "maxLength": 254
+                          },
+                          "eventType": {
+                            "type": "string",
+                            "maxLength": 64
+                          },
+                          "outcome": {
+                            "type": "string",
+                            "maxLength": 16
+                          },
+                          "permission": {
+                            "nullable": true,
+                            "type": "string",
+                            "maxLength": 64
+                          },
+                          "resourceType": {
+                            "nullable": true,
+                            "type": "string",
+                            "maxLength": 64
+                          },
+                          "resourceId": {
+                            "nullable": true,
+                            "type": "string",
+                            "maxLength": 128
+                          },
+                          "matchedAllowPolicyIds": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "format": "uuid",
+                              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                            }
+                          },
+                          "matchedDenyPolicyIds": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "format": "uuid",
+                              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                            }
+                          },
+                          "details": {
+                            "type": "object",
+                            "additionalProperties": {}
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "actorId",
+                          "actorEmail",
+                          "eventType",
+                          "outcome",
+                          "permission",
+                          "resourceType",
+                          "resourceId",
+                          "matchedAllowPolicyIds",
+                          "matchedDenyPolicyIds",
+                          "details",
+                          "createdAt"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "pagination": {
+                      "type": "object",
+                      "properties": {
+                        "page": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "exclusiveMinimum": true,
+                          "maximum": 9007199254740991
+                        },
+                        "limit": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "exclusiveMinimum": true,
+                          "maximum": 9007199254740991
+                        },
+                        "total": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "totalPages": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "required": [
+                        "page",
+                        "limit",
+                        "total",
+                        "totalPages"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "pagination"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
                 }
               }
             }
@@ -1799,7 +2535,8 @@
                           "roles.create",
                           "roles.update",
                           "roles.delete",
-                          "permissions.read"
+                          "permissions.read",
+                          "audit.read"
                         ]
                       }
                     }
@@ -2029,7 +2766,8 @@
                           "roles.create",
                           "roles.update",
                           "roles.delete",
-                          "permissions.read"
+                          "permissions.read",
+                          "audit.read"
                         ]
                       }
                     }
@@ -2168,6 +2906,27 @@
                           "updatedAt": {
                             "type": "string",
                             "format": "date-time"
+                          },
+                          "ownerEmail": {
+                            "type": "string",
+                            "format": "email",
+                            "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+                          },
+                          "actions": {
+                            "type": "object",
+                            "properties": {
+                              "update": {
+                                "type": "boolean"
+                              },
+                              "delete": {
+                                "type": "boolean"
+                              }
+                            },
+                            "required": [
+                              "update",
+                              "delete"
+                            ],
+                            "additionalProperties": false
                           }
                         },
                         "required": [
@@ -2176,7 +2935,9 @@
                           "name",
                           "done",
                           "createdAt",
-                          "updatedAt"
+                          "updatedAt",
+                          "ownerEmail",
+                          "actions"
                         ],
                         "additionalProperties": false
                       }
@@ -2329,6 +3090,27 @@
                     "updatedAt": {
                       "type": "string",
                       "format": "date-time"
+                    },
+                    "ownerEmail": {
+                      "type": "string",
+                      "format": "email",
+                      "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+                    },
+                    "actions": {
+                      "type": "object",
+                      "properties": {
+                        "update": {
+                          "type": "boolean"
+                        },
+                        "delete": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "update",
+                        "delete"
+                      ],
+                      "additionalProperties": false
                     }
                   },
                   "required": [
@@ -2337,7 +3119,9 @@
                     "name",
                     "done",
                     "createdAt",
-                    "updatedAt"
+                    "updatedAt",
+                    "ownerEmail",
+                    "actions"
                   ],
                   "additionalProperties": false
                 }
@@ -2446,6 +3230,27 @@
                     "updatedAt": {
                       "type": "string",
                       "format": "date-time"
+                    },
+                    "ownerEmail": {
+                      "type": "string",
+                      "format": "email",
+                      "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+                    },
+                    "actions": {
+                      "type": "object",
+                      "properties": {
+                        "update": {
+                          "type": "boolean"
+                        },
+                        "delete": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "update",
+                        "delete"
+                      ],
+                      "additionalProperties": false
                     }
                   },
                   "required": [
@@ -2454,7 +3259,9 @@
                     "name",
                     "done",
                     "createdAt",
-                    "updatedAt"
+                    "updatedAt",
+                    "ownerEmail",
+                    "actions"
                   ],
                   "additionalProperties": false
                 }
@@ -2585,6 +3392,27 @@
                     "updatedAt": {
                       "type": "string",
                       "format": "date-time"
+                    },
+                    "ownerEmail": {
+                      "type": "string",
+                      "format": "email",
+                      "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+                    },
+                    "actions": {
+                      "type": "object",
+                      "properties": {
+                        "update": {
+                          "type": "boolean"
+                        },
+                        "delete": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "update",
+                        "delete"
+                      ],
+                      "additionalProperties": false
                     }
                   },
                   "required": [
@@ -2593,7 +3421,9 @@
                     "name",
                     "done",
                     "createdAt",
-                    "updatedAt"
+                    "updatedAt",
+                    "ownerEmail",
+                    "actions"
                   ],
                   "additionalProperties": false
                 }

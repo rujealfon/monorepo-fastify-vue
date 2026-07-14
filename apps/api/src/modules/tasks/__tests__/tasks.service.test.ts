@@ -1,3 +1,5 @@
+import type { AuthorizationContext, PolicyDecision } from '#api/modules/users'
+
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { TaskNotFoundError } from '#api/modules/tasks/tasks.errors.js'
@@ -7,61 +9,43 @@ import * as tasksService from '#api/modules/tasks/tasks.service.js'
 vi.mock('#api/modules/tasks/tasks.repository.js')
 
 const userId = 'a3f1c2d4-5b6e-4a7f-8c9d-0e1f2a3b4c5d'
-
-const sampleTask = {
-  id: 1,
-  userId,
-  name: 'sample',
-  done: false,
-  createdAt: new Date(),
-  updatedAt: new Date()
+const decision: PolicyDecision = { allowed: true, matchedAllowPolicyIds: ['11111111-1111-4111-8111-111111111111'], matchedDenyPolicyIds: [] }
+const authorization: AuthorizationContext = {
+  actor: { id: userId, email: 'person@example.com', roles: ['member'] },
+  admin: false,
+  policies: ['tasks.read', 'tasks.create', 'tasks.update', 'tasks.delete'].map((permission, index) => ({
+    id: `11111111-1111-4111-8111-11111111111${index}`,
+    permission: permission as 'tasks.read',
+    effect: 'allow' as const,
+    condition: null
+  }))
 }
+const sampleTask = { id: 1, userId, name: 'sample', done: false, createdAt: new Date(), updatedAt: new Date(), ownerEmail: 'person@example.com' }
 
 describe('tasks.service', () => {
   beforeEach(() => {
     vi.resetAllMocks()
+    vi.mocked(tasksRepository.toPolicyTask).mockImplementation(task => ({ id: task.id, ownerId: task.userId, ownerEmail: task.ownerEmail, name: task.name, done: task.done }))
   })
 
-  it('getTask returns the task from the repository', async () => {
+  it('returns server-computed task actions', async () => {
     vi.mocked(tasksRepository.findById).mockResolvedValue(sampleTask)
-
-    const task = await tasksService.getTask(userId, 1)
-    expect(tasksRepository.findById).toHaveBeenCalledWith(userId, 1)
-    expect(task).toEqual(sampleTask)
-  })
-
-  it('getTask throws TaskNotFoundError when the repository finds nothing', async () => {
-    vi.mocked(tasksRepository.findById).mockResolvedValue(undefined)
-
-    await expect(tasksService.getTask(userId, 404)).rejects.toThrow(TaskNotFoundError)
-  })
-
-  it('updateTask throws TaskNotFoundError when the repository finds nothing', async () => {
-    vi.mocked(tasksRepository.updateById).mockResolvedValue(undefined)
-
-    await expect(tasksService.updateTask(userId, 404, { done: true })).rejects.toThrow(TaskNotFoundError)
-  })
-
-  it('deleteTask throws TaskNotFoundError when the repository finds nothing', async () => {
-    vi.mocked(tasksRepository.deleteById).mockResolvedValue(undefined)
-
-    await expect(tasksService.deleteTask(userId, 404)).rejects.toThrow(TaskNotFoundError)
-  })
-
-  it('createTask delegates to the repository', async () => {
-    vi.mocked(tasksRepository.insertOne).mockResolvedValue(sampleTask)
-
-    const task = await tasksService.createTask(userId, { name: 'sample', done: false })
-    expect(tasksRepository.insertOne).toHaveBeenCalledWith(userId, { name: 'sample', done: false })
-    expect(task).toEqual(sampleTask)
-  })
-
-  it('calculates pagination metadata', async () => {
-    vi.mocked(tasksRepository.findMany).mockResolvedValue({ data: [sampleTask], total: 45 })
-    await expect(tasksService.listTasks(userId, 2, 20)).resolves.toEqual({
-      data: [sampleTask],
-      pagination: { page: 2, limit: 20, total: 45, totalPages: 3 }
+    await expect(tasksService.getTask(authorization, 1)).resolves.toMatchObject({
+      task: { id: 1, actions: { update: true, delete: true } }
     })
-    expect(tasksRepository.findMany).toHaveBeenCalledWith(userId, 2, 20)
+  })
+
+  it('keeps missing and denied task reads indistinguishable', async () => {
+    vi.mocked(tasksRepository.findById).mockResolvedValue(undefined)
+    await expect(tasksService.getTask(authorization, 404)).rejects.toThrow(TaskNotFoundError)
+    vi.mocked(tasksRepository.findById).mockResolvedValue(sampleTask)
+    await expect(tasksService.getTask({ ...authorization, policies: [] }, 1)).rejects.toMatchObject({ statusCode: 404 })
+  })
+
+  it('uses the locked repository decision for mutation authorization', async () => {
+    vi.mocked(tasksRepository.updateById).mockResolvedValue({ found: true, decision, task: { ...sampleTask, done: true } })
+    await expect(tasksService.updateTask(authorization, 1, { done: true })).resolves.toMatchObject({ task: { done: true } })
+    vi.mocked(tasksRepository.deleteById).mockResolvedValue({ found: false })
+    await expect(tasksService.deleteTask(authorization, 404)).rejects.toThrow(TaskNotFoundError)
   })
 })

@@ -1,6 +1,6 @@
 import type { CreateRole, LoginUser, PatchProfile, PatchRole, PublicUser, RegisterUser, ReplaceUserRoles } from './users.schema.js'
 
-import { EmailAlreadyExistsError, ForbiddenError, PermissionNotFoundError, RoleConflictError, RoleNotFoundError, UnauthorizedError, UserNotFoundError } from './users.errors.js'
+import { EmailAlreadyExistsError, ForbiddenError, PermissionNotFoundError, PermissionPolicyValidationError, RoleConflictError, RoleNotFoundError, UnauthorizedError, UserNotFoundError } from './users.errors.js'
 import { hashPassword, verifyPassword } from './users.password.js'
 import * as repository from './users.repository.js'
 
@@ -54,8 +54,8 @@ export async function updateProfile(id: string, data: PatchProfile) {
   return publicUser(user)
 }
 
-export function hasPermission(id: string, permission: Parameters<typeof repository.hasPermission>[1]) {
-  return repository.hasPermission(id, permission)
+export function resolveAuthorization(id: string) {
+  return repository.resolveAuthorization(id)
 }
 
 export function listUsers(page: number, limit: number) {
@@ -66,7 +66,7 @@ export async function replaceUserRoles(actorId: string, userId: string, data: Re
   if (actorId === userId)
     throw new ForbiddenError('You cannot change your own roles')
 
-  const result = await repository.replaceUserRoles(userId, data.roleIds)
+  const result = await repository.replaceUserRoles(actorId, userId, data.roleIds)
   if (result === 'missing-user')
     throw new UserNotFoundError()
   if (result === 'missing-role')
@@ -84,11 +84,13 @@ export function listRoles() {
   return repository.listRoles()
 }
 
-export async function createRole(data: CreateRole) {
+export async function createRole(actorId: string, data: CreateRole) {
   try {
-    const role = await repository.createRole(data)
+    const role = await repository.createRole(actorId, data)
     if (role === 'missing-permission')
       throw new PermissionNotFoundError()
+    if (role === 'invalid-policy')
+      throw new PermissionPolicyValidationError()
     return role
   }
   catch (error) {
@@ -100,19 +102,21 @@ export async function createRole(data: CreateRole) {
   }
 }
 
-export async function updateRole(id: string, data: PatchRole) {
+export async function updateRole(actorId: string, id: string, data: PatchRole) {
   try {
-    const role = await repository.updateRole(id, data)
+    const role = await repository.updateRole(actorId, id, data)
     if (role === 'missing-role')
       throw new RoleNotFoundError()
     if (role === 'missing-permission')
       throw new PermissionNotFoundError()
+    if (role === 'invalid-policy')
+      throw new PermissionPolicyValidationError()
     if (role === 'protected-role')
       throw new ForbiddenError('This system role cannot be changed that way')
     return role
   }
   catch (error) {
-    if (error instanceof RoleNotFoundError || error instanceof PermissionNotFoundError || error instanceof ForbiddenError)
+    if (error instanceof RoleNotFoundError || error instanceof PermissionNotFoundError || error instanceof PermissionPolicyValidationError || error instanceof ForbiddenError)
       throw error
     if (hasCode(error, '23505'))
       throw new RoleConflictError('A role with that name already exists')
@@ -120,8 +124,8 @@ export async function updateRole(id: string, data: PatchRole) {
   }
 }
 
-export async function deleteRole(id: string) {
-  const result = await repository.deleteRole(id)
+export async function deleteRole(actorId: string, id: string) {
+  const result = await repository.deleteRole(actorId, id)
   if (result === 'missing-role')
     throw new RoleNotFoundError()
   if (result === 'protected-role')

@@ -2,7 +2,7 @@ import { boolean, index, pgTable, serial, text, timestamp, uuid } from 'drizzle-
 import { createSelectSchema } from 'drizzle-zod'
 import { z } from 'zod'
 
-import { users } from '#api/modules/users/users.schema.js'
+import { users } from '#api/modules/users'
 
 export const tasks = pgTable('tasks', {
   id: serial('id').primaryKey(),
@@ -15,7 +15,10 @@ export const tasks = pgTable('tasks', {
   index('tasks_user_id_idx').on(table.userId)
 ])
 
-export const selectTasksSchema = createSelectSchema(tasks)
+export const selectTasksSchema = createSelectSchema(tasks).extend({
+  ownerEmail: z.string().email(),
+  actions: z.object({ update: z.boolean(), delete: z.boolean() })
+})
 export type selectTasksSchema = z.infer<typeof selectTasksSchema>
 
 export const tasksPageQuerySchema = z.object({

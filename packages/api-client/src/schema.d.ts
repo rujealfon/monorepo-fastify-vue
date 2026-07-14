@@ -69,7 +69,7 @@ export interface paths {
                                 name: string;
                                 system: boolean;
                             }[];
-                            permissions: ("profile.read" | "profile.update" | "tasks.read" | "tasks.create" | "tasks.update" | "tasks.delete" | "users.read" | "users.roles.update" | "roles.read" | "roles.create" | "roles.update" | "roles.delete" | "permissions.read")[];
+                            permissions: ("profile.read" | "profile.update" | "tasks.read" | "tasks.create" | "tasks.update" | "tasks.delete" | "users.read" | "users.roles.update" | "roles.read" | "roles.create" | "roles.update" | "roles.delete" | "permissions.read" | "audit.read")[];
                         };
                     };
                 };
@@ -191,7 +191,7 @@ export interface paths {
                                 name: string;
                                 system: boolean;
                             }[];
-                            permissions: ("profile.read" | "profile.update" | "tasks.read" | "tasks.create" | "tasks.update" | "tasks.delete" | "users.read" | "users.roles.update" | "roles.read" | "roles.create" | "roles.update" | "roles.delete" | "permissions.read")[];
+                            permissions: ("profile.read" | "profile.update" | "tasks.read" | "tasks.create" | "tasks.update" | "tasks.delete" | "users.read" | "users.roles.update" | "roles.read" | "roles.create" | "roles.update" | "roles.delete" | "permissions.read" | "audit.read")[];
                         };
                     };
                 };
@@ -626,12 +626,23 @@ export interface paths {
                             createdAt: string;
                             /** Format: date-time */
                             updatedAt: string;
-                            permissions: {
+                            policies: {
                                 /** Format: uuid */
                                 id: string;
+                                /** Format: uuid */
+                                roleId: string;
+                                /** Format: uuid */
+                                permissionId: string;
                                 /** @enum {string} */
-                                key: "profile.read" | "profile.update" | "tasks.read" | "tasks.create" | "tasks.update" | "tasks.delete" | "users.read" | "users.roles.update" | "roles.read" | "roles.create" | "roles.update" | "roles.delete" | "permissions.read";
-                                description: string;
+                                effect: "allow" | "deny";
+                                condition: components["schemas"]["PolicyExpression"] | null;
+                                permission: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    /** @enum {string} */
+                                    key: "profile.read" | "profile.update" | "tasks.read" | "tasks.create" | "tasks.update" | "tasks.delete" | "users.read" | "users.roles.update" | "roles.read" | "roles.create" | "roles.update" | "roles.delete" | "permissions.read" | "audit.read";
+                                    description: string;
+                                };
                             }[];
                         }[];
                     };
@@ -669,7 +680,13 @@ export interface paths {
                     "application/json": {
                         name: string;
                         description?: string | null;
-                        permissionIds: string[];
+                        permissionPolicies: {
+                            /** Format: uuid */
+                            permissionId: string;
+                            /** @enum {string} */
+                            effect: "allow" | "deny";
+                            condition: components["schemas"]["PolicyExpressionInput"] | null;
+                        }[];
                     };
                 };
             };
@@ -690,12 +707,23 @@ export interface paths {
                             createdAt: string;
                             /** Format: date-time */
                             updatedAt: string;
-                            permissions: {
+                            policies: {
                                 /** Format: uuid */
                                 id: string;
+                                /** Format: uuid */
+                                roleId: string;
+                                /** Format: uuid */
+                                permissionId: string;
                                 /** @enum {string} */
-                                key: "profile.read" | "profile.update" | "tasks.read" | "tasks.create" | "tasks.update" | "tasks.delete" | "users.read" | "users.roles.update" | "roles.read" | "roles.create" | "roles.update" | "roles.delete" | "permissions.read";
-                                description: string;
+                                effect: "allow" | "deny";
+                                condition: components["schemas"]["PolicyExpression"] | null;
+                                permission: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    /** @enum {string} */
+                                    key: "profile.read" | "profile.update" | "tasks.read" | "tasks.create" | "tasks.update" | "tasks.delete" | "users.read" | "users.roles.update" | "roles.read" | "roles.create" | "roles.update" | "roles.delete" | "permissions.read" | "audit.read";
+                                    description: string;
+                                };
                             }[];
                         };
                     };
@@ -846,7 +874,13 @@ export interface paths {
                     "application/json": {
                         name?: string;
                         description?: string | null;
-                        permissionIds?: string[];
+                        permissionPolicies?: {
+                            /** Format: uuid */
+                            permissionId: string;
+                            /** @enum {string} */
+                            effect: "allow" | "deny";
+                            condition: components["schemas"]["PolicyExpressionInput"] | null;
+                        }[];
                     };
                 };
             };
@@ -867,12 +901,23 @@ export interface paths {
                             createdAt: string;
                             /** Format: date-time */
                             updatedAt: string;
-                            permissions: {
+                            policies: {
                                 /** Format: uuid */
                                 id: string;
+                                /** Format: uuid */
+                                roleId: string;
+                                /** Format: uuid */
+                                permissionId: string;
                                 /** @enum {string} */
-                                key: "profile.read" | "profile.update" | "tasks.read" | "tasks.create" | "tasks.update" | "tasks.delete" | "users.read" | "users.roles.update" | "roles.read" | "roles.create" | "roles.update" | "roles.delete" | "permissions.read";
-                                description: string;
+                                effect: "allow" | "deny";
+                                condition: components["schemas"]["PolicyExpression"] | null;
+                                permission: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    /** @enum {string} */
+                                    key: "profile.read" | "profile.update" | "tasks.read" | "tasks.create" | "tasks.update" | "tasks.delete" | "users.read" | "users.roles.update" | "roles.read" | "roles.create" | "roles.update" | "roles.delete" | "permissions.read" | "audit.read";
+                                    description: string;
+                                };
                             }[];
                         };
                     };
@@ -952,8 +997,9 @@ export interface paths {
                             /** Format: uuid */
                             id: string;
                             /** @enum {string} */
-                            key: "profile.read" | "profile.update" | "tasks.read" | "tasks.create" | "tasks.update" | "tasks.delete" | "users.read" | "users.roles.update" | "roles.read" | "roles.create" | "roles.update" | "roles.delete" | "permissions.read";
+                            key: "profile.read" | "profile.update" | "tasks.read" | "tasks.create" | "tasks.update" | "tasks.delete" | "users.read" | "users.roles.update" | "roles.read" | "roles.create" | "roles.update" | "roles.delete" | "permissions.read" | "audit.read";
                             description: string;
+                            conditionFields: ("actor.id" | "actor.email" | "actor.roles" | "task.id" | "task.ownerId" | "task.ownerEmail" | "task.name" | "task.done")[];
                         }[];
                     };
                 };
@@ -973,6 +1019,103 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["HttpError"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/audit-events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    page?: number;
+                    limit?: number;
+                    eventType?: string;
+                    outcome?: string;
+                    actor?: string;
+                    permission?: string;
+                    from?: unknown;
+                    to?: unknown;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data: {
+                                /** Format: uuid */
+                                id: string;
+                                /** Format: uuid */
+                                actorId: string | null;
+                                actorEmail: string;
+                                eventType: string;
+                                outcome: string;
+                                permission: string | null;
+                                resourceType: string | null;
+                                resourceId: string | null;
+                                matchedAllowPolicyIds: string[];
+                                matchedDenyPolicyIds: string[];
+                                details: {
+                                    [key: string]: unknown;
+                                };
+                                /** Format: date-time */
+                                createdAt: string;
+                            }[];
+                            pagination: {
+                                page: number;
+                                limit: number;
+                                total: number;
+                                totalPages: number;
+                            };
+                        };
+                    };
+                };
+                /** @description Default Response */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HttpError"];
+                    };
+                };
+                /** @description Default Response */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HttpError"];
+                    };
+                };
+                /** @description Default Response */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ValidationError"];
                     };
                 };
             };
@@ -1034,7 +1177,7 @@ export interface paths {
                                 name: string;
                                 system: boolean;
                             }[];
-                            permissions: ("profile.read" | "profile.update" | "tasks.read" | "tasks.create" | "tasks.update" | "tasks.delete" | "users.read" | "users.roles.update" | "roles.read" | "roles.create" | "roles.update" | "roles.delete" | "permissions.read")[];
+                            permissions: ("profile.read" | "profile.update" | "tasks.read" | "tasks.create" | "tasks.update" | "tasks.delete" | "users.read" | "users.roles.update" | "roles.read" | "roles.create" | "roles.update" | "roles.delete" | "permissions.read" | "audit.read")[];
                         };
                     };
                 };
@@ -1135,7 +1278,7 @@ export interface paths {
                                 name: string;
                                 system: boolean;
                             }[];
-                            permissions: ("profile.read" | "profile.update" | "tasks.read" | "tasks.create" | "tasks.update" | "tasks.delete" | "users.read" | "users.roles.update" | "roles.read" | "roles.create" | "roles.update" | "roles.delete" | "permissions.read")[];
+                            permissions: ("profile.read" | "profile.update" | "tasks.read" | "tasks.create" | "tasks.update" | "tasks.delete" | "users.read" | "users.roles.update" | "roles.read" | "roles.create" | "roles.update" | "roles.delete" | "permissions.read" | "audit.read")[];
                         };
                     };
                 };
@@ -1224,6 +1367,12 @@ export interface paths {
                                 createdAt: string;
                                 /** Format: date-time */
                                 updatedAt: string;
+                                /** Format: email */
+                                ownerEmail: string;
+                                actions: {
+                                    update: boolean;
+                                    delete: boolean;
+                                };
                             }[];
                             pagination: {
                                 page: number;
@@ -1311,6 +1460,12 @@ export interface paths {
                             createdAt: string;
                             /** Format: date-time */
                             updatedAt: string;
+                            /** Format: email */
+                            ownerEmail: string;
+                            actions: {
+                                update: boolean;
+                                delete: boolean;
+                            };
                         };
                     };
                 };
@@ -1401,6 +1556,12 @@ export interface paths {
                             createdAt: string;
                             /** Format: date-time */
                             updatedAt: string;
+                            /** Format: email */
+                            ownerEmail: string;
+                            actions: {
+                                update: boolean;
+                                delete: boolean;
+                            };
                         };
                     };
                 };
@@ -1571,6 +1732,12 @@ export interface paths {
                             createdAt: string;
                             /** Format: date-time */
                             updatedAt: string;
+                            /** Format: email */
+                            ownerEmail: string;
+                            actions: {
+                                update: boolean;
+                                delete: boolean;
+                            };
                         };
                     };
                 };
@@ -1636,6 +1803,32 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        PolicyExpressionInput: {
+            /** @enum {string} */
+            type: "all" | "any";
+            children: components["schemas"]["PolicyExpressionInput"][];
+        } | {
+            /** @enum {string} */
+            type: "not";
+            child: components["schemas"]["PolicyExpressionInput"];
+        } | {
+            /** @enum {string} */
+            type: "compare";
+            /** @enum {string} */
+            field: "actor.id" | "actor.email" | "actor.roles" | "task.id" | "task.ownerId" | "task.ownerEmail" | "task.name" | "task.done";
+            /** @enum {string} */
+            operator: "eq" | "neq" | "in" | "notIn" | "contains" | "startsWith" | "endsWith";
+            value: {
+                /** @enum {string} */
+                type: "literal";
+                value: unknown;
+            } | {
+                /** @enum {string} */
+                type: "field";
+                /** @enum {string} */
+                field: "actor.id" | "actor.email" | "actor.roles" | "task.id" | "task.ownerId" | "task.ownerEmail" | "task.name" | "task.done";
+            };
+        };
         HttpErrorInput: {
             statusCode: number;
             error: string;
@@ -1646,6 +1839,32 @@ export interface components {
             error: string;
             message: string;
             details: unknown[];
+        };
+        PolicyExpression: {
+            /** @enum {string} */
+            type: "all" | "any";
+            children: components["schemas"]["PolicyExpression"][];
+        } | {
+            /** @enum {string} */
+            type: "not";
+            child: components["schemas"]["PolicyExpression"];
+        } | {
+            /** @enum {string} */
+            type: "compare";
+            /** @enum {string} */
+            field: "actor.id" | "actor.email" | "actor.roles" | "task.id" | "task.ownerId" | "task.ownerEmail" | "task.name" | "task.done";
+            /** @enum {string} */
+            operator: "eq" | "neq" | "in" | "notIn" | "contains" | "startsWith" | "endsWith";
+            value: {
+                /** @enum {string} */
+                type: "literal";
+                value: unknown;
+            } | {
+                /** @enum {string} */
+                type: "field";
+                /** @enum {string} */
+                field: "actor.id" | "actor.email" | "actor.roles" | "task.id" | "task.ownerId" | "task.ownerEmail" | "task.name" | "task.done";
+            };
         };
         HttpError: {
             statusCode: number;

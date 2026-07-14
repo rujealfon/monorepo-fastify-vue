@@ -9,6 +9,10 @@
       "development": "./src/modules/health/index.ts",
       "default": "./dist/modules/health/index.js"
     },
+    "#api/modules/audit": {
+      "development": "./src/modules/audit/index.ts",
+      "default": "./dist/modules/audit/index.js"
+    },
     "#api/modules/tasks": {
       "development": "./src/modules/tasks/index.ts",
       "default": "./dist/modules/tasks/index.js"

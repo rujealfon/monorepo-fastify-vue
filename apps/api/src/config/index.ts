@@ -8,6 +8,7 @@ const envSchema = z.object({
   JWT_SECRET: z.string().min(32, 'JWT_SECRET must be at least 32 characters'),
   // CORS_ORIGIN is only needed if the API and web app deploy to separate origins.
   LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal', 'silent']).default('info'),
+  AUDIT_DECISION_RETENTION_DAYS: z.coerce.number().int().positive().default(90),
   // Backs the rate-limit store (Valkey, accessed via the Redis-protocol-compatible
   // ioredis client). Required in production because Vercel runs the API as isolated
   // serverless instances with no shared memory, so the default in-memory store would

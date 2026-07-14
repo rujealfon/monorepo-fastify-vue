@@ -27,7 +27,8 @@ const errorHandler: FastifyPluginAsync = async (app) => {
     return reply.code(statusCode).send({
       statusCode,
       error: statusCode < 500 ? STATUS_CODES[statusCode] ?? error.name : error.name,
-      message
+      message,
+      ...('details' in error && Array.isArray(error.details) ? { details: error.details } : {})
     })
   })
 }

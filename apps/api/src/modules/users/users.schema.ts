@@ -1,4 +1,4 @@
-import { boolean, date, index, pgEnum, pgTable, primaryKey, text, timestamp, uuid, varchar } from 'drizzle-orm/pg-core'
+import { boolean, date, index, jsonb, pgEnum, pgTable, primaryKey, text, timestamp, unique, uuid, varchar } from 'drizzle-orm/pg-core'
 import { createSelectSchema } from 'drizzle-zod'
 import { z } from 'zod'
 
@@ -15,8 +15,36 @@ export const PERMISSION_KEYS = [
   'roles.create',
   'roles.update',
   'roles.delete',
-  'permissions.read'
+  'permissions.read',
+  'audit.read'
 ] as const
+
+export const TASK_PERMISSION_KEYS = ['tasks.read', 'tasks.create', 'tasks.update', 'tasks.delete'] as const
+export const POLICY_FIELDS = [
+  'actor.id',
+  'actor.email',
+  'actor.roles',
+  'task.id',
+  'task.ownerId',
+  'task.ownerEmail',
+  'task.name',
+  'task.done'
+] as const
+export const POLICY_OPERATORS = ['eq', 'neq', 'in', 'notIn', 'contains', 'startsWith', 'endsWith'] as const
+
+export const policyEffectEnum = pgEnum('policy_effect', ['allow', 'deny'])
+
+export type PolicyField = typeof POLICY_FIELDS[number]
+export type PolicyOperator = typeof POLICY_OPERATORS[number]
+export type PolicyExpression
+  = | { type: 'all' | 'any', children: PolicyExpression[] }
+    | { type: 'not', child: PolicyExpression }
+    | {
+      type: 'compare'
+      field: PolicyField
+      operator: PolicyOperator
+      value: { type: 'literal', value: unknown } | { type: 'field', field: PolicyField }
+    }
 
 export const users = pgTable('users', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -49,12 +77,16 @@ export const userRoles = pgTable('user_roles', {
   index('user_roles_role_id_idx').on(table.roleId)
 ])
 
-export const rolePermissions = pgTable('role_permissions', {
+export const rolePolicies = pgTable('role_policies', {
+  id: uuid('id').primaryKey().defaultRandom(),
   roleId: uuid('role_id').notNull().references(() => roles.id, { onDelete: 'cascade' }),
-  permissionId: uuid('permission_id').notNull().references(() => permissions.id, { onDelete: 'restrict' })
+  permissionId: uuid('permission_id').notNull().references(() => permissions.id, { onDelete: 'restrict' }),
+  effect: policyEffectEnum('effect').notNull(),
+  condition: jsonb('condition').$type<PolicyExpression | null>()
 }, table => [
-  primaryKey({ columns: [table.roleId, table.permissionId] }),
-  index('role_permissions_permission_id_idx').on(table.permissionId)
+  unique('role_policies_role_permission_effect_unique').on(table.roleId, table.permissionId, table.effect),
+  index('role_policies_permission_id_idx').on(table.permissionId),
+  index('role_policies_role_id_idx').on(table.roleId)
 ])
 
 export const genderEnum = pgEnum('gender', ['male', 'female', 'intersex', 'prefer_not_to_say'])
@@ -76,6 +108,30 @@ const birthDateSchema = z.iso.date().nullable()
 
 export const permissionKeySchema = z.enum(PERMISSION_KEYS)
 export type PermissionKey = z.infer<typeof permissionKeySchema>
+export const taskPermissionKeySchema = z.enum(TASK_PERMISSION_KEYS)
+export type TaskPermissionKey = z.infer<typeof taskPermissionKeySchema>
+export const policyEffectSchema = z.enum(policyEffectEnum.enumValues)
+export type PolicyEffect = z.infer<typeof policyEffectSchema>
+export const policyFieldSchema = z.enum(POLICY_FIELDS)
+export const policyOperatorSchema = z.enum(POLICY_OPERATORS)
+
+export const policyExpressionSchema: z.ZodType<PolicyExpression> = z.lazy(() => z.discriminatedUnion('type', [
+  z.object({ type: z.enum(['all', 'any']), children: z.array(policyExpressionSchema).min(1).max(10) }).strict(),
+  z.object({ type: z.literal('not'), child: policyExpressionSchema }).strict(),
+  z.object({
+    type: z.literal('compare'),
+    field: policyFieldSchema,
+    operator: policyOperatorSchema,
+    value: z.discriminatedUnion('type', [
+      z.object({ type: z.literal('literal'), value: z.unknown() }).strict(),
+      z.object({ type: z.literal('field'), field: policyFieldSchema }).strict()
+    ])
+  }).strict()
+])).meta({ id: 'PolicyExpression' })
+
+export function isTaskPermissionKey(key: PermissionKey): key is TaskPermissionKey {
+  return TASK_PERMISSION_KEYS.includes(key as TaskPermissionKey)
+}
 
 const roleNameSchema = z.string().trim().toLowerCase().min(2).max(64).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
 const roleDescriptionSchema = z.string().trim().max(255).nullable()
@@ -129,11 +185,17 @@ export const publicUserSchema = createSelectSchema(users)
   })
 export type PublicUser = z.infer<typeof publicUserSchema>
 
-export const permissionSchema = createSelectSchema(permissions, { key: permissionKeySchema })
+export const permissionSchema = createSelectSchema(permissions, { key: permissionKeySchema }).extend({
+  conditionFields: z.array(policyFieldSchema)
+})
 export type Permission = z.infer<typeof permissionSchema>
 
 export const roleSummarySchema = z.object({ id: z.uuid(), name: z.string(), system: z.boolean() })
-export const roleSchema = createSelectSchema(roles).extend({ permissions: z.array(permissionSchema) })
+export const rolePolicySchema = createSelectSchema(rolePolicies, {
+  effect: policyEffectSchema,
+  condition: policyExpressionSchema.nullable()
+}).extend({ permission: createSelectSchema(permissions, { key: permissionKeySchema }) })
+export const roleSchema = createSelectSchema(roles).extend({ policies: z.array(rolePolicySchema) })
 export type Role = z.infer<typeof roleSchema>
 
 export const managedUserSchema = createSelectSchema(users)
@@ -159,10 +221,18 @@ export const usersPageSchema = z.object({
 export const replaceUserRolesSchema = z.object({ roleIds: uniqueUuidArraySchema })
 export type ReplaceUserRoles = z.infer<typeof replaceUserRolesSchema>
 
+const permissionPoliciesSchema = z.array(z.object({
+  permissionId: z.uuid(),
+  effect: policyEffectSchema,
+  condition: policyExpressionSchema.nullable()
+})).refine(policies => new Set(policies.map(policy => `${policy.permissionId}:${policy.effect}`)).size === policies.length, {
+  message: 'Each permission can have at most one allow and one deny policy'
+})
+
 export const createRoleSchema = z.object({
   name: roleNameSchema,
   description: roleDescriptionSchema.optional(),
-  permissionIds: uniqueUuidArraySchema
+  permissionPolicies: permissionPoliciesSchema
 })
 export type CreateRole = z.infer<typeof createRoleSchema>
 

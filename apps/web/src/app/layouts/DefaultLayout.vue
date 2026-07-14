@@ -26,6 +26,9 @@ const links = computed<NavigationMenuItem[]>(() => [
     : []),
   ...(session.data.value?.permissions.includes('roles.read')
     ? [{ label: 'Roles', to: '/admin/roles', icon: 'i-lucide-shield-check' }]
+    : []),
+  ...(session.data.value?.permissions.includes('audit.read')
+    ? [{ label: 'Audit', to: '/admin/audit', icon: 'i-lucide-scroll-text' }]
     : [])
 ])
 

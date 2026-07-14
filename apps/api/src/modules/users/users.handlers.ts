@@ -48,14 +48,14 @@ export function listPermissions() {
 
 export function createRole(request: FastifyRequest<{ Body: CreateRole }>, reply: FastifyReply) {
   reply.code(201)
-  return service.createRole(request.body)
+  return service.createRole(request.user.sub, request.body)
 }
 
 export function patchRole(request: FastifyRequest<{ Params: { id: string }, Body: PatchRole }>) {
-  return service.updateRole(request.params.id, request.body)
+  return service.updateRole(request.user.sub, request.params.id, request.body)
 }
 
 export async function deleteRole(request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) {
-  await service.deleteRole(request.params.id)
+  await service.deleteRole(request.user.sub, request.params.id)
   reply.code(204)
 }

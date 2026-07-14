@@ -144,10 +144,30 @@ Permission keys are code-defined and cannot be created through the UI. To add on
 1. Add the key to `PERMISSION_KEYS` in `apps/api/src/modules/users/users.schema.ts`.
 2. Add a migration that inserts the key and its description into `permissions`.
 3. Protect the relevant route with `app.authorize('new.permission')`.
-4. Run `pnpm api-client:generate`, then apply the migration with `pnpm db:migrate` or `pnpm docker:db:migrate`.
-5. Assign the permission to roles from the Roles page.
+4. Check `session.permissions` in the web app for route, navigation, and control visibility when needed.
+5. Run `pnpm api-client:generate`, then apply the migration with `pnpm db:migrate` or `pnpm docker:db:migrate`.
+6. Assign an Allow or Deny policy to roles from the Roles page.
 
 Role-permission assignments are dynamic, but permission definitions require a deployment. A permission has no effect until application code checks it; arbitrary permission CRUD is intentionally not supported.
+
+For example, a products feature would normally add `products.read`, `products.create`, `products.update`, and `products.delete`. Protect each CRUD route with its matching permission:
+
+```ts
+app.get('/', { onRequest: app.authorize('products.read') }, handlers.list)
+app.post('/', { onRequest: app.authorize('products.create') }, handlers.create)
+app.patch('/:id', { onRequest: app.authorize('products.update') }, handlers.update)
+app.delete('/:id', { onRequest: app.authorize('products.delete') }, handlers.remove)
+```
+
+These are non-task permissions, so their policies must use `condition: null`. The authorization hook evaluates Allow and Deny policies, applies deny-overrides, and records the decision automatically. The protected `admin` role needs no policy because it bypasses authorization policies. If ordinary users should receive product access by default, the permission migration must also insert the corresponding Allow policies for the `user` role; otherwise assign them later from the Roles page.
+
+Resource conditions such as “own products” or `product.category == "books"` are not enabled by adding permission keys alone. They require product fields in the policy AST and validator, in-memory evaluation, SQL predicate compilation for lists, locked mutation checks, server-computed actions, condition-field metadata, and product-aware presets in the Roles UI.
+
+### Expression policies and audit history
+
+Role permissions are allow or deny policies. Task policies can be unconditional or use validated All/Any/Not expressions over actor and task fields; matching denies override every allow across assigned roles. The protected `admin` role bypasses policies. Non-task permissions are unconditional, and role changes take effect on the next request, including existing sessions.
+
+Authorization decisions and access-control changes are recorded in the Audit admin page. Decision events expire after `AUDIT_DECISION_RETENTION_DAYS` (90 by default); policy-change events are retained permanently.
 
 ## Tasks
 
