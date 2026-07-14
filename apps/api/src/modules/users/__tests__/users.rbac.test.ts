@@ -204,4 +204,37 @@ describe('dynamic RBAC routes', () => {
     const userRoleAfter = rolesAfter.find(role => role.id === userRole.id)!
     expect(userRoleAfter.permissions.some(permission => permission.key === 'roles.update')).toBe(false)
   })
+
+  it('lets a non-admin holder of users.roles.update keep a target\'s existing system role while adding a custom role', async () => {
+    // member holds the "role-manager" custom role (users.roles.update only) from an earlier test in this suite.
+    const targetRegistration = await app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/register',
+      payload: { email: 'delegation-target@example.com', password }
+    })
+    const targetId = targetRegistration.json().id
+
+    const rolesResponse = await app.inject({ method: 'GET', url: '/api/v1/admin/roles', headers: admin })
+    const allRoles = rolesResponse.json() as { id: string, name: string }[]
+    const userRole = allRoles.find(role => role.name === 'user')!
+    const taskReader = allRoles.find(role => role.name === 'task-reader')!
+    const adminRole = allRoles.find(role => role.name === 'admin')!
+
+    const keepUserRole = await app.inject({
+      method: 'PUT',
+      url: `/api/v1/admin/users/${targetId}/roles`,
+      headers: member,
+      payload: { roleIds: [userRole.id, taskReader.id] }
+    })
+    expect(keepUserRole.statusCode, keepUserRole.body).toBe(200)
+    expect((keepUserRole.json().roles as { name: string }[]).map(role => role.name).sort()).toEqual(['task-reader', 'user'])
+
+    const grantNewSystemRole = await app.inject({
+      method: 'PUT',
+      url: `/api/v1/admin/users/${targetId}/roles`,
+      headers: member,
+      payload: { roleIds: [userRole.id, adminRole.id] }
+    })
+    expect(grantNewSystemRole.statusCode).toBe(403)
+  })
 })

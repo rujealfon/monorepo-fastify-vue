@@ -141,7 +141,10 @@ export async function replaceUserRoles(actorId: string, userId: string, roleIds:
     if (selectedRoles.length !== roleIds.length)
       return 'missing-role' as const
 
-    if (selectedRoles.some(role => role.system)) {
+    const currentRoleIds = await tx.select({ id: userRoles.roleId }).from(userRoles).where(eq(userRoles.userId, userId)).then(rows => new Set(rows.map(row => row.id)))
+    const grantsNewSystemRole = selectedRoles.some(role => role.system && !currentRoleIds.has(role.id))
+
+    if (grantsNewSystemRole) {
       const actorIsAdmin = await tx.select({ userId: userRoles.userId })
         .from(userRoles)
         .innerJoin(roles, eq(roles.id, userRoles.roleId))
@@ -152,7 +155,7 @@ export async function replaceUserRoles(actorId: string, userId: string, roleIds:
     }
 
     const adminRole = await tx.select({ id: roles.id }).from(roles).where(eq(roles.name, 'admin')).then(rows => rows[0])
-    const currentlyAdmin = adminRole && await tx.select({ userId: userRoles.userId }).from(userRoles).where(and(eq(userRoles.userId, userId), eq(userRoles.roleId, adminRole.id))).then(rows => rows.length > 0)
+    const currentlyAdmin = adminRole && currentRoleIds.has(adminRole.id)
     const remainsAdmin = selectedRoles.some(role => role.name === 'admin')
 
     if (adminRole && currentlyAdmin && !remainsAdmin) {
