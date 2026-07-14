@@ -56,7 +56,7 @@ describe('health routes', () => {
     expect(webMutation.statusCode).toBe(404)
   })
 
-  it('rate limits API routes but not health checks', async () => {
+  it('rate limits readiness but not liveness', async () => {
     for (let request = 0; request < 100; request++) {
       await app.inject({ method: 'POST', url: '/api/v1/auth/logout' })
     }
@@ -67,5 +67,11 @@ describe('health routes', () => {
 
     const health = await app.inject({ method: 'GET', url: '/api/v1/health/live' })
     expect(health.statusCode).toBe(200)
+
+    const execute = vi.spyOn(app.db, 'execute')
+    execute.mockClear()
+    const readiness = await app.inject({ method: 'GET', url: '/api/v1/health/ready' })
+    expect(readiness.statusCode).toBe(429)
+    expect(execute).not.toHaveBeenCalled()
   })
 })

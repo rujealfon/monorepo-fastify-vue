@@ -18,7 +18,7 @@ export default fp(async (fastify) => {
   })
   await fastify.register(rateLimit, {
     allowList: request => !request.url.startsWith('/api/v1/')
-      || request.url.startsWith('/api/v1/health/'),
+      || request.url === '/api/v1/health/live',
     max: 100,
     timeWindow: '1 minute'
   })
