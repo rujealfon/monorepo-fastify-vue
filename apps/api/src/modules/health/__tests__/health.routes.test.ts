@@ -62,6 +62,7 @@ describe('health routes', () => {
     const response = await app.inject({ method: 'GET', url: '/favicon.ico' })
 
     expect(response.statusCode).toBe(200)
+    expect(response.headers['content-type']).not.toContain('text/html')
     expect(response.headers['x-content-type-options']).toBe('nosniff')
     expect(response.headers['content-security-policy']).toBeDefined()
   })
