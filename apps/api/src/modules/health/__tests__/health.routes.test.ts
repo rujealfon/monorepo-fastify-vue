@@ -51,6 +51,8 @@ describe('health routes', () => {
 
     expect(webRoute.statusCode).toBe(200)
     expect(webRoute.headers['content-type']).toContain('text/html')
+    expect(webRoute.headers['x-content-type-options']).toBe('nosniff')
+    expect(webRoute.headers['content-security-policy']).toBeDefined()
     expect(apiRoute.statusCode).toBe(404)
     expect(apiRoute.json()).toMatchObject({ error: 'Not Found', statusCode: 404 })
     expect(webMutation.statusCode).toBe(404)
