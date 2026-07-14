@@ -58,6 +58,14 @@ describe('health routes', () => {
     expect(webMutation.statusCode).toBe(404)
   })
 
+  it('applies security headers to static assets served directly by @fastify/static', async () => {
+    const response = await app.inject({ method: 'GET', url: '/favicon.ico' })
+
+    expect(response.statusCode).toBe(200)
+    expect(response.headers['x-content-type-options']).toBe('nosniff')
+    expect(response.headers['content-security-policy']).toBeDefined()
+  })
+
   it('rate limits readiness but not liveness', async () => {
     for (let request = 0; request < 100; request++) {
       await app.inject({ method: 'POST', url: '/api/v1/auth/logout' })
