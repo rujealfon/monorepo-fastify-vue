@@ -9,6 +9,10 @@
       "development": "./src/modules/health/index.ts",
       "default": "./dist/modules/health/index.js"
     },
+    "#api/modules/roles": {
+      "development": "./src/modules/roles/index.ts",
+      "default": "./dist/modules/roles/index.js"
+    },
     "#api/modules/tasks": {
       "development": "./src/modules/tasks/index.ts",
       "default": "./dist/modules/tasks/index.js"
@@ -36,6 +40,7 @@
     "openapi:generate": "tsx --conditions=development --env-file=.env scripts/generate-openapi-spec.ts",
     "db:generate": "NODE_OPTIONS=--conditions=development drizzle-kit generate",
     "db:migrate": "NODE_OPTIONS=--conditions=development drizzle-kit migrate",
+    "db:seed": "tsx --conditions=development --env-file=.env scripts/seed-super-admin.ts",
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {

@@ -1,11 +1,14 @@
 import type { FastifyReply, FastifyRequest } from 'fastify'
 
+import type { Permission } from '#api/modules/roles'
+import type { UserAuth } from '#api/modules/users'
+
 import cookie from '@fastify/cookie'
 import jwt from '@fastify/jwt'
 import fp from 'fastify-plugin'
 
 import { config } from '#api/config/index.js'
-import { UnauthorizedError } from '#api/modules/users'
+import { ForbiddenError, getUserAuth, UnauthorizedError } from '#api/modules/users'
 
 export const SESSION_COOKIE = 'session'
 export const SESSION_SECONDS = 7 * 24 * 60 * 60
@@ -26,6 +29,19 @@ export default fp(async (fastify) => {
       throw new UnauthorizedError()
     }
   })
+
+  fastify.decorateRequest('auth')
+
+  fastify.decorate('requirePermission', (required: Permission) =>
+    async (request: FastifyRequest) => {
+      // fresh DB read so role/permission changes apply immediately, without reissuing tokens
+      const auth = await getUserAuth(request.user.sub)
+      if (!auth)
+        throw new UnauthorizedError()
+      if (!auth.permissions.includes(required))
+        throw new ForbiddenError()
+      request.auth = auth
+    })
 
   fastify.decorate('sameOrigin', async (request: FastifyRequest) => {
     if (request.headers['sec-fetch-site'] === 'cross-site')
@@ -53,8 +69,14 @@ declare module 'fastify' {
   // eslint-disable-next-line ts/consistent-type-definitions -- interface required for declaration merging
   interface FastifyInstance {
     authenticate: (request: FastifyRequest) => Promise<void>
+    requirePermission: (permission: Permission) => (request: FastifyRequest) => Promise<void>
     sameOrigin: (request: FastifyRequest) => Promise<void>
     setSession: (reply: FastifyReply, userId: string) => void
+  }
+
+  // eslint-disable-next-line ts/consistent-type-definitions -- interface required for declaration merging
+  interface FastifyRequest {
+    auth?: UserAuth
   }
 }
 

@@ -5,6 +5,8 @@ import { db } from '#api/db/index.js'
 import * as tasksRepository from '#api/modules/tasks/tasks.repository.js'
 import { users } from '#api/modules/users/users.schema.js'
 
+const userRoleId = sql`(select id from roles where name = 'user')`
+
 describe('tasks.repository', () => {
   let userId: string
   let otherUserId: string
@@ -14,8 +16,8 @@ describe('tasks.repository', () => {
     await db.execute(sql`truncate table users cascade`)
 
     const [user, otherUser] = await db.insert(users).values([
-      { email: 'tasks-repo-owner@example.com', passwordHash: 'hash' },
-      { email: 'tasks-repo-other@example.com', passwordHash: 'hash' }
+      { email: 'tasks-repo-owner@example.com', passwordHash: 'hash', roleId: userRoleId },
+      { email: 'tasks-repo-other@example.com', passwordHash: 'hash', roleId: userRoleId }
     ]).returning()
     userId = user.id
     otherUserId = otherUser.id

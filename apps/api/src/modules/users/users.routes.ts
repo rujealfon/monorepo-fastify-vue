@@ -1,13 +1,13 @@
 import type { FastifyPluginAsync } from 'fastify'
 import type { ZodTypeProvider } from 'fastify-type-provider-zod'
-import type { LoginUser, PatchProfile, RegisterUser } from './users.schema.js'
+import type { ChangeRole, LoginUser, PatchProfile, RegisterUser, UserIdParams, UsersPageQuery } from './users.schema.js'
 
 import { z } from 'zod'
 
 import { httpErrorSchema, validationErrorSchema } from '#api/lib/http-error.schema.js'
 
 import * as handlers from './users.handlers.js'
-import { loginUserSchema, patchProfileSchema, publicUserSchema, registerUserSchema } from './users.schema.js'
+import { adminUserSchema, changeRoleSchema, loginUserSchema, patchProfileSchema, publicUserSchema, registerUserSchema, userIdParamsSchema, usersPageQuerySchema, usersPageSchema } from './users.schema.js'
 
 export const authRoutes: FastifyPluginAsync = async (fastify) => {
   const app = fastify.withTypeProvider<ZodTypeProvider>()
@@ -82,4 +82,64 @@ export const profileRoutes: FastifyPluginAsync = async (fastify) => {
       }
     }
   }, handlers.patchProfile)
+}
+
+export const adminUsersRoutes: FastifyPluginAsync = async (fastify) => {
+  const app = fastify.withTypeProvider<ZodTypeProvider>()
+
+  app.addHook('onRequest', app.authenticate)
+
+  app.get<{ Querystring: UsersPageQuery }>('/', {
+    onRequest: app.requirePermission('users:read'),
+    schema: {
+      tags: ['Admin'],
+      querystring: usersPageQuerySchema,
+      response: {
+        200: usersPageSchema,
+        401: httpErrorSchema,
+        403: httpErrorSchema,
+        422: validationErrorSchema,
+        429: httpErrorSchema,
+        500: httpErrorSchema
+      }
+    }
+  }, handlers.listUsers)
+
+  app.patch<{ Params: UserIdParams, Body: ChangeRole }>('/:id/role', {
+    onRequest: app.requirePermission('users:manage'),
+    preHandler: app.sameOrigin,
+    schema: {
+      tags: ['Admin'],
+      params: userIdParamsSchema,
+      body: changeRoleSchema,
+      response: {
+        200: adminUserSchema,
+        401: httpErrorSchema,
+        403: httpErrorSchema,
+        404: httpErrorSchema,
+        422: validationErrorSchema,
+        429: httpErrorSchema,
+        500: httpErrorSchema
+      }
+    }
+  }, handlers.changeRole)
+
+  // eslint-disable-next-line drizzle/enforce-delete-with-where -- this is a Fastify route, not a Drizzle query
+  app.delete<{ Params: UserIdParams }>('/:id', {
+    onRequest: app.requirePermission('users:manage'),
+    preHandler: app.sameOrigin,
+    schema: {
+      tags: ['Admin'],
+      params: userIdParamsSchema,
+      response: {
+        204: z.void(),
+        401: httpErrorSchema,
+        403: httpErrorSchema,
+        404: httpErrorSchema,
+        422: validationErrorSchema,
+        429: httpErrorSchema,
+        500: httpErrorSchema
+      }
+    }
+  }, handlers.removeUser)
 }

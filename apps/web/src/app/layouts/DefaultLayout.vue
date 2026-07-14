@@ -6,18 +6,27 @@ import { computed } from 'vue'
 import { RouterLink, RouterView, useRouter } from 'vue-router'
 
 import { sessionQuery, useAuthMutations } from '@/features/auth'
+import { can } from '@/shared/auth/permissions'
 
 const router = useRouter()
 const session = useQuery(sessionQuery)
 const { logout } = useAuthMutations()
 const toast = useToast()
 
-const links: NavigationMenuItem[] = [
-  { label: 'Home', to: '/', icon: 'i-lucide-house' },
-  { label: 'Tasks', to: '/tasks', icon: 'i-lucide-list-checks' },
-  { label: 'Health', to: '/health', icon: 'i-lucide-activity' },
-  { label: 'About', to: '/about', icon: 'i-lucide-info' }
-]
+const links = computed<NavigationMenuItem[]>(() => {
+  const items: NavigationMenuItem[] = [
+    { label: 'Home', to: '/', icon: 'i-lucide-house' },
+    { label: 'Tasks', to: '/tasks', icon: 'i-lucide-list-checks' },
+    { label: 'Health', to: '/health', icon: 'i-lucide-activity' },
+    { label: 'About', to: '/about', icon: 'i-lucide-info' }
+  ]
+  const user = session.data.value
+  if (can(user, 'roles:read'))
+    items.splice(2, 0, { label: 'Roles', to: '/admin/roles', icon: 'i-lucide-shield-check' })
+  if (can(user, 'users:read'))
+    items.splice(2, 0, { label: 'Users', to: '/admin/users', icon: 'i-lucide-users' })
+  return items
+})
 
 async function signOut() {
   try {

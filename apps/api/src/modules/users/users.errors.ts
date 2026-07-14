@@ -13,3 +13,19 @@ export class UnauthorizedError extends Error {
     super('Invalid credentials or session')
   }
 }
+
+export class ForbiddenError extends Error {
+  statusCode = 403
+
+  constructor(message = 'Insufficient permissions') {
+    super(message)
+  }
+}
+
+export class UserNotFoundError extends Error {
+  statusCode = 404
+
+  constructor() {
+    super('User not found')
+  }
+}

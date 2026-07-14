@@ -1,5 +1,5 @@
 import type { FastifyReply, FastifyRequest } from 'fastify'
-import type { LoginUser, PatchProfile, RegisterUser } from './users.schema.js'
+import type { ChangeRole, LoginUser, PatchProfile, RegisterUser, UserIdParams, UsersPageQuery } from './users.schema.js'
 
 import { SESSION_COOKIE } from '#api/plugins/auth.js'
 
@@ -28,4 +28,22 @@ export function profile(request: FastifyRequest) {
 
 export function patchProfile(request: FastifyRequest<{ Body: PatchProfile }>) {
   return service.updateProfile(request.user.sub, request.body)
+}
+
+// requirePermission always runs before these handlers, so request.auth is set
+function actor(request: FastifyRequest): service.Actor {
+  return request.auth!
+}
+
+export function listUsers(request: FastifyRequest<{ Querystring: UsersPageQuery }>) {
+  return service.listUsers(request.query.page, request.query.limit)
+}
+
+export function changeRole(request: FastifyRequest<{ Params: UserIdParams, Body: ChangeRole }>) {
+  return service.changeUserRole(actor(request), request.params.id, request.body.roleId)
+}
+
+export async function removeUser(request: FastifyRequest<{ Params: UserIdParams }>, reply: FastifyReply) {
+  await service.deleteUser(actor(request), request.params.id)
+  reply.code(204)
 }
