@@ -52,7 +52,7 @@ export function createRole(request: FastifyRequest<{ Body: CreateRole }>, reply:
 }
 
 export function patchRole(request: FastifyRequest<{ Params: { id: string }, Body: PatchRole }>) {
-  return service.updateRole(request.params.id, request.body)
+  return service.updateRole(request.user.sub, request.params.id, request.body)
 }
 
 export async function deleteRole(request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) {

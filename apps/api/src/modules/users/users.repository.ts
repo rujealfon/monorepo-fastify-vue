@@ -6,8 +6,8 @@ import { db } from '#api/db/index.js'
 
 import { PERMISSION_KEYS, permissions, profiles, rolePermissions, roles, userRoles, users } from './users.schema.js'
 
-export type RoleWriteResult = 'missing-permission' | 'missing-role' | 'protected-role' | 'role-assigned'
-export type UserRolesWriteResult = 'last-admin' | 'missing-role' | 'missing-user'
+export type RoleWriteResult = 'forbidden-system-role' | 'missing-permission' | 'missing-role' | 'protected-role' | 'role-assigned'
+export type UserRolesWriteResult = 'forbidden-system-role' | 'last-admin' | 'missing-role' | 'missing-user'
 
 async function authorization(userId: string) {
   const assignedRoles = await db.select({ id: roles.id, name: roles.name, system: roles.system })
@@ -127,7 +127,7 @@ export async function findManagedUser(id: string) {
   return { ...user, roles: assigned }
 }
 
-export async function replaceUserRoles(userId: string, roleIds: string[]): Promise<UserRolesWriteResult | undefined> {
+export async function replaceUserRoles(actorId: string, userId: string, roleIds: string[]): Promise<UserRolesWriteResult | undefined> {
   const result = await db.transaction(async (tx) => {
     await tx.execute(sql`select pg_advisory_xact_lock(hashtext('rbac-admin-role'))`)
 
@@ -136,10 +136,20 @@ export async function replaceUserRoles(userId: string, roleIds: string[]): Promi
       return 'missing-user' as const
 
     const selectedRoles = roleIds.length
-      ? await tx.select({ id: roles.id, name: roles.name }).from(roles).where(inArray(roles.id, roleIds))
+      ? await tx.select({ id: roles.id, name: roles.name, system: roles.system }).from(roles).where(inArray(roles.id, roleIds))
       : []
     if (selectedRoles.length !== roleIds.length)
       return 'missing-role' as const
+
+    if (selectedRoles.some(role => role.system)) {
+      const actorIsAdmin = await tx.select({ userId: userRoles.userId })
+        .from(userRoles)
+        .innerJoin(roles, eq(roles.id, userRoles.roleId))
+        .where(and(eq(userRoles.userId, actorId), eq(roles.name, 'admin')))
+        .then(rows => rows.length > 0)
+      if (!actorIsAdmin)
+        return 'forbidden-system-role' as const
+    }
 
     const adminRole = await tx.select({ id: roles.id }).from(roles).where(eq(roles.name, 'admin')).then(rows => rows[0])
     const currentlyAdmin = adminRole && await tx.select({ userId: userRoles.userId }).from(userRoles).where(and(eq(userRoles.userId, userId), eq(userRoles.roleId, adminRole.id))).then(rows => rows.length > 0)
@@ -199,13 +209,23 @@ export async function createRole(data: CreateRole) {
   return roleId === 'missing-permission' ? roleId : listRoles().then(items => items.find(role => role.id === roleId)!)
 }
 
-export async function updateRole(id: string, data: PatchRole) {
+export async function updateRole(actorId: string, id: string, data: PatchRole) {
   const result = await db.transaction(async (tx) => {
     const role = await tx.select().from(roles).where(eq(roles.id, id)).then(rows => rows[0])
     if (!role)
       return 'missing-role' as const
     if (role.name === 'admin' || (role.name === 'user' && data.name && data.name !== 'user'))
       return 'protected-role' as const
+
+    if (role.system) {
+      const actorIsAdmin = await tx.select({ userId: userRoles.userId })
+        .from(userRoles)
+        .innerJoin(roles, eq(roles.id, userRoles.roleId))
+        .where(and(eq(userRoles.userId, actorId), eq(roles.name, 'admin')))
+        .then(rows => rows.length > 0)
+      if (!actorIsAdmin)
+        return 'forbidden-system-role' as const
+    }
 
     if (data.permissionIds) {
       const selected = data.permissionIds.length
@@ -227,7 +247,7 @@ export async function updateRole(id: string, data: PatchRole) {
     return id
   })
 
-  return typeof result === 'string' && ['missing-role', 'protected-role', 'missing-permission'].includes(result)
+  return typeof result === 'string' && ['forbidden-system-role', 'missing-role', 'protected-role', 'missing-permission'].includes(result)
     ? result as RoleWriteResult
     : listRoles().then(items => items.find(role => role.id === id)!)
 }
