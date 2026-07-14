@@ -20,6 +20,10 @@ describe('dynamic RBAC routes', () => {
   let member: Record<string, string>
   let adminId: string
   let memberId: string
+  let victimId: string
+  let attackerId: string
+  let attacker: Record<string, string>
+  let tampererRoleId: string
 
   beforeAll(async () => {
     app = buildApp()
@@ -135,7 +139,7 @@ describe('dynamic RBAC routes', () => {
       headers: member,
       payload: { roleIds: [] }
     })
-    expect(removeFinalAdmin.statusCode).toBe(409)
+    expect(removeFinalAdmin.statusCode).toBe(403)
   })
 
   it('prevents a non-admin holder of users.roles.update from granting a system role', async () => {
@@ -144,7 +148,7 @@ describe('dynamic RBAC routes', () => {
       url: '/api/v1/auth/register',
       payload: { email: 'victim@example.com', password }
     })
-    const victimId = victimRegistration.json().id
+    victimId = victimRegistration.json().id
 
     const rolesResponse = await app.inject({ method: 'GET', url: '/api/v1/admin/roles', headers: admin })
     const allRoles = rolesResponse.json() as { id: string, name: string }[]
@@ -169,8 +173,8 @@ describe('dynamic RBAC routes', () => {
       url: '/api/v1/auth/register',
       payload: { email: 'role-tamperer@example.com', password }
     })
-    const attackerId = attackerRegistration.json().id
-    const attacker = cookie(attackerRegistration)
+    attackerId = attackerRegistration.json().id
+    attacker = cookie(attackerRegistration)
 
     const rolesResponse = await app.inject({ method: 'GET', url: '/api/v1/admin/roles', headers: admin })
     const allRoles = rolesResponse.json() as { id: string, name: string }[]
@@ -185,11 +189,12 @@ describe('dynamic RBAC routes', () => {
       headers: admin,
       payload: { name: 'role-tamperer', permissionIds: [rolesUpdate.id, rolesReader.id] }
     })
+    tampererRoleId = tamperer.json().id
     await app.inject({
       method: 'PUT',
       url: `/api/v1/admin/users/${attackerId}/roles`,
       headers: admin,
-      payload: { roleIds: [tamperer.json().id] }
+      payload: { roleIds: [tampererRoleId] }
     })
 
     const escalate = await app.inject({
@@ -236,5 +241,76 @@ describe('dynamic RBAC routes', () => {
       payload: { roleIds: [userRole.id, adminRole.id] }
     })
     expect(grantNewSystemRole.statusCode).toBe(403)
+  })
+
+  it('prevents a non-admin holder of users.roles.update from removing a target\'s existing system role', async () => {
+    // member holds the "role-manager" custom role (users.roles.update only) from an earlier test in this suite.
+    // victim (from an earlier test) still holds only the default "user" system role.
+    const rolesResponse = await app.inject({ method: 'GET', url: '/api/v1/admin/roles', headers: admin })
+    const allRoles = rolesResponse.json() as { id: string, name: string }[]
+    const taskReader = allRoles.find(role => role.name === 'task-reader')!
+
+    const stripSystemRole = await app.inject({
+      method: 'PUT',
+      url: `/api/v1/admin/users/${victimId}/roles`,
+      headers: member,
+      payload: { roleIds: [taskReader.id] }
+    })
+    expect(stripSystemRole.statusCode).toBe(403)
+
+    const target = await app.inject({ method: 'GET', url: '/api/v1/admin/users', headers: admin })
+    const targetUser = (target.json().data as { id: string, roles: { name: string }[] }[]).find(user => user.id === victimId)!
+    expect(targetUser.roles.some(role => role.name === 'user')).toBe(true)
+  })
+
+  it('prevents a non-admin holder of roles.update from granting their own custom role permissions they do not hold', async () => {
+    // attacker (from an earlier test) holds the "role-tamperer" custom role (roles.update + roles.read only).
+    const permissions = (await app.inject({ method: 'GET', url: '/api/v1/admin/permissions', headers: admin })).json() as { id: string, key: string }[]
+    const rolesUpdate = permissions.find(permission => permission.key === 'roles.update')!
+    const rolesReader = permissions.find(permission => permission.key === 'roles.read')!
+    const manageUsers = permissions.find(permission => permission.key === 'users.roles.update')!
+
+    const escalate = await app.inject({
+      method: 'PATCH',
+      url: `/api/v1/admin/roles/${tampererRoleId}`,
+      headers: attacker,
+      payload: { permissionIds: [rolesUpdate.id, rolesReader.id, manageUsers.id] }
+    })
+    expect(escalate.statusCode).toBe(403)
+
+    const rolesAfter = (await app.inject({ method: 'GET', url: '/api/v1/admin/roles', headers: admin })).json() as { id: string, permissions: { key: string }[] }[]
+    const tampererRoleAfter = rolesAfter.find(role => role.id === tampererRoleId)!
+    expect(tampererRoleAfter.permissions.some(permission => permission.key === 'users.roles.update')).toBe(false)
+  })
+
+  it('prevents a non-admin holder of roles.create from creating a role with permissions they do not hold', async () => {
+    const permissions = (await app.inject({ method: 'GET', url: '/api/v1/admin/permissions', headers: admin })).json() as { id: string, key: string }[]
+    const rolesCreate = permissions.find(permission => permission.key === 'roles.create')!
+    const manageUsers = permissions.find(permission => permission.key === 'users.roles.update')!
+
+    const creatorRole = await app.inject({
+      method: 'POST',
+      url: '/api/v1/admin/roles',
+      headers: admin,
+      payload: { name: 'role-creator', permissionIds: [rolesCreate.id] }
+    })
+    // member (from an earlier test) is reassigned here since no later test depends on its prior role.
+    await app.inject({
+      method: 'PUT',
+      url: `/api/v1/admin/users/${memberId}/roles`,
+      headers: admin,
+      payload: { roleIds: [creatorRole.json().id] }
+    })
+
+    const escalate = await app.inject({
+      method: 'POST',
+      url: '/api/v1/admin/roles',
+      headers: member,
+      payload: { name: 'self-granted-role', permissionIds: [manageUsers.id] }
+    })
+    expect(escalate.statusCode).toBe(403)
+
+    const rolesAfter = (await app.inject({ method: 'GET', url: '/api/v1/admin/roles', headers: admin })).json() as { name: string }[]
+    expect(rolesAfter.some(role => role.name === 'self-granted-role')).toBe(false)
   })
 })

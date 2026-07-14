@@ -86,15 +86,17 @@ export function listRoles() {
   return repository.listRoles()
 }
 
-export async function createRole(data: CreateRole) {
+export async function createRole(actorId: string, data: CreateRole) {
   try {
-    const role = await repository.createRole(data)
+    const role = await repository.createRole(actorId, data)
     if (role === 'missing-permission')
       throw new PermissionNotFoundError()
+    if (role === 'forbidden-permission-grant')
+      throw new ForbiddenError('You cannot grant permissions you do not hold yourself')
     return role
   }
   catch (error) {
-    if (error instanceof PermissionNotFoundError)
+    if (error instanceof PermissionNotFoundError || error instanceof ForbiddenError)
       throw error
     if (hasCode(error, '23505'))
       throw new RoleConflictError('A role with that name already exists')
@@ -113,6 +115,8 @@ export async function updateRole(actorId: string, id: string, data: PatchRole) {
       throw new ForbiddenError('This system role cannot be changed that way')
     if (role === 'forbidden-system-role')
       throw new ForbiddenError('You must hold the admin role to change a system role')
+    if (role === 'forbidden-permission-grant')
+      throw new ForbiddenError('You cannot grant permissions you do not hold yourself')
     return role
   }
   catch (error) {

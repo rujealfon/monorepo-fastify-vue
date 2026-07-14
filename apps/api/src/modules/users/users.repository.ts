@@ -6,8 +6,27 @@ import { db } from '#api/db/index.js'
 
 import { PERMISSION_KEYS, permissions, profiles, rolePermissions, roles, userRoles, users } from './users.schema.js'
 
-export type RoleWriteResult = 'forbidden-system-role' | 'missing-permission' | 'missing-role' | 'protected-role' | 'role-assigned'
+export type RoleWriteResult = 'forbidden-permission-grant' | 'forbidden-system-role' | 'missing-permission' | 'missing-role' | 'protected-role' | 'role-assigned'
 export type UserRolesWriteResult = 'forbidden-system-role' | 'last-admin' | 'missing-role' | 'missing-user'
+
+type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0]
+
+async function actorIsAdmin(tx: Tx, actorId: string) {
+  return tx.select({ userId: userRoles.userId })
+    .from(userRoles)
+    .innerJoin(roles, eq(roles.id, userRoles.roleId))
+    .where(and(eq(userRoles.userId, actorId), eq(roles.name, 'admin')))
+    .then(rows => rows.length > 0)
+}
+
+async function actorPermissionKeys(tx: Tx, actorId: string) {
+  return tx.selectDistinct({ key: permissions.key })
+    .from(userRoles)
+    .innerJoin(rolePermissions, eq(rolePermissions.roleId, userRoles.roleId))
+    .innerJoin(permissions, eq(permissions.id, rolePermissions.permissionId))
+    .where(eq(userRoles.userId, actorId))
+    .then(rows => new Set(rows.map(row => row.key)))
+}
 
 async function authorization(userId: string) {
   const assignedRoles = await db.select({ id: roles.id, name: roles.name, system: roles.system })
@@ -141,18 +160,17 @@ export async function replaceUserRoles(actorId: string, userId: string, roleIds:
     if (selectedRoles.length !== roleIds.length)
       return 'missing-role' as const
 
-    const currentRoleIds = await tx.select({ id: userRoles.roleId }).from(userRoles).where(eq(userRoles.userId, userId)).then(rows => new Set(rows.map(row => row.id)))
-    const grantsNewSystemRole = selectedRoles.some(role => role.system && !currentRoleIds.has(role.id))
+    const currentRoles = await tx.select({ id: roles.id, system: roles.system })
+      .from(userRoles)
+      .innerJoin(roles, eq(roles.id, userRoles.roleId))
+      .where(eq(userRoles.userId, userId))
+    const currentRoleIds = new Set(currentRoles.map(role => role.id))
+    const selectedRoleIds = new Set(selectedRoles.map(role => role.id))
+    const touchesSystemRole = selectedRoles.some(role => role.system && !currentRoleIds.has(role.id))
+      || currentRoles.some(role => role.system && !selectedRoleIds.has(role.id))
 
-    if (grantsNewSystemRole) {
-      const actorIsAdmin = await tx.select({ userId: userRoles.userId })
-        .from(userRoles)
-        .innerJoin(roles, eq(roles.id, userRoles.roleId))
-        .where(and(eq(userRoles.userId, actorId), eq(roles.name, 'admin')))
-        .then(rows => rows.length > 0)
-      if (!actorIsAdmin)
-        return 'forbidden-system-role' as const
-    }
+    if (touchesSystemRole && !await actorIsAdmin(tx, actorId))
+      return 'forbidden-system-role' as const
 
     const adminRole = await tx.select({ id: roles.id }).from(roles).where(eq(roles.name, 'admin')).then(rows => rows[0])
     const currentlyAdmin = adminRole && currentRoleIds.has(adminRole.id)
@@ -194,13 +212,19 @@ export async function listRoles() {
   }))
 }
 
-export async function createRole(data: CreateRole) {
+export async function createRole(actorId: string, data: CreateRole) {
   const roleId = await db.transaction(async (tx) => {
     const selected = data.permissionIds.length
-      ? await tx.select({ id: permissions.id }).from(permissions).where(inArray(permissions.id, data.permissionIds))
+      ? await tx.select({ id: permissions.id, key: permissions.key }).from(permissions).where(inArray(permissions.id, data.permissionIds))
       : []
     if (selected.length !== data.permissionIds.length)
       return 'missing-permission' as const
+
+    if (data.permissionIds.length && !await actorIsAdmin(tx, actorId)) {
+      const granted = await actorPermissionKeys(tx, actorId)
+      if (selected.some(permission => !granted.has(permission.key)))
+        return 'forbidden-permission-grant' as const
+    }
 
     const role = await tx.insert(roles).values({ name: data.name, description: data.description }).returning().then(rows => rows[0])
     if (data.permissionIds.length) {
@@ -209,7 +233,9 @@ export async function createRole(data: CreateRole) {
     return role.id
   })
 
-  return roleId === 'missing-permission' ? roleId : listRoles().then(items => items.find(role => role.id === roleId)!)
+  return typeof roleId === 'string' && ['forbidden-permission-grant', 'missing-permission'].includes(roleId)
+    ? roleId as RoleWriteResult
+    : listRoles().then(items => items.find(role => role.id === roleId)!)
 }
 
 export async function updateRole(actorId: string, id: string, data: PatchRole) {
@@ -220,22 +246,23 @@ export async function updateRole(actorId: string, id: string, data: PatchRole) {
     if (role.name === 'admin' || (role.name === 'user' && data.name && data.name !== 'user'))
       return 'protected-role' as const
 
-    if (role.system) {
-      const actorIsAdmin = await tx.select({ userId: userRoles.userId })
-        .from(userRoles)
-        .innerJoin(roles, eq(roles.id, userRoles.roleId))
-        .where(and(eq(userRoles.userId, actorId), eq(roles.name, 'admin')))
-        .then(rows => rows.length > 0)
-      if (!actorIsAdmin)
-        return 'forbidden-system-role' as const
-    }
+    const isAdmin = await actorIsAdmin(tx, actorId)
+
+    if (role.system && !isAdmin)
+      return 'forbidden-system-role' as const
 
     if (data.permissionIds) {
       const selected = data.permissionIds.length
-        ? await tx.select({ id: permissions.id }).from(permissions).where(inArray(permissions.id, data.permissionIds))
+        ? await tx.select({ id: permissions.id, key: permissions.key }).from(permissions).where(inArray(permissions.id, data.permissionIds))
         : []
       if (selected.length !== data.permissionIds.length)
         return 'missing-permission' as const
+
+      if (!isAdmin) {
+        const granted = await actorPermissionKeys(tx, actorId)
+        if (selected.some(permission => !granted.has(permission.key)))
+          return 'forbidden-permission-grant' as const
+      }
     }
 
     const { permissionIds, ...changes } = data
@@ -250,7 +277,7 @@ export async function updateRole(actorId: string, id: string, data: PatchRole) {
     return id
   })
 
-  return typeof result === 'string' && ['forbidden-system-role', 'missing-role', 'protected-role', 'missing-permission'].includes(result)
+  return typeof result === 'string' && ['forbidden-permission-grant', 'forbidden-system-role', 'missing-role', 'protected-role', 'missing-permission'].includes(result)
     ? result as RoleWriteResult
     : listRoles().then(items => items.find(role => role.id === id)!)
 }

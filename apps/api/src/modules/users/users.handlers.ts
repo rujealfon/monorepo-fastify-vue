@@ -48,7 +48,7 @@ export function listPermissions() {
 
 export function createRole(request: FastifyRequest<{ Body: CreateRole }>, reply: FastifyReply) {
   reply.code(201)
-  return service.createRole(request.body)
+  return service.createRole(request.user.sub, request.body)
 }
 
 export function patchRole(request: FastifyRequest<{ Params: { id: string }, Body: PatchRole }>) {
