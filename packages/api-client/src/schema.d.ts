@@ -786,6 +786,7 @@ export interface paths {
                             createdAt: string;
                             /** Format: date-time */
                             updatedAt: string;
+                            userCount: number;
                         }[];
                     };
                 };

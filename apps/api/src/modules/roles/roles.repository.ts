@@ -35,7 +35,21 @@ export function findAuthorizationRows(userId: string) {
 }
 
 export function findRoles() {
-  return db.select().from(roles).orderBy(asc(roles.id))
+  return db.select({
+    id: roles.id,
+    name: roles.name,
+    slug: roles.slug,
+    description: roles.description,
+    isSystem: roles.isSystem,
+    isActive: roles.isActive,
+    createdAt: roles.createdAt,
+    updatedAt: roles.updatedAt,
+    userCount: count(userRoles.userId)
+  })
+    .from(roles)
+    .leftJoin(userRoles, eq(userRoles.roleId, roles.id))
+    .groupBy(roles.id)
+    .orderBy(asc(roles.id))
 }
 
 export function findRolesByIds(ids: number[]) {

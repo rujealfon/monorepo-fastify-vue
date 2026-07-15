@@ -51,6 +51,10 @@ export const roleWithPermissionsSchema = selectRoleSchema.extend({
   permissions: z.array(selectPermissionSchema)
 })
 
+export const roleWithUserCountSchema = selectRoleSchema.extend({
+  userCount: z.number().int().nonnegative()
+})
+
 export const createRoleSchema = z.object({
   name: z.string().trim().min(1).max(100),
   slug: roleSlugSchema,

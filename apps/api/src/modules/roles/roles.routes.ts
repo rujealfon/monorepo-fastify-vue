@@ -14,6 +14,7 @@ import {
   replaceRolePermissionsSchema,
   replaceUserRolesSchema,
   roleWithPermissionsSchema,
+  roleWithUserCountSchema,
   selectRoleSchema,
   usersPageQuerySchema,
   usersPageSchema
@@ -39,7 +40,7 @@ export const rolesRoutes: FastifyPluginAsync = async (fastify) => {
     onRequest: [app.authenticate, app.authorize(['roles.read'])],
     schema: {
       tags: ['Roles'],
-      response: { 200: z.array(selectRoleSchema), ...readErrors }
+      response: { 200: z.array(roleWithUserCountSchema), ...readErrors }
     }
   }, handlers.listRoles)
 

@@ -38,6 +38,18 @@ describe('roles.repository', () => {
     expect(assigned.map(role => role.slug)).toEqual(['standard-user'])
   })
 
+  it('counts assigned users per role', async () => {
+    const roleList = await rolesRepository.findRoles()
+    const standard = roleList.find(role => role.id === standardRoleId)
+    expect(standard?.userCount).toBe(1)
+
+    const [emptyRole] = await db.insert(roles).values({ name: 'Empty', slug: 'empty' }).returning()
+    const refreshed = await rolesRepository.findRoles()
+    expect(refreshed.find(role => role.id === emptyRole.id)?.userCount).toBe(0)
+
+    await db.delete(roles).where(eq(roles.id, emptyRole.id))
+  })
+
   it('resolves the authorization rows with role permissions', async () => {
     const rows = await rolesRepository.findAuthorizationRows(userId)
     const keys = rows.map(row => row.permissionKey)

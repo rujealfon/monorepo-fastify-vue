@@ -1,6 +1,8 @@
 <script setup lang="ts">
+import type { Role } from '@monorepo-fastify-vue/api-client'
+
 import { useQuery } from '@pinia/colada'
-import { computed, reactive, useTemplateRef } from 'vue'
+import { computed, reactive, ref, useTemplateRef } from 'vue'
 
 import { Can } from '@/features/permissions'
 import { useRoleMutations } from '@/features/roles/mutations'
@@ -21,6 +23,15 @@ const error = computed(() => roles.error.value
   ?? (createMutation.error.value?.status === 422 ? null : createMutation.error.value)
   ?? deleteMutation.error.value)
 
+const roleToDelete = ref<Role | null>(null)
+const isConfirmOpen = computed({
+  get: () => roleToDelete.value !== null,
+  set: (open) => {
+    if (!open)
+      roleToDelete.value = null
+  }
+})
+
 function slugify(name: string) {
   return name.trim().toLowerCase().replaceAll(/[^a-z0-9]+/g, '-').replaceAll(/^-+|-+$/g, '')
 }
@@ -35,6 +46,18 @@ async function create() {
   }
   catch (error) {
     form.value?.setErrors(apiFormErrors(error))
+  }
+}
+
+async function confirmDelete() {
+  const role = roleToDelete.value
+  if (!role)
+    return
+  try {
+    await deleteMutation.mutateAsync(role.id)
+  }
+  finally {
+    roleToDelete.value = null
   }
 }
 </script>
@@ -123,10 +146,28 @@ async function create() {
             variant="ghost"
             size="sm"
             :disabled="pending"
-            @click="deleteMutation.mutate(role.id)"
+            @click="roleToDelete = role"
           />
         </Can>
       </li>
     </ul>
+
+    <UModal v-model:open="isConfirmOpen" :title="`Delete ${roleToDelete?.name}?`" :ui="{ footer: 'justify-end' }">
+      <template #body>
+        <p v-if="roleToDelete?.userCount" class="text-sm text-default">
+          This role is currently assigned to
+          <strong>{{ roleToDelete.userCount }}</strong>
+          {{ roleToDelete.userCount === 1 ? 'user' : 'users' }}. Deleting it will remove it, and any permissions it
+          uniquely grants, from {{ roleToDelete.userCount === 1 ? 'them' : 'all of them' }} immediately.
+        </p>
+        <p v-else class="text-sm text-default">
+          No users currently hold this role. This action cannot be undone.
+        </p>
+      </template>
+      <template #footer>
+        <UButton label="Cancel" color="neutral" variant="ghost" :disabled="pending" @click="isConfirmOpen = false" />
+        <UButton label="Delete role" color="error" :loading="pending" @click="confirmDelete" />
+      </template>
+    </UModal>
   </div>
 </template>

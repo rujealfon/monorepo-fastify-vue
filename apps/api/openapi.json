@@ -1220,6 +1220,11 @@
                       "updatedAt": {
                         "type": "string",
                         "format": "date-time"
+                      },
+                      "userCount": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
                       }
                     },
                     "required": [
@@ -1230,7 +1235,8 @@
                       "isSystem",
                       "isActive",
                       "createdAt",
-                      "updatedAt"
+                      "updatedAt",
+                      "userCount"
                     ],
                     "additionalProperties": false
                   }
