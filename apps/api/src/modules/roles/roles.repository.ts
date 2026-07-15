@@ -181,13 +181,6 @@ export function replaceUserRoles(userId: string, roleIds: number[], assignedBy: 
   })
 }
 
-export function countUsersWithRole(roleId: number) {
-  return db.select({ total: count() })
-    .from(userRoles)
-    .where(eq(userRoles.roleId, roleId))
-    .then(rows => rows[0].total)
-}
-
 export async function assignRoleBySlug(executor: DbExecutor, userId: string, slug: string) {
   const role = await executor.select({ id: roles.id }).from(roles).where(eq(roles.slug, slug)).then(rows => rows.at(0))
   if (!role)

@@ -104,7 +104,9 @@ describe('roles.repository', () => {
 
     const assigned = await rolesRepository.findUserRoles(userId)
     expect(assigned.map(role => role.id)).toEqual([standardRoleId])
-    expect(await rolesRepository.countUsersWithRole(standardRoleId)).toBe(1)
+
+    const roleList = await rolesRepository.findRoles()
+    expect(roleList.find(role => role.id === standardRoleId)?.userCount).toBe(1)
   })
 
   it('serializes concurrent super-admin revocations', async () => {
@@ -121,6 +123,8 @@ describe('roles.repository', () => {
     ])
 
     expect(results.filter(Boolean)).toHaveLength(1)
-    expect(await rolesRepository.countUsersWithRole(superAdminRole.id)).toBe(1)
+
+    const roleList = await rolesRepository.findRoles()
+    expect(roleList.find(role => role.id === superAdminRole.id)?.userCount).toBe(1)
   })
 })
