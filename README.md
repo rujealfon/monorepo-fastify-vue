@@ -184,6 +184,7 @@ Required environment variables:
 DATABASE_URL=postgresql://USER:PASSWORD@HOST:5432/DATABASE?sslmode=require
 JWT_SECRET=replace-with-a-random-secret-of-at-least-32-characters
 NODE_ENV=production
+REDIS_URL=rediss://default:PASSWORD@HOST:6379
 ```
 
 `pnpm build:vercel` runs:

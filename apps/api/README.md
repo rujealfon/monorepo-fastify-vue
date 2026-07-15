@@ -163,5 +163,6 @@ Required environment variables:
 
 - `DATABASE_URL`
 - `NODE_ENV=production`
+- `REDIS_URL`
 
 Separate API deployment is possible with Root Directory set to `apps/api`, but it needs its own Vercel function entry and CORS if the web app is hosted on another origin. See the root README before switching to that mode.
