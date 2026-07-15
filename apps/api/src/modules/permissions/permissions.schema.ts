@@ -24,5 +24,8 @@ export const permissionKeySchema = z.string().max(150).regex(
   'Permission keys use the resource.action format'
 )
 
-export const selectPermissionSchema = createSelectSchema(permissions, { key: permissionKeySchema })
+export const selectPermissionSchema = createSelectSchema(permissions, {
+  id: schema => schema.positive(),
+  key: permissionKeySchema
+})
 export type SelectPermission = z.infer<typeof selectPermissionSchema>

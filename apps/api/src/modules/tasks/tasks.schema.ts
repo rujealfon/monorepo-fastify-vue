@@ -15,7 +15,7 @@ export const tasks = pgTable('tasks', {
   index('tasks_user_id_idx').on(table.userId)
 ])
 
-export const selectTasksSchema = createSelectSchema(tasks)
+export const selectTasksSchema = createSelectSchema(tasks, { id: schema => schema.positive() })
 export type selectTasksSchema = z.infer<typeof selectTasksSchema>
 
 export const tasksPageQuerySchema = z.object({

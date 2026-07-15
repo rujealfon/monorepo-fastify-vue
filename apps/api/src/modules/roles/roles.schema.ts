@@ -44,7 +44,7 @@ const roleSlugSchema = z.string().trim().min(1).max(100).regex(
   'Slugs use lowercase kebab-case'
 )
 
-export const selectRoleSchema = createSelectSchema(roles)
+export const selectRoleSchema = createSelectSchema(roles, { id: schema => schema.positive() })
 export type SelectRole = z.infer<typeof selectRoleSchema>
 
 export const roleWithPermissionsSchema = selectRoleSchema.extend({
