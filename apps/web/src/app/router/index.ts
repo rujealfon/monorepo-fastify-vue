@@ -39,7 +39,7 @@ router.beforeEach(async (to) => {
 
   const state = await cache.refresh(cache.ensure(authorizationQuery)).catch(() => null)
   if (!state || state.status === 'error')
-    return
+    return { path: '/login', query: { redirect: to.fullPath } }
 
   const authorization = state.data
   if (!authorization)

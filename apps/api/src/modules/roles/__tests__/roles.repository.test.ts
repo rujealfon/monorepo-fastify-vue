@@ -104,8 +104,8 @@ describe('roles.repository', () => {
     ])
 
     const results = await Promise.all([
-      rolesRepository.replaceUserRoles(userId, [standardRoleId], userId, superAdminRole.id),
-      rolesRepository.replaceUserRoles(secondUser.id, [standardRoleId], secondUser.id, superAdminRole.id)
+      rolesRepository.replaceUserRoles(userId, [standardRoleId], userId, true),
+      rolesRepository.replaceUserRoles(secondUser.id, [standardRoleId], secondUser.id, true)
     ])
 
     expect(results.filter(Boolean)).toHaveLength(1)

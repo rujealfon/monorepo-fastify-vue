@@ -1,9 +1,9 @@
 import type { CreateRole, PatchRole } from './roles.schema.js'
 
-import { and, asc, count, eq, ilike, inArray, sql } from 'drizzle-orm'
+import { and, asc, count, eq, ilike, inArray, ne, sql } from 'drizzle-orm'
 
 import { db } from '#api/db/index.js'
-import { permissions } from '#api/modules/permissions'
+import { permissions, WILDCARD_PERMISSION } from '#api/modules/permissions'
 import { users } from '#api/modules/users/users.schema.js'
 
 import { rolePermissions, roles, userRoles } from './roles.schema.js'
@@ -142,14 +142,18 @@ export function findUserRoles(userId: string) {
     .then(rows => rows.map(row => row.role))
 }
 
-export function replaceUserRoles(userId: string, roleIds: number[], assignedBy: string, protectedRoleId?: number) {
+export function replaceUserRoles(userId: string, roleIds: number[], assignedBy: string, protectWildcardAccess = false) {
   return db.transaction(async (tx) => {
-    if (protectedRoleId !== undefined) {
-      await tx.execute(sql`select 1 from ${roles} where ${roles.id} = ${protectedRoleId} for update`)
-      const [{ total }] = await tx.select({ total: count() })
+    if (protectWildcardAccess) {
+      await tx.execute(sql`select 1 from ${permissions} where ${permissions.key} = ${WILDCARD_PERMISSION} for update`)
+      const otherWildcardHolder = await tx.select({ userId: userRoles.userId })
         .from(userRoles)
-        .where(eq(userRoles.roleId, protectedRoleId))
-      if (total <= 1)
+        .innerJoin(rolePermissions, eq(rolePermissions.roleId, userRoles.roleId))
+        .innerJoin(permissions, eq(permissions.id, rolePermissions.permissionId))
+        .where(and(ne(userRoles.userId, userId), eq(permissions.key, WILDCARD_PERMISSION)))
+        .limit(1)
+        .then(rows => rows.at(0))
+      if (!otherWildcardHolder)
         return false
     }
 

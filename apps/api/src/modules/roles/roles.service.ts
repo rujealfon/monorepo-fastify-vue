@@ -88,7 +88,7 @@ export async function updateRole(roleId: number, data: PatchRole) {
 
 export async function deleteRole(roleId: number) {
   const role = await requireRole(roleId)
-  if (role.isSystem)
+  if (role.isSystem || (await repository.findPermissionKeysByRoleIds([roleId])).includes(WILDCARD_PERMISSION))
     throw new SystemRoleProtectedError()
   await repository.deleteRoleById(roleId)
 }
@@ -146,23 +146,26 @@ export async function replaceUserRoles(userId: string, roleIds: number[], caller
     throw new UnknownRoleIdsError()
 
   const currentRoles = await repository.findUserRoles(userId)
-  const currentSuperAdmin = currentRoles.find(role => role.slug === SUPER_ADMIN_SLUG)
-  const requestedSuperAdmin = requested.find(role => role.slug === SUPER_ADMIN_SLUG)
+  const [currentPermissionKeys, requestedPermissionKeys] = await Promise.all([
+    repository.findPermissionKeysByRoleIds(currentRoles.map(role => role.id)),
+    repository.findPermissionKeysByRoleIds(uniqueIds)
+  ])
+  const currentHasWildcard = currentPermissionKeys.includes(WILDCARD_PERMISSION)
+  const requestedHasWildcard = requestedPermissionKeys.includes(WILDCARD_PERMISSION)
 
-  const grantsSuperAdmin = Boolean(requestedSuperAdmin && !currentSuperAdmin)
-  const revokesSuperAdmin = Boolean(currentSuperAdmin && !requestedSuperAdmin)
+  const grantsWildcard = requestedHasWildcard && !currentHasWildcard
+  const revokesWildcard = currentHasWildcard && !requestedHasWildcard
 
-  if ((grantsSuperAdmin || revokesSuperAdmin) && !caller.permissions.has(WILDCARD_PERMISSION))
+  if ((grantsWildcard || revokesWildcard) && !caller.permissions.has(WILDCARD_PERMISSION))
     throw new SuperAdminAssignmentError()
 
-  const requestedPermissionKeys = await repository.findPermissionKeysByRoleIds(uniqueIds)
   validateAssignablePermissions(caller.permissions, requestedPermissionKeys)
 
   const replaced = await repository.replaceUserRoles(
     userId,
     uniqueIds,
     caller.user.id,
-    revokesSuperAdmin ? currentSuperAdmin?.id : undefined
+    revokesWildcard
   )
   if (!replaced)
     throw new LastSuperAdminError()

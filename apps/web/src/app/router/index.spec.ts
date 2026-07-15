@@ -48,6 +48,6 @@ describe('authentication router guard', () => {
     await cache.invalidateQueries({ key: AUTHORIZATION_KEY })
     api.GET.mockResolvedValue({ response: { ok: false, status: 503 } })
     await router.push('/profile')
-    expect(router.currentRoute.value.fullPath).toBe('/profile')
+    expect(router.currentRoute.value.fullPath).toBe('/login?redirect=/profile')
   })
 })

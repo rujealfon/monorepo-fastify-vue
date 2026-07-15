@@ -47,7 +47,13 @@ JOIN permissions ON permissions.key IN (
     'users.update',
     'users.assign_roles',
     'roles.read',
-    'permissions.read'
+    'permissions.read',
+    'profile.read_own',
+    'profile.update_own',
+    'tasks.read',
+    'tasks.create',
+    'tasks.update',
+    'tasks.delete'
 )
 WHERE roles.slug = 'admin'
 ON CONFLICT DO NOTHING;--> statement-breakpoint

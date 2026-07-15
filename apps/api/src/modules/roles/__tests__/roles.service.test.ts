@@ -43,6 +43,8 @@ const customRole = {
   updatedAt: now
 }
 
+const standardRole = { ...customRole, id: 11, name: 'Viewer', slug: 'viewer' }
+
 const wildcardPermission = { id: 1, key: '*', resource: 'system', action: 'all', description: null, isSystem: true, createdAt: now }
 const usersReadPermission = { id: 2, key: 'users.read', resource: 'users', action: 'read', description: null, isSystem: true, createdAt: now }
 const usersDeletePermission = { id: 3, key: 'users.delete', resource: 'users', action: 'delete', description: null, isSystem: true, createdAt: now }
@@ -59,6 +61,7 @@ function caller(permissions: string[]): AuthorizationContext {
 describe('roles.service', () => {
   beforeEach(() => {
     vi.resetAllMocks()
+    vi.mocked(rolesRepository.findPermissionKeysByRoleIds).mockResolvedValue([])
   })
 
   describe('getAuthorization', () => {
@@ -125,6 +128,12 @@ describe('roles.service', () => {
       await rolesService.deleteRole(10)
       expect(rolesRepository.deleteRoleById).toHaveBeenCalledWith(10)
     })
+
+    it('rejects deleting a role with the wildcard permission', async () => {
+      vi.mocked(rolesRepository.findRoleById).mockResolvedValue(customRole)
+      vi.mocked(rolesRepository.findPermissionKeysByRoleIds).mockResolvedValue(['*'])
+      await expect(rolesService.deleteRole(10)).rejects.toBeInstanceOf(SystemRoleProtectedError)
+    })
   })
 
   describe('replaceRolePermissions', () => {
@@ -184,18 +193,24 @@ describe('roles.service', () => {
         .toBeInstanceOf(UnknownRoleIdsError)
     })
 
-    it('rejects granting super admin without the wildcard', async () => {
-      vi.mocked(rolesRepository.findRolesByIds).mockResolvedValue([superAdminRole])
+    it('rejects granting a custom wildcard role without the wildcard', async () => {
+      vi.mocked(rolesRepository.findRolesByIds).mockResolvedValue([customRole])
       vi.mocked(rolesRepository.findUserRoles).mockResolvedValue([])
-      await expect(rolesService.replaceUserRoles('target-id', [1], caller(['users.assign_roles'])))
+      vi.mocked(rolesRepository.findPermissionKeysByRoleIds)
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce(['*'])
+      await expect(rolesService.replaceUserRoles('target-id', [10], caller(['users.assign_roles'])))
         .rejects
         .toBeInstanceOf(SuperAdminAssignmentError)
     })
 
-    it('rejects revoking super admin without the wildcard', async () => {
-      vi.mocked(rolesRepository.findRolesByIds).mockResolvedValue([customRole])
-      vi.mocked(rolesRepository.findUserRoles).mockResolvedValue([superAdminRole])
-      await expect(rolesService.replaceUserRoles('target-id', [10], caller(['users.assign_roles'])))
+    it('rejects revoking a custom wildcard role without the wildcard', async () => {
+      vi.mocked(rolesRepository.findRolesByIds).mockResolvedValue([standardRole])
+      vi.mocked(rolesRepository.findUserRoles).mockResolvedValue([customRole])
+      vi.mocked(rolesRepository.findPermissionKeysByRoleIds)
+        .mockResolvedValueOnce(['*'])
+        .mockResolvedValueOnce([])
+      await expect(rolesService.replaceUserRoles('target-id', [11], caller(['users.assign_roles'])))
         .rejects
         .toBeInstanceOf(SuperAdminAssignmentError)
     })
@@ -203,11 +218,14 @@ describe('roles.service', () => {
     it('rejects removing the last super admin', async () => {
       vi.mocked(rolesRepository.findRolesByIds).mockResolvedValue([customRole])
       vi.mocked(rolesRepository.findUserRoles).mockResolvedValue([superAdminRole])
+      vi.mocked(rolesRepository.findPermissionKeysByRoleIds)
+        .mockResolvedValueOnce(['*'])
+        .mockResolvedValueOnce([])
       vi.mocked(rolesRepository.replaceUserRoles).mockResolvedValue(false)
       await expect(rolesService.replaceUserRoles('target-id', [10], caller(['*'])))
         .rejects
         .toBeInstanceOf(LastSuperAdminError)
-      expect(rolesRepository.replaceUserRoles).toHaveBeenCalledWith('target-id', [10], 'caller-id', 1)
+      expect(rolesRepository.replaceUserRoles).toHaveBeenCalledWith('target-id', [10], 'caller-id', true)
     })
 
     it('replaces roles when another super admin remains', async () => {
@@ -215,10 +233,13 @@ describe('roles.service', () => {
       vi.mocked(rolesRepository.findUserRoles)
         .mockResolvedValueOnce([superAdminRole])
         .mockResolvedValueOnce([customRole])
+      vi.mocked(rolesRepository.findPermissionKeysByRoleIds)
+        .mockResolvedValueOnce(['*'])
+        .mockResolvedValueOnce([])
       vi.mocked(rolesRepository.replaceUserRoles).mockResolvedValue(true)
 
       const result = await rolesService.replaceUserRoles('target-id', [10], caller(['*']))
-      expect(rolesRepository.replaceUserRoles).toHaveBeenCalledWith('target-id', [10], 'caller-id', 1)
+      expect(rolesRepository.replaceUserRoles).toHaveBeenCalledWith('target-id', [10], 'caller-id', true)
       expect(result).toEqual([customRole])
     })
 
