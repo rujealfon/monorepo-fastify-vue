@@ -11,7 +11,7 @@ describe('tasks.repository', () => {
 
   beforeAll(async () => {
     await db.execute(sql`truncate table tasks restart identity cascade`)
-    await db.execute(sql`truncate table users cascade`)
+    await db.execute(sql`delete from users`)
 
     const [user, otherUser] = await db.insert(users).values([
       { email: 'tasks-repo-owner@example.com', passwordHash: 'hash' },
@@ -23,7 +23,7 @@ describe('tasks.repository', () => {
 
   afterAll(async () => {
     await db.execute(sql`truncate table tasks restart identity cascade`)
-    await db.execute(sql`truncate table users cascade`)
+    await db.execute(sql`delete from users`)
     await db.$client.end()
   })
 

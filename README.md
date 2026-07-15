@@ -99,7 +99,7 @@ Both files also require:
 PORT=3000
 HOST=0.0.0.0
 NODE_ENV=development   # or test
-LOG_LEVEL=info
+LOG_LEVEL=info          # use silent for tests
 ```
 
 ### 3. Run DB migrations
@@ -184,6 +184,7 @@ Required environment variables:
 DATABASE_URL=postgresql://USER:PASSWORD@HOST:5432/DATABASE?sslmode=require
 JWT_SECRET=replace-with-a-random-secret-of-at-least-32-characters
 NODE_ENV=production
+REDIS_URL=rediss://default:PASSWORD@HOST:6379
 ```
 
 `pnpm build:vercel` runs:
@@ -193,6 +194,8 @@ pnpm build && pnpm db:migrate
 ```
 
 Generate migration files locally with `pnpm db:generate`, commit them, and let Vercel apply them during deployment with its dashboard `DATABASE_URL`.
+
+Fastify's built-in Pino logger writes structured logs to Vercel Runtime Logs. It defaults to `info`; set `LOG_LEVEL=warn` if routine request logs become noisy, and keep `silent` in `.env.test`. Do not log request bodies, cookies, authorization headers, passwords, or tokens. Add a Vercel Drain only when the dashboard's retention is insufficient or external alerting is required.
 
 How routing works:
 

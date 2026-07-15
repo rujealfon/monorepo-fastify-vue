@@ -12,6 +12,7 @@ const sampleUser = {
   id: '1',
   email: 'person@example.com',
   passwordHash: 'hash',
+  authorizationVersion: 1,
   createdAt: new Date(),
   updatedAt: new Date()
 }

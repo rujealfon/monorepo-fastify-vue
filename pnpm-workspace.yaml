@@ -6,3 +6,7 @@ allowBuilds:
   esbuild: true
   vue-demi: true
   workerd: false
+packageExtensions:
+  eslint-plugin-drizzle:
+    dependencies:
+      '@typescript-eslint/utils': ^8

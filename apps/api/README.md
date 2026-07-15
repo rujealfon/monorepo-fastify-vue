@@ -75,6 +75,73 @@ Domains live in `src/modules/<domain>` and expose their public API from `index.t
 
 Add a module by keeping its code local, exporting routes from its `index.ts`, adding its public import mapping to `package.json`, and registering it in `src/modules/index.ts`. Keep code local until it has at least two real consumers.
 
+## Adding permissions for a feature
+
+Permissions are database rows, so adding a resource does not require changes to the RBAC implementation. For example, to add product permissions:
+
+1. Create a custom migration from the repository root:
+
+   ```sh
+   pnpm db:generate --custom --name=seed-products-permissions
+   ```
+
+   Add the permission rows to the generated SQL file:
+
+   ```sql
+   INSERT INTO "permissions" ("key", "resource", "action", "description")
+   VALUES
+       ('products.read', 'products', 'read', 'View products'),
+       ('products.create', 'products', 'create', 'Create products'),
+       ('products.update', 'products', 'update', 'Update products'),
+       ('products.delete', 'products', 'delete', 'Delete products')
+   ON CONFLICT ("key") DO NOTHING;
+   ```
+
+   Permission keys conventionally use `resource.action`; the database requires lowercase dotted segments and allows snake case within each segment. The Super Admin role already has the `*` permission, which covers every new key automatically.
+
+   Prefer assigning the new permissions at `/admin/roles/:id`. The page groups permissions by `resource`, so the `products` group appears automatically. It also prevents privilege escalation: callers can only grant permissions they possess. If a default role must receive a permission at deployment time, add this to the same migration:
+
+   ```sql
+   INSERT INTO "role_permissions" ("role_id", "permission_id")
+   SELECT roles.id, permissions.id
+   FROM roles
+   JOIN permissions ON permissions.key IN ('products.read')
+   WHERE roles.slug = 'standard-user'
+   ON CONFLICT DO NOTHING;
+   ```
+
+2. Protect every product API route:
+
+   ```ts
+   app.get('/', {
+     onRequest: [app.authenticate, app.authorize(['products.read'])]
+   }, handlers.list)
+   ```
+
+   Use the matching `create`, `update`, or `delete` permission on write routes. Authorization is enforced by the API; web guards only control navigation and presentation.
+
+3. Add web guards where needed:
+
+   ```ts
+   meta: { requiresAuth: true, permissions: ['products.read'] }
+   ```
+
+   ```vue
+   <script setup lang="ts">
+   import { Can } from '@/features/permissions'
+   </script>
+
+   <template>
+     <Can permission="products.create">
+       <UButton label="Add product" />
+     </Can>
+   </template>
+   ```
+
+New permission rows do not require API client regeneration because `PermissionKey` is runtime-backed `string`; regenerate the client only when API routes or schemas change.
+
+Direct SQL changes to `role_permissions` do not bump affected users' `authorization_version`. Authorization currently loads from the database per request, but any future versioned authorization cache must either bump those users' versions in the migration or assign permissions through `PUT /api/v1/roles/:roleId/permissions`, which already performs the bump.
+
 ## Environment files
 
 ```text
@@ -96,5 +163,6 @@ Required environment variables:
 
 - `DATABASE_URL`
 - `NODE_ENV=production`
+- `REDIS_URL`
 
 Separate API deployment is possible with Root Directory set to `apps/api`, but it needs its own Vercel function entry and CORS if the web app is hosted on another origin. See the root README before switching to that mode.

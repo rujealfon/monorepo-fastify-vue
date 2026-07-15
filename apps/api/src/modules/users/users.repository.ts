@@ -3,6 +3,7 @@ import type { PatchProfile, RegisterUser } from './users.schema.js'
 import { eq } from 'drizzle-orm'
 
 import { db } from '#api/db/index.js'
+import { assignRoleBySlug, DEFAULT_ROLE_SLUG } from '#api/modules/roles'
 
 import { profiles, users } from './users.schema.js'
 
@@ -26,6 +27,7 @@ export function insert(data: Omit<RegisterUser, 'password'> & { passwordHash: st
   return db.transaction(async (tx) => {
     const user = await tx.insert(users).values(data).returning().then(rows => rows[0])
     const profile = await tx.insert(profiles).values({ userId: user.id }).returning().then(rows => rows[0])
+    await assignRoleBySlug(tx, user.id, DEFAULT_ROLE_SLUG)
     return { user, profile }
   })
 }

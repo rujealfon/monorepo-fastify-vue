@@ -1,13 +1,17 @@
+import type { PermissionKey } from '@monorepo-fastify-vue/api-client'
+
 import { useQueryCache } from '@pinia/colada'
 import { createRouter, createWebHistory } from 'vue-router'
 
 import AuthLayout from '@/app/layouts/AuthLayout.vue'
 import DefaultLayout from '@/app/layouts/DefaultLayout.vue'
 import { aboutRoutes } from '@/features/about'
-import { authRoutes, sessionQuery } from '@/features/auth'
+import { authRoutes } from '@/features/auth'
 import { healthRoutes } from '@/features/health'
 import { homeRoutes } from '@/features/home'
+import { authorizationQuery, canAll, canAny, permissionRoutes } from '@/features/permissions'
 import { profileRoutes } from '@/features/profile'
+import { roleRoutes } from '@/features/roles'
 import { taskRoutes } from '@/features/tasks'
 
 const router = createRouter({
@@ -16,7 +20,7 @@ const router = createRouter({
     {
       path: '/',
       component: DefaultLayout,
-      children: [...homeRoutes, ...aboutRoutes, ...healthRoutes, ...taskRoutes, ...profileRoutes]
+      children: [...homeRoutes, ...aboutRoutes, ...healthRoutes, ...taskRoutes, ...profileRoutes, ...roleRoutes, ...permissionRoutes]
     },
     {
       path: '/',
@@ -27,18 +31,29 @@ const router = createRouter({
 })
 
 router.beforeEach(async (to) => {
-  if (!to.meta.requiresAuth)
-    return
-
   const cache = useQueryCache()
-  const state = await cache.refresh(cache.ensure(sessionQuery)).catch(() => null)
-  if (!state || state.status === 'error')
+  const requiredPermissions = (to.meta.permissions as PermissionKey[] | undefined) ?? []
+
+  if (!to.meta.requiresAuth && requiredPermissions.length === 0)
     return
 
-  const user = state.data
-
-  if (!user)
+  const state = await cache.refresh(cache.ensure(authorizationQuery)).catch(() => null)
+  if (!state || state.status === 'error')
     return { path: '/login', query: { redirect: to.fullPath } }
+
+  const authorization = state.data
+  if (!authorization)
+    return { path: '/login', query: { redirect: to.fullPath } }
+
+  if (requiredPermissions.length === 0)
+    return
+
+  const allowed = to.meta.permissionMode === 'any'
+    ? canAny(authorization, requiredPermissions)
+    : canAll(authorization, requiredPermissions)
+
+  if (!allowed)
+    return { name: 'forbidden' }
 })
 
 export default router

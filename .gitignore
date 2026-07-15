@@ -47,3 +47,4 @@ temp/
 # Nuxt UI (Vite) generated declarations
 auto-imports.d.ts
 components.d.ts
+.vercel

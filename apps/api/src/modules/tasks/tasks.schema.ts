@@ -1,11 +1,11 @@
-import { boolean, index, pgTable, serial, text, timestamp, uuid } from 'drizzle-orm/pg-core'
+import { boolean, index, integer, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core'
 import { createSelectSchema } from 'drizzle-zod'
 import { z } from 'zod'
 
 import { users } from '#api/modules/users/users.schema.js'
 
 export const tasks = pgTable('tasks', {
-  id: serial('id').primaryKey(),
+  id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
   userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   name: text('name').notNull(),
   done: boolean('done').notNull().default(false),
@@ -15,7 +15,7 @@ export const tasks = pgTable('tasks', {
   index('tasks_user_id_idx').on(table.userId)
 ])
 
-export const selectTasksSchema = createSelectSchema(tasks)
+export const selectTasksSchema = createSelectSchema(tasks, { id: schema => schema.positive() })
 export type selectTasksSchema = z.infer<typeof selectTasksSchema>
 
 export const tasksPageQuerySchema = z.object({
@@ -35,7 +35,7 @@ export const tasksPageSchema = z.object({
 })
 
 export const insertTasksSchema = z.object({
-  name: z.string().min(1).max(500),
+  name: z.string().trim().min(1).max(500),
   done: z.boolean().optional()
 }).meta({ examples: [{ name: 'Ship authentication', done: false }] })
 export type insertTasksSchema = z.infer<typeof insertTasksSchema>

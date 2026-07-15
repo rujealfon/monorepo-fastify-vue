@@ -1,9 +1,7 @@
 <script setup lang="ts">
-import { useQuery } from '@pinia/colada'
+import { useAuthorization } from '@/features/permissions'
 
-import { sessionQuery } from '@/features/auth'
-
-const session = useQuery(sessionQuery)
+const { authorization } = useAuthorization()
 </script>
 
 <template>
@@ -15,7 +13,7 @@ const session = useQuery(sessionQuery)
   >
     <template #links>
       <UButton
-        v-if="session.data.value"
+        v-if="authorization"
         to="/tasks"
         size="lg"
         icon="i-lucide-list-checks"
