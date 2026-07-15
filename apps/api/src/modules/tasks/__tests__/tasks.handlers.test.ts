@@ -17,7 +17,7 @@ describe('tasks routes', () => {
     app = buildApp()
     await app.ready()
     await db.execute(sql`truncate table tasks restart identity cascade`)
-    await db.execute(sql`truncate table users cascade`)
+    await db.execute(sql`delete from users`)
 
     const registration = await app.inject({
       method: 'POST',
@@ -108,7 +108,7 @@ describe('tasks routes', () => {
       method: 'POST',
       url: '/api/v1/tasks',
       headers: auth,
-      payload: { name: '', done: false }
+      payload: { name: '   ', done: false }
     })
     expect(response.statusCode).toBe(422)
     expect(response.json()).toMatchObject({ statusCode: 422, message: 'Validation failed' })

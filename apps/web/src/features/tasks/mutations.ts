@@ -2,8 +2,8 @@ import type { CreateTask, TaskId, UpdateTask } from '@monorepo-fastify-vue/api-c
 import { useMutation, useQueryCache } from '@pinia/colada'
 
 import { TASK_KEYS } from '@/features/tasks/queries'
-import { fail } from '@/features/tasks/tasks.utils'
 import { api } from '@/shared/api/client'
+import { fail } from '@/shared/api/fail'
 
 export function useTaskMutations(onCreate?: () => void) {
   const queryCache = useQueryCache()
@@ -15,24 +15,22 @@ export function useTaskMutations(onCreate?: () => void) {
         const { error, response } = await api.POST('/api/v1/tasks/', { body })
         return fail(response, error)
       },
-      onSuccess: () => {
-        onCreate?.()
-        return refresh()
-      }
+      onSuccess: () => onCreate?.(),
+      onSettled: refresh
     }),
     update: useMutation({
       mutation: async ({ id, ...body }: UpdateTask & { id: TaskId }) => {
         const { error, response } = await api.PATCH('/api/v1/tasks/{id}', { params: { path: { id } }, body })
         return fail(response, error)
       },
-      onSuccess: refresh
+      onSettled: refresh
     }),
     remove: useMutation({
       mutation: async (id: TaskId) => {
         const { error, response } = await api.DELETE('/api/v1/tasks/{id}', { params: { path: { id } } })
         return fail(response, error)
       },
-      onSuccess: refresh
+      onSettled: refresh
     })
   }
 }

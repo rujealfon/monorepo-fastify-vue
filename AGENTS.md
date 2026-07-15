@@ -10,23 +10,9 @@ Web code lives under `apps/web/src/features/<feature>/`; each feature exposes ro
 
 Keep constants, utilities, and types beside their owning module or feature, using names such as `tasks.constants.ts`, `tasks.utils.ts`, or `tasks.types.ts`. Do not create global `constants`, `utils`, or `types` folders preemptively. Promote code only after it has at least two real consumers: API technical helpers go to `apps/api/src/lib`, web helpers go to `apps/web/src/shared`, and API contract types go to `packages/api-client`. Prefer types inferred from Zod, Drizzle, OpenAPI, and function signatures over duplicate handwritten types. When a field already has a type in `packages/api-client` (e.g. an enum from the OpenAPI schema), web code must reference that type instead of a hand-rolled duplicate — even for runtime value lists (dropdown options, etc.) where no runtime array is exported, type the list against the schema-derived union so an API schema change breaks the web typecheck instead of drifting silently.
 
-## Build, Test, and Development Commands
-
-Run commands from the repository root.
-
-- `pnpm install`: install workspace dependencies.
-- `pnpm dev`: start API and web dev servers in parallel.
-- `pnpm build`: build every workspace package/app.
-- `pnpm test`: run all available tests; currently API Vitest tests are included.
-- `pnpm lint`: run ESLint across workspaces.
-- `pnpm lint:fix`: apply safe ESLint fixes.
-- `pnpm db:generate`: generate Drizzle migrations from schema changes.
-- `pnpm db:migrate`: apply pending Drizzle migrations.
-- `pnpm db:studio`: open Drizzle Studio.
-
 ## Coding Style & Naming Conventions
 
-Use TypeScript and ESM. The shared ESLint config in `packages/eslint-config` enforces 2-space indentation, no semicolons, single quotes, sorted imports, kebab-case filenames, and `type` aliases instead of `interface`. Avoid `process.env` outside the validated config layer in `apps/api/src/config`.
+Avoid `process.env` outside the validated config layer in `apps/api/src/config`.
 
 Follow existing API layering: handlers handle HTTP concerns, services hold business rules, repositories hold Drizzle queries, and schemas define tables plus Zod validators.
 

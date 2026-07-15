@@ -9,6 +9,14 @@
       "development": "./src/modules/health/index.ts",
       "default": "./dist/modules/health/index.js"
     },
+    "#api/modules/permissions": {
+      "development": "./src/modules/permissions/index.ts",
+      "default": "./dist/modules/permissions/index.js"
+    },
+    "#api/modules/roles": {
+      "development": "./src/modules/roles/index.ts",
+      "default": "./dist/modules/roles/index.js"
+    },
     "#api/modules/tasks": {
       "development": "./src/modules/tasks/index.ts",
       "default": "./dist/modules/tasks/index.js"
@@ -27,11 +35,11 @@
   },
   "scripts": {
     "dev": "tsx watch --conditions=development --env-file=.env src/server.ts",
-    "build": "tsc -p tsconfig.build.json",
+    "build": "tsc --noEmit -p ../../api/tsconfig.json && tsc -p tsconfig.build.json",
     "start": "node --env-file=.env dist/server.js",
-    "typecheck": "tsc --noEmit",
-    "lint": "eslint .",
-    "lint:fix": "eslint . --fix",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p ../../api/tsconfig.json",
+    "lint": "eslint . ../../api ../../eslint.config.mjs",
+    "lint:fix": "eslint . ../../api ../../eslint.config.mjs --fix",
     "test": "vitest run",
     "openapi:generate": "tsx --conditions=development --env-file=.env scripts/generate-openapi-spec.ts",
     "db:generate": "NODE_OPTIONS=--conditions=development drizzle-kit generate",

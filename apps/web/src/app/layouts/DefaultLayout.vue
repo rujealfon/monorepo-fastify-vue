@@ -1,23 +1,29 @@
 <script setup lang="ts">
 import type { NavigationMenuItem } from '@nuxt/ui'
 import { useToast } from '@nuxt/ui/composables'
-import { useQuery } from '@pinia/colada'
 import { computed } from 'vue'
 import { RouterLink, RouterView, useRouter } from 'vue-router'
 
-import { sessionQuery, useAuthMutations } from '@/features/auth'
+import { useAuthMutations } from '@/features/auth'
+import { useAuthorization } from '@/features/permissions'
 
 const router = useRouter()
-const session = useQuery(sessionQuery)
 const { logout } = useAuthMutations()
+const { authorization, can } = useAuthorization()
 const toast = useToast()
 
-const links: NavigationMenuItem[] = [
+const links = computed<NavigationMenuItem[]>(() => [
   { label: 'Home', to: '/', icon: 'i-lucide-house' },
   { label: 'Tasks', to: '/tasks', icon: 'i-lucide-list-checks' },
   { label: 'Health', to: '/health', icon: 'i-lucide-activity' },
-  { label: 'About', to: '/about', icon: 'i-lucide-info' }
-]
+  { label: 'About', to: '/about', icon: 'i-lucide-info' },
+  ...can('roles.read')
+    ? [{ label: 'Roles', to: '/admin/roles', icon: 'i-lucide-shield' } satisfies NavigationMenuItem]
+    : [],
+  ...can('users.read')
+    ? [{ label: 'Users', to: '/admin/users', icon: 'i-lucide-users' } satisfies NavigationMenuItem]
+    : []
+])
 
 async function signOut() {
   try {
@@ -34,7 +40,7 @@ async function signOut() {
 }
 
 const userMenu = computed(() => [[
-  { label: session.data.value?.email ?? '', type: 'label' as const },
+  { label: authorization.value?.user.email ?? '', type: 'label' as const },
   { label: 'Profile', icon: 'i-lucide-user', to: '/profile' }
 ], [
   { label: 'Logout', icon: 'i-lucide-log-out', onSelect: signOut }
@@ -55,13 +61,13 @@ const userMenu = computed(() => [[
 
       <template #right>
         <UColorModeButton />
-        <template v-if="session.data.value">
+        <template v-if="authorization">
           <UDropdownMenu :items="userMenu">
             <UButton
               color="neutral"
               variant="ghost"
               icon="i-lucide-user-circle"
-              :label="session.data.value.email"
+              :label="authorization.user.email"
               class="max-w-48"
               :ui="{ label: 'truncate' }"
             />

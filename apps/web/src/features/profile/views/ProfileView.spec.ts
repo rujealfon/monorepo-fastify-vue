@@ -4,7 +4,7 @@ import { createPinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMemoryHistory, createRouter } from 'vue-router'
 
-import { sessionQuery } from '@/features/auth'
+import { profileQuery } from '@/features/profile'
 import ProfileView from './ProfileView.vue'
 
 const api = vi.hoisted(() => ({ GET: vi.fn(), PATCH: vi.fn(), POST: vi.fn() }))
@@ -55,13 +55,13 @@ describe('profile view', () => {
         bio: 'Hello'
       }
     })
-    expect(useQueryCache(pinia).getQueryData(sessionQuery.key)?.profile.firstName).toBe('Updated')
+    expect(useQueryCache(pinia).getQueryData(profileQuery.key)?.profile.firstName).toBe('Updated')
 
     await wrapper.get('button[type="button"]').trigger('click')
     await flushPromises()
     expect(api.POST).toHaveBeenCalledWith('/api/v1/auth/logout')
     expect(router.currentRoute.value.fullPath).toBe('/login')
-    expect(useQueryCache(pinia).getQueryData(sessionQuery.key)).toBeNull()
+    expect(useQueryCache(pinia).getQueryData(profileQuery.key)).toBeNull()
   })
 
   it('shows update and logout failures without redirecting', async () => {

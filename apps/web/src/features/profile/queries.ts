@@ -4,13 +4,13 @@ import { defineQueryOptions } from '@pinia/colada'
 
 import { api } from '@/shared/api/client'
 
-export const SESSION_KEY = ['session'] as const
+export const PROFILE_KEY = ['profile'] as const
 
-export const sessionQuery = defineQueryOptions({
-  key: SESSION_KEY,
+export const profileQuery = defineQueryOptions({
+  key: PROFILE_KEY,
   query: async (): Promise<User | null> => {
     const { data, response } = await api.GET('/api/v1/profile/')
-    if (response.status === 401)
+    if (response.status === 401 || response.status === 403)
       return null
     if (!response.ok)
       throw new RpcError(response.status)

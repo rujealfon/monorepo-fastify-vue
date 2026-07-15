@@ -1,10 +1,14 @@
 import type { FastifyReply, FastifyRequest } from 'fastify'
+import type { PermissionMode } from '#api/modules/permissions'
+import type { AuthorizationContext } from '#api/modules/roles'
 
 import cookie from '@fastify/cookie'
 import jwt from '@fastify/jwt'
 import fp from 'fastify-plugin'
 
 import { config } from '#api/config/index.js'
+import { hasAllPermissions, hasAnyPermission, InsufficientPermissionError } from '#api/modules/permissions'
+import { getAuthorization } from '#api/modules/roles'
 import { UnauthorizedError } from '#api/modules/users'
 
 export const SESSION_COOKIE = 'session'
@@ -24,6 +28,30 @@ export default fp(async (fastify) => {
     }
     catch {
       throw new UnauthorizedError()
+    }
+  })
+
+  fastify.decorateRequest('authorization', null)
+
+  fastify.decorate('loadAuthorization', async (request: FastifyRequest) => {
+    if (request.authorization)
+      return request.authorization
+    const userId = request.user?.sub
+    const context = userId ? await getAuthorization(userId) : null
+    if (!context)
+      throw new UnauthorizedError()
+    request.authorization = context
+    return context
+  })
+
+  fastify.decorate('authorize', (permissions: readonly string[], mode: PermissionMode = 'all') => {
+    return async (request: FastifyRequest) => {
+      const context = await fastify.loadAuthorization(request)
+      const allowed = mode === 'any'
+        ? hasAnyPermission(context.permissions, permissions)
+        : hasAllPermissions(context.permissions, permissions)
+      if (!allowed)
+        throw new InsufficientPermissionError()
     }
   })
 
@@ -53,8 +81,15 @@ declare module 'fastify' {
   // eslint-disable-next-line ts/consistent-type-definitions -- interface required for declaration merging
   interface FastifyInstance {
     authenticate: (request: FastifyRequest) => Promise<void>
+    authorize: (permissions: readonly string[], mode?: PermissionMode) => (request: FastifyRequest) => Promise<void>
+    loadAuthorization: (request: FastifyRequest) => Promise<AuthorizationContext>
     sameOrigin: (request: FastifyRequest) => Promise<void>
     setSession: (reply: FastifyReply, userId: string) => void
+  }
+
+  // eslint-disable-next-line ts/consistent-type-definitions -- interface required for declaration merging
+  interface FastifyRequest {
+    authorization: AuthorizationContext | null
   }
 }
 

@@ -4,25 +4,27 @@ import { useQuery } from '@pinia/colada'
 import { computed, reactive, useTemplateRef, watchEffect } from 'vue'
 import { useRouter } from 'vue-router'
 
-import { sessionQuery, useAuthMutations } from '@/features/auth'
+import { useAuthMutations } from '@/features/auth'
 
 import { useProfileMutation } from '@/features/profile/mutations'
+import { profileQuery } from '@/features/profile/queries'
 import { apiFormErrors } from '@/shared/api/form-errors'
 
 const router = useRouter()
-const session = useQuery(sessionQuery)
+const profile = useQuery(profileQuery)
 const update = useProfileMutation()
 const { logout } = useAuthMutations()
 const form = useTemplateRef('form')
+const NOT_SPECIFIED = 'not_specified'
 const state = reactive({
   firstName: '',
   lastName: '',
-  gender: '' as NonNullable<UpdateProfile['gender']> | '',
+  gender: NOT_SPECIFIED as NonNullable<UpdateProfile['gender']> | typeof NOT_SPECIFIED,
   birthDate: '',
   bio: ''
 })
-const genderOptions: Array<{ label: string, value: NonNullable<UpdateProfile['gender']> | '' }> = [
-  { label: 'Not specified', value: '' },
+const genderOptions: Array<{ label: string, value: NonNullable<UpdateProfile['gender']> | typeof NOT_SPECIFIED }> = [
+  { label: 'Not specified', value: NOT_SPECIFIED },
   { label: 'Female', value: 'female' },
   { label: 'Male', value: 'male' },
   { label: 'Intersex', value: 'intersex' },
@@ -31,12 +33,12 @@ const genderOptions: Array<{ label: string, value: NonNullable<UpdateProfile['ge
 const pending = computed(() => update.asyncStatus.value === 'loading' || logout.asyncStatus.value === 'loading')
 
 watchEffect(() => {
-  const profile = session.data.value?.profile
-  state.firstName = profile?.firstName ?? ''
-  state.lastName = profile?.lastName ?? ''
-  state.gender = profile?.gender ?? ''
-  state.birthDate = profile?.birthDate ?? ''
-  state.bio = profile?.bio ?? ''
+  const details = profile.data.value?.profile
+  state.firstName = details?.firstName ?? ''
+  state.lastName = details?.lastName ?? ''
+  state.gender = details?.gender ?? NOT_SPECIFIED
+  state.birthDate = details?.birthDate ?? ''
+  state.bio = details?.bio ?? ''
 })
 
 async function save() {
@@ -44,7 +46,7 @@ async function save() {
     await update.mutateAsync({
       firstName: state.firstName.trim() || null,
       lastName: state.lastName.trim() || null,
-      gender: state.gender || null,
+      gender: state.gender === NOT_SPECIFIED ? null : state.gender,
       birthDate: state.birthDate || null,
       bio: state.bio.trim() || null
     })
@@ -72,7 +74,7 @@ async function signOut() {
           Profile
         </h1>
         <p class="text-muted">
-          {{ session.data.value?.email }}
+          {{ profile.data.value?.email }}
         </p>
       </div>
     </div>

@@ -36,9 +36,11 @@
     "lint-staged": "^17.0.8"
   },
   "lint-staged": {
+    "api/**/*.{js,mjs,ts,json}": "pnpm --filter @monorepo-fastify-vue/api exec eslint --fix",
     "apps/api/**/*.{js,mjs,ts,json}": "pnpm --filter @monorepo-fastify-vue/api exec eslint --fix",
     "apps/web/**/*.{js,mjs,ts,vue,json,css,html}": "pnpm --filter @monorepo-fastify-vue/web exec eslint --fix",
     "packages/api-client/**/*.{js,mjs,ts,json}": "pnpm --filter @monorepo-fastify-vue/api-client exec eslint --fix",
-    "packages/eslint-config/**/*.{js,mjs,ts,json}": "pnpm --filter @monorepo-fastify-vue/eslint-config exec eslint --fix"
+    "packages/eslint-config/**/*.{js,mjs,ts,json}": "pnpm --filter @monorepo-fastify-vue/eslint-config exec eslint --fix",
+    "eslint.config.mjs": "pnpm --filter @monorepo-fastify-vue/api exec eslint --fix"
   }
 }

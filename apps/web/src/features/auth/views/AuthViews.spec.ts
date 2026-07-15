@@ -5,7 +5,7 @@ import { createPinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMemoryHistory, createRouter } from 'vue-router'
 
-import { SESSION_KEY } from '@/features/auth'
+import { PROFILE_KEY } from '@/features/profile'
 import LoginView from './LoginView.vue'
 import RegisterView from './RegisterView.vue'
 
@@ -47,7 +47,7 @@ describe('authentication views', () => {
     await wrapper.get('form').trigger('submit')
     await flushPromises()
     expect(router.currentRoute.value.fullPath).toBe('/tasks')
-    expect(useQueryCache(pinia).getQueryData(SESSION_KEY)).toEqual(user)
+    expect(useQueryCache(pinia).getQueryData(PROFILE_KEY)).toEqual(user)
 
     const unsafe = await mountAt(LoginView, '/login?redirect=//evil.example')
     await unsafe.wrapper.get('input[name="email"]').setValue(user.email)
@@ -76,7 +76,7 @@ describe('authentication views', () => {
       body: { email: user.email, password: 'correct horse battery staple' }
     })
     expect(registration.router.currentRoute.value.fullPath).toBe('/profile')
-    expect(useQueryCache(registration.pinia).getQueryData(SESSION_KEY)).toEqual(user)
+    expect(useQueryCache(registration.pinia).getQueryData(PROFILE_KEY)).toEqual(user)
   })
 
   it('shows registration errors without redirecting', async () => {

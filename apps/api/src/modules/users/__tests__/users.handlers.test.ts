@@ -19,7 +19,7 @@ describe('user routes', () => {
   beforeAll(async () => {
     app = buildApp()
     await app.ready()
-    await db.execute(sql`truncate table users cascade`)
+    await db.execute(sql`delete from users`)
   })
 
   afterAll(async () => app.close())
