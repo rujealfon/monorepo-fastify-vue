@@ -1,6 +1,6 @@
 import type { AuditAction, AuditEntityType } from './audit-logs.schema.js'
 
-import { and, count, desc, eq, gte, ilike, lte } from 'drizzle-orm'
+import { and, count, desc, eq, gte, ilike, lte, sql } from 'drizzle-orm'
 
 import { db } from '#api/db/index.js'
 import { users } from '#api/modules/users/users.schema.js'
@@ -45,7 +45,7 @@ export async function findAuditLogs(filters: AuditLogFilters, page: number, limi
 
   const [data, [{ total }]] = await Promise.all([
     db.select({
-      id: auditLogs.id,
+      id: sql<string>`${auditLogs.id}::text`,
       actorId: auditLogs.actorId,
       action: auditLogs.action,
       entityType: auditLogs.entityType,

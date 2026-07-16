@@ -404,7 +404,7 @@ export interface paths {
                     content: {
                         "application/json": {
                             data: {
-                                id: number;
+                                id: string;
                                 /** Format: uuid */
                                 actorId: string | null;
                                 /** @enum {string} */

@@ -28,7 +28,7 @@ export const auditEntityTypeSchema = z.enum(AUDIT_ENTITY_TYPES)
 export type AuditEntityType = z.infer<typeof auditEntityTypeSchema>
 
 export const auditLogs = pgTable('audit_logs', {
-  id: bigint('id', { mode: 'number' }).primaryKey().generatedAlwaysAsIdentity(),
+  id: bigint('id', { mode: 'bigint' }).primaryKey().generatedAlwaysAsIdentity(),
   actorId: uuid('actor_id').references(() => users.id, { onDelete: 'set null' }),
   action: varchar('action', { length: 100 }).notNull(),
   entityType: varchar('entity_type', { length: 100 }).notNull(),
@@ -46,7 +46,7 @@ export const auditLogs = pgTable('audit_logs', {
 ])
 
 export const auditLogWithActorSchema = createSelectSchema(auditLogs, {
-  id: schema => schema.positive(),
+  id: z.string().regex(/^[1-9]\d*$/),
   action: auditActionSchema,
   entityType: auditEntityTypeSchema,
   metadata: z.record(z.string(), z.unknown()).nullable()

@@ -758,10 +758,8 @@
                         "type": "object",
                         "properties": {
                           "id": {
-                            "type": "integer",
-                            "minimum": 0,
-                            "exclusiveMinimum": true,
-                            "maximum": 9007199254740991
+                            "type": "string",
+                            "pattern": "^[1-9]\\d*$"
                           },
                           "actorId": {
                             "nullable": true,

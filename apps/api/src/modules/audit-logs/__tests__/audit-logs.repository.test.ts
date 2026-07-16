@@ -34,6 +34,7 @@ describe('audit.repository', () => {
   it('lists logs newest first with the actor email joined', async () => {
     const { data, total } = await auditRepository.findAuditLogs({}, 1, 10)
     expect(total).toBe(3)
+    expect(data[0].id).toMatch(/^[1-9]\d*$/)
     expect(data[0].action).toBe('role.created')
     expect(data[0].actorEmail).toBe('audit-repo-other@example.com')
     expect(data.at(-1)?.action).toBe('task.created')

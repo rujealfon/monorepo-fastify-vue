@@ -38,7 +38,7 @@ await recordAuditEvent({
 })
 ```
 
-- IP address, user-agent, and request ID are captured **automatically** via AsyncLocalStorage (`plugins/audit-context.ts`) — never pass them manually.
+- IP address, user-agent, and request ID are captured **automatically** via AsyncLocalStorage (`plugins/audit-logs-context.ts`) — never pass them manually.
 - Failures propagate on purpose: a mutation whose audit write fails should fail loudly.
 
 ### 3. Mutation inside a transaction? Keep the audit row atomic
@@ -60,6 +60,8 @@ await repository.voidInvoice(id, tx => recordAuditEvent({ ... }, tx))
 
 Only invoke the callback on the success path — aborted mutations must not log.
 
+Creates are exempt: entity insert and `recordAuditEvent` run as two separate statements, not threaded through a transaction. Accepted tradeoff (see `createRole`/`createTask`/`register`) — an audit-write failure after a successful create surfaces as a 500 with no audit row, rather than rolling back the create.
+
 ### 4. Metadata conventions
 
 - Updates: `{ before, after }` limited to the changed fields (see `tasks.service.updateTask`).
@@ -68,7 +70,7 @@ Only invoke the callback on the success path — aborted mutations must not log.
 
 ### 5. Web
 
-Add a label for each new action to `actionItems` in `apps/web/src/features/audit/views/AuditLogsView.vue`, then regenerate the client so the `AuditAction` union picks it up:
+Add a label for each new action to `actionItems` in `apps/web/src/features/audit-logs/views/AuditLogsView.vue`, then regenerate the client so the `AuditAction` union picks it up:
 
 ```sh
 pnpm api-client:generate && pnpm --filter @monorepo-fastify-vue/api-client build

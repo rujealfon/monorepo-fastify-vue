@@ -18,6 +18,7 @@ import * as rolesService from '#api/modules/roles/roles.service.js'
 
 vi.mock('#api/modules/roles/roles.repository.js')
 vi.mock('#api/modules/permissions/permissions.repository.js')
+vi.mock('#api/modules/audit-logs')
 
 const now = new Date()
 

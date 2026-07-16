@@ -12,7 +12,7 @@ const api = vi.hoisted(() => ({
 vi.mock('@/shared/api/client', () => ({ api }))
 
 const sampleLog = {
-  id: 1,
+  id: '1',
   actorId: 'a3f1c2d4-5b6e-4a7f-8c9d-0e1f2a3b4c5d',
   actorEmail: 'admin@example.com',
   action: 'task.created',
