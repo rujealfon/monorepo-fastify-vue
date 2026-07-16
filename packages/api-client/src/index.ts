@@ -1,3 +1,4 @@
+export type { AuditAction, AuditEntityType, AuditLog, AuditLogsPage, AuditLogsQuery } from './audit-logs/types.js'
 export { createApiClient, createApiClient as default } from './client.js'
 export type { ApiClient } from './client.js'
 export { RpcError } from './errors.js'

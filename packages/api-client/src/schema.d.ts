@@ -371,6 +371,121 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/audit-logs/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    page?: number;
+                    limit?: number;
+                    actorId?: string;
+                    actorEmail?: string;
+                    action?: "task.created" | "task.updated" | "task.deleted" | "role.created" | "role.updated" | "role.deleted" | "role.permissions_replaced" | "user.roles_replaced" | "user.registered" | "profile.updated" | "auth.login" | "auth.login_failed" | "auth.logout" | "auth.permission_denied";
+                    entityType?: "task" | "role" | "user";
+                    from?: string;
+                    to?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data: {
+                                id: number;
+                                /** Format: uuid */
+                                actorId: string | null;
+                                /** @enum {string} */
+                                action: "task.created" | "task.updated" | "task.deleted" | "role.created" | "role.updated" | "role.deleted" | "role.permissions_replaced" | "user.roles_replaced" | "user.registered" | "profile.updated" | "auth.login" | "auth.login_failed" | "auth.logout" | "auth.permission_denied";
+                                /** @enum {string} */
+                                entityType: "task" | "role" | "user";
+                                entityId: string;
+                                metadata: {
+                                    [key: string]: unknown;
+                                } | null;
+                                ipAddress: string | null;
+                                userAgent: string | null;
+                                requestId: string | null;
+                                /** Format: date-time */
+                                createdAt: string;
+                                actorEmail: string | null;
+                            }[];
+                            pagination: {
+                                page: number;
+                                limit: number;
+                                total: number;
+                                totalPages: number;
+                            };
+                        };
+                    };
+                };
+                /** @description Default Response */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HttpError"];
+                    };
+                };
+                /** @description Default Response */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HttpError"];
+                    };
+                };
+                /** @description Default Response */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ValidationError"];
+                    };
+                };
+                /** @description Default Response */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HttpError"];
+                    };
+                };
+                /** @description Default Response */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HttpError"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/health/live": {
         parameters: {
             query?: never;

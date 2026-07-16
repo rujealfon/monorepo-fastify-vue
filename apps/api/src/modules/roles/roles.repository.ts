@@ -1,3 +1,4 @@
+import type { DbExecutor } from '#api/modules/audit-logs'
 import type { CreateRole, PatchRole } from './roles.schema.js'
 
 import { and, asc, count, eq, ilike, inArray, ne, sql } from 'drizzle-orm'
@@ -8,7 +9,7 @@ import { users } from '#api/modules/users/users.schema.js'
 
 import { rolePermissions, roles, userRoles } from './roles.schema.js'
 
-type DbExecutor = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0]
+type AuditCallback = (tx: DbExecutor) => Promise<void>
 
 function bumpAuthorizationVersionForRole(tx: DbExecutor, roleId: number) {
   return tx.update(users)
@@ -85,28 +86,35 @@ export function insertRole(data: CreateRole) {
   return db.insert(roles).values(data).returning().then(rows => rows[0])
 }
 
-export function updateRoleById(id: number, data: PatchRole) {
+export function updateRoleById(id: number, data: PatchRole, audit?: AuditCallback) {
   return db.transaction(async (tx) => {
     const role = await tx.update(roles).set(data).where(eq(roles.id, id)).returning().then(rows => rows.at(0))
     if (role && data.isActive !== undefined)
       await bumpAuthorizationVersionForRole(tx, id)
+    if (role && audit)
+      await audit(tx)
     return role
   })
 }
 
-export function deleteRoleById(id: number) {
+export function deleteRoleById(id: number, audit?: AuditCallback) {
   return db.transaction(async (tx) => {
     await bumpAuthorizationVersionForRole(tx, id)
-    return tx.delete(roles).where(eq(roles.id, id)).returning().then(rows => rows.at(0))
+    const role = await tx.delete(roles).where(eq(roles.id, id)).returning().then(rows => rows.at(0))
+    if (role && audit)
+      await audit(tx)
+    return role
   })
 }
 
-export function replaceRolePermissions(roleId: number, permissionIds: number[], assignedBy: string) {
+export function replaceRolePermissions(roleId: number, permissionIds: number[], assignedBy: string, audit?: AuditCallback) {
   return db.transaction(async (tx) => {
     await tx.delete(rolePermissions).where(eq(rolePermissions.roleId, roleId))
     if (permissionIds.length > 0)
       await tx.insert(rolePermissions).values(permissionIds.map(permissionId => ({ roleId, permissionId, assignedBy })))
     await bumpAuthorizationVersionForRole(tx, roleId)
+    if (audit)
+      await audit(tx)
   })
 }
 
@@ -156,7 +164,7 @@ export function findUserRoles(userId: string) {
     .then(rows => rows.map(row => row.role))
 }
 
-export function replaceUserRoles(userId: string, roleIds: number[], assignedBy: string, protectWildcardAccess = false) {
+export function replaceUserRoles(userId: string, roleIds: number[], assignedBy: string, protectWildcardAccess = false, audit?: AuditCallback) {
   return db.transaction(async (tx) => {
     if (protectWildcardAccess) {
       await tx.execute(sql`select 1 from ${permissions} where ${permissions.key} = ${WILDCARD_PERMISSION} for update`)
@@ -177,6 +185,8 @@ export function replaceUserRoles(userId: string, roleIds: number[], assignedBy: 
     await tx.update(users)
       .set({ authorizationVersion: sql`${users.authorizationVersion} + 1` })
       .where(eq(users.id, userId))
+    if (audit)
+      await audit(tx)
     return true
   })
 }

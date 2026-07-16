@@ -1,3 +1,4 @@
+export { auditLogs } from '#api/modules/audit-logs/audit-logs.schema.js'
 export { permissions } from '#api/modules/permissions/permissions.schema.js'
 export { rolePermissions, roles, userRoles } from '#api/modules/roles/roles.schema.js'
 export * from '#api/modules/tasks/tasks.schema.js'

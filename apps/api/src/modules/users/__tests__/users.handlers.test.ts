@@ -19,10 +19,14 @@ describe('user routes', () => {
   beforeAll(async () => {
     app = buildApp()
     await app.ready()
+    await db.execute(sql`delete from audit_logs`)
     await db.execute(sql`delete from users`)
   })
 
-  afterAll(async () => app.close())
+  afterAll(async () => {
+    await db.execute(sql`delete from audit_logs`)
+    await app.close()
+  })
 
   it('registers a normalized user, logs in, updates the profile and logs out', async () => {
     const registration = await app.inject({

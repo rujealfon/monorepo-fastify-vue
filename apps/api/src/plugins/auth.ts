@@ -7,6 +7,7 @@ import jwt from '@fastify/jwt'
 import fp from 'fastify-plugin'
 
 import { config } from '#api/config/index.js'
+import { recordAuditEvent } from '#api/modules/audit-logs'
 import { hasAllPermissions, hasAnyPermission, InsufficientPermissionError } from '#api/modules/permissions'
 import { getAuthorization } from '#api/modules/roles'
 import { UnauthorizedError } from '#api/modules/users'
@@ -50,8 +51,16 @@ export default fp(async (fastify) => {
       const allowed = mode === 'any'
         ? hasAnyPermission(context.permissions, permissions)
         : hasAllPermissions(context.permissions, permissions)
-      if (!allowed)
+      if (!allowed) {
+        await recordAuditEvent({
+          actorId: context.user.id,
+          action: 'auth.permission_denied',
+          entityType: 'user',
+          entityId: context.user.id,
+          metadata: { method: request.method, url: request.url, requiredPermissions: [...permissions] }
+        })
         throw new InsufficientPermissionError()
+      }
     }
   })
 

@@ -16,6 +16,7 @@ describe('tasks routes', () => {
   beforeAll(async () => {
     app = buildApp()
     await app.ready()
+    await db.execute(sql`delete from audit_logs`)
     await db.execute(sql`truncate table tasks restart identity cascade`)
     await db.execute(sql`delete from users`)
 
@@ -37,6 +38,7 @@ describe('tasks routes', () => {
   }
 
   afterAll(async () => {
+    await db.execute(sql`delete from audit_logs`)
     await app.close()
   })
 
