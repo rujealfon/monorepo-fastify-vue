@@ -35,6 +35,7 @@ describe('roles routes', () => {
   beforeAll(async () => {
     app = buildApp()
     await app.ready()
+    await db.execute(sql`delete from audit_logs`)
     await db.execute(sql`delete from users`)
 
     const superUser = await register('roles-super@example.com')
@@ -52,6 +53,7 @@ describe('roles routes', () => {
   })
 
   afterAll(async () => {
+    await db.execute(sql`delete from audit_logs`)
     await db.execute(sql`delete from users`)
     await db.execute(sql`delete from roles where is_system = false`)
     await app.close()

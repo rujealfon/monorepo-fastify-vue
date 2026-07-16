@@ -57,6 +57,34 @@
       "when": 1784084376614,
       "tag": "0007_strange_rage",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1784116325246,
+      "tag": "0008_nervous_dormammu",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1784116334137,
+      "tag": "0009_seed-audit-permission",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1784117984115,
+      "tag": "0010_warm_phantom_reporter",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1784117984552,
+      "tag": "0011_audit-logs-immutable",
+      "breakpoints": true
     }
   ]
 }

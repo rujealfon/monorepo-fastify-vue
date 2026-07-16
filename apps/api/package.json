@@ -5,6 +5,10 @@
   "private": true,
   "license": "MIT",
   "imports": {
+    "#api/modules/audit-logs": {
+      "development": "./src/modules/audit-logs/index.ts",
+      "default": "./dist/modules/audit-logs/index.js"
+    },
     "#api/modules/health": {
       "development": "./src/modules/health/index.ts",
       "default": "./dist/modules/health/index.js"

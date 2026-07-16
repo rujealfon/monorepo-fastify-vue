@@ -1,5 +1,6 @@
 import type { AssignedRole, CreateRole, PatchRole } from './roles.schema.js'
 
+import { recordAuditEvent } from '#api/modules/audit-logs'
 import { findPermissionsByIds, WILDCARD_PERMISSION } from '#api/modules/permissions'
 
 import {
@@ -63,9 +64,16 @@ export async function getRole(roleId: number) {
   return { ...role, permissions: await repository.findRolePermissions(roleId) }
 }
 
-export async function createRole(data: CreateRole) {
+export async function createRole(data: CreateRole, actorId: string) {
   try {
     const role = await repository.insertRole(data)
+    await recordAuditEvent({
+      actorId,
+      action: 'role.created',
+      entityType: 'role',
+      entityId: role.id,
+      metadata: { name: role.name, slug: role.slug }
+    })
     return { ...role, permissions: [] }
   }
   catch (error) {
@@ -76,21 +84,37 @@ export async function createRole(data: CreateRole) {
   }
 }
 
-export async function updateRole(roleId: number, data: PatchRole) {
+export async function updateRole(roleId: number, data: PatchRole, actorId: string) {
   const role = await requireRole(roleId)
   if (role.slug === SUPER_ADMIN_SLUG && data.isActive === false)
     throw new SystemRoleProtectedError('The super admin role cannot be deactivated')
-  const updated = await repository.updateRoleById(roleId, data)
+  const changedKeys = Object.keys(data) as (keyof PatchRole)[]
+  const updated = await repository.updateRoleById(roleId, data, tx => recordAuditEvent({
+    actorId,
+    action: 'role.updated',
+    entityType: 'role',
+    entityId: roleId,
+    metadata: {
+      before: Object.fromEntries(changedKeys.map(key => [key, role[key]])),
+      after: Object.fromEntries(changedKeys.map(key => [key, data[key]]))
+    }
+  }, tx))
   if (!updated)
     throw new RoleNotFoundError()
   return { ...updated, permissions: await repository.findRolePermissions(roleId) }
 }
 
-export async function deleteRole(roleId: number) {
+export async function deleteRole(roleId: number, actorId: string) {
   const role = await requireRole(roleId)
   if (role.isSystem || (await repository.findPermissionKeysByRoleIds([roleId])).includes(WILDCARD_PERMISSION))
     throw new SystemRoleProtectedError()
-  await repository.deleteRoleById(roleId)
+  await repository.deleteRoleById(roleId, tx => recordAuditEvent({
+    actorId,
+    action: 'role.deleted',
+    entityType: 'role',
+    entityId: roleId,
+    metadata: { name: role.name, slug: role.slug }
+  }, tx))
 }
 
 export function validateAssignablePermissions(callerPermissions: ReadonlySet<string>, requestedKeys: readonly string[]) {
@@ -114,7 +138,14 @@ export async function replaceRolePermissions(roleId: number, permissionIds: numb
   if (role.slug === SUPER_ADMIN_SLUG && !requestedKeys.includes(WILDCARD_PERMISSION))
     throw new SystemRoleProtectedError('The super admin role must keep the wildcard permission')
 
-  await repository.replaceRolePermissions(roleId, uniqueIds, caller.user.id)
+  const previousPermissionIds = (await repository.findRolePermissions(roleId)).map(permission => permission.id)
+  await repository.replaceRolePermissions(roleId, uniqueIds, caller.user.id, tx => recordAuditEvent({
+    actorId: caller.user.id,
+    action: 'role.permissions_replaced',
+    entityType: 'role',
+    entityId: roleId,
+    metadata: { previousPermissionIds, permissionIds: uniqueIds, permissionKeys: requestedKeys }
+  }, tx))
   return getRole(roleId)
 }
 
@@ -165,7 +196,14 @@ export async function replaceUserRoles(userId: string, roleIds: number[], caller
     userId,
     uniqueIds,
     caller.user.id,
-    revokesWildcard
+    revokesWildcard,
+    tx => recordAuditEvent({
+      actorId: caller.user.id,
+      action: 'user.roles_replaced',
+      entityType: 'user',
+      entityId: userId,
+      metadata: { previousRoleIds: currentRoles.map(role => role.id), roleIds: uniqueIds }
+    }, tx)
   )
   if (!replaced)
     throw new LastSuperAdminError()

@@ -6,6 +6,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import AuthLayout from '@/app/layouts/AuthLayout.vue'
 import DefaultLayout from '@/app/layouts/DefaultLayout.vue'
 import { aboutRoutes } from '@/features/about'
+import { auditLogRoutes } from '@/features/audit-logs'
 import { authRoutes } from '@/features/auth'
 import { healthRoutes } from '@/features/health'
 import { homeRoutes } from '@/features/home'
@@ -20,7 +21,7 @@ const router = createRouter({
     {
       path: '/',
       component: DefaultLayout,
-      children: [...homeRoutes, ...aboutRoutes, ...healthRoutes, ...taskRoutes, ...profileRoutes, ...roleRoutes, ...permissionRoutes]
+      children: [...homeRoutes, ...aboutRoutes, ...healthRoutes, ...taskRoutes, ...profileRoutes, ...roleRoutes, ...permissionRoutes, ...auditLogRoutes]
     },
     {
       path: '/',

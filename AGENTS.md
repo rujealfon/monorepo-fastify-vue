@@ -18,6 +18,10 @@ Follow existing API layering: handlers handle HTTP concerns, services hold busin
 
 Use `#api/modules/<domain>` and `@/features/<feature>` for cross-domain imports. Deep imports are private and rejected by ESLint; `apps/api/src/db/schema/index.ts` is the sole exception for composing module-owned Drizzle tables.
 
+## Audit Logging
+
+Every new mutation (create, update, delete, replace, assign) and security event must record an audit event via `recordAuditEvent` from `#api/modules/audit-logs`, called from the service layer. Add the action to `AUDIT_ACTIONS` in `audit-logs.schema.ts` (naming: `<entity>.<past_tense_verb>`), keep the audit write atomic with transactional mutations via the repository's optional audit callback, follow the metadata conventions (before/after diffs, never secrets or raw PII), and add the action label to the web audit page. Full recipe: `apps/api/src/modules/audit-logs/README.md`.
+
 ## Testing Guidelines
 
 API tests use Vitest and live beside modules in `__tests__` folders. Name tests by layer, such as `auth.service.test.ts`, `tasks.handlers.test.ts`, or `tasks.repository.test.ts`. Use service tests for business logic, handler tests for HTTP behavior, and repository tests for database integration. Configure `apps/api/.env.test` with a separate test database before running `pnpm test`.

@@ -22,6 +22,9 @@ const links = computed<NavigationMenuItem[]>(() => [
     : [],
   ...can('users.read')
     ? [{ label: 'Users', to: '/admin/users', icon: 'i-lucide-users' } satisfies NavigationMenuItem]
+    : [],
+  ...can('audit.read')
+    ? [{ label: 'Audit Logs', to: '/admin/audit-logs', icon: 'i-lucide-scroll-text' } satisfies NavigationMenuItem]
     : []
 ])
 

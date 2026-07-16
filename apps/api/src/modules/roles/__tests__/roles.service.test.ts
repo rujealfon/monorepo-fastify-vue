@@ -18,6 +18,7 @@ import * as rolesService from '#api/modules/roles/roles.service.js'
 
 vi.mock('#api/modules/roles/roles.repository.js')
 vi.mock('#api/modules/permissions/permissions.repository.js')
+vi.mock('#api/modules/audit-logs')
 
 const now = new Date()
 
@@ -100,39 +101,39 @@ describe('roles.service', () => {
   describe('createRole', () => {
     it('maps unique violations to RoleSlugTakenError', async () => {
       vi.mocked(rolesRepository.insertRole).mockRejectedValue(new Error('insert failed', { cause: { code: '23505' } }))
-      await expect(rolesService.createRole({ name: 'Support', slug: 'support' })).rejects.toBeInstanceOf(RoleSlugTakenError)
+      await expect(rolesService.createRole({ name: 'Support', slug: 'support' }, 'caller-id')).rejects.toBeInstanceOf(RoleSlugTakenError)
     })
   })
 
   describe('updateRole', () => {
     it('rejects deactivating the super admin role', async () => {
       vi.mocked(rolesRepository.findRoleById).mockResolvedValue(superAdminRole)
-      await expect(rolesService.updateRole(1, { isActive: false })).rejects.toBeInstanceOf(SystemRoleProtectedError)
+      await expect(rolesService.updateRole(1, { isActive: false }, 'caller-id')).rejects.toBeInstanceOf(SystemRoleProtectedError)
     })
 
     it('throws for an unknown role', async () => {
       vi.mocked(rolesRepository.findRoleById).mockResolvedValue(undefined)
-      await expect(rolesService.updateRole(99, { name: 'X' })).rejects.toBeInstanceOf(RoleNotFoundError)
+      await expect(rolesService.updateRole(99, { name: 'X' }, 'caller-id')).rejects.toBeInstanceOf(RoleNotFoundError)
     })
   })
 
   describe('deleteRole', () => {
     it('rejects deleting system roles', async () => {
       vi.mocked(rolesRepository.findRoleById).mockResolvedValue(superAdminRole)
-      await expect(rolesService.deleteRole(1)).rejects.toBeInstanceOf(SystemRoleProtectedError)
+      await expect(rolesService.deleteRole(1, 'caller-id')).rejects.toBeInstanceOf(SystemRoleProtectedError)
     })
 
     it('deletes non-system roles', async () => {
       vi.mocked(rolesRepository.findRoleById).mockResolvedValue(customRole)
       vi.mocked(rolesRepository.deleteRoleById).mockResolvedValue(customRole)
-      await rolesService.deleteRole(10)
-      expect(rolesRepository.deleteRoleById).toHaveBeenCalledWith(10)
+      await rolesService.deleteRole(10, 'caller-id')
+      expect(rolesRepository.deleteRoleById).toHaveBeenCalledWith(10, expect.any(Function))
     })
 
     it('rejects deleting a role with the wildcard permission', async () => {
       vi.mocked(rolesRepository.findRoleById).mockResolvedValue(customRole)
       vi.mocked(rolesRepository.findPermissionKeysByRoleIds).mockResolvedValue(['*'])
-      await expect(rolesService.deleteRole(10)).rejects.toBeInstanceOf(SystemRoleProtectedError)
+      await expect(rolesService.deleteRole(10, 'caller-id')).rejects.toBeInstanceOf(SystemRoleProtectedError)
     })
   })
 
@@ -176,7 +177,7 @@ describe('roles.service', () => {
       vi.mocked(rolesRepository.findRolePermissions).mockResolvedValue([usersReadPermission])
 
       const result = await rolesService.replaceRolePermissions(10, [2, 2], caller(['*']))
-      expect(rolesRepository.replaceRolePermissions).toHaveBeenCalledWith(10, [2], 'caller-id')
+      expect(rolesRepository.replaceRolePermissions).toHaveBeenCalledWith(10, [2], 'caller-id', expect.any(Function))
       expect(result.permissions).toEqual([usersReadPermission])
     })
   })
@@ -225,7 +226,7 @@ describe('roles.service', () => {
       await expect(rolesService.replaceUserRoles('target-id', [10], caller(['*'])))
         .rejects
         .toBeInstanceOf(LastSuperAdminError)
-      expect(rolesRepository.replaceUserRoles).toHaveBeenCalledWith('target-id', [10], 'caller-id', true)
+      expect(rolesRepository.replaceUserRoles).toHaveBeenCalledWith('target-id', [10], 'caller-id', true, expect.any(Function))
     })
 
     it('replaces roles when another super admin remains', async () => {
@@ -239,7 +240,7 @@ describe('roles.service', () => {
       vi.mocked(rolesRepository.replaceUserRoles).mockResolvedValue(true)
 
       const result = await rolesService.replaceUserRoles('target-id', [10], caller(['*']))
-      expect(rolesRepository.replaceUserRoles).toHaveBeenCalledWith('target-id', [10], 'caller-id', true)
+      expect(rolesRepository.replaceUserRoles).toHaveBeenCalledWith('target-id', [10], 'caller-id', true, expect.any(Function))
       expect(result).toEqual([customRole])
     })
 

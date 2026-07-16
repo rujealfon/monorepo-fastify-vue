@@ -5,6 +5,7 @@ import * as tasksRepository from '#api/modules/tasks/tasks.repository.js'
 import * as tasksService from '#api/modules/tasks/tasks.service.js'
 
 vi.mock('#api/modules/tasks/tasks.repository.js')
+vi.mock('#api/modules/audit-logs')
 
 const userId = 'a3f1c2d4-5b6e-4a7f-8c9d-0e1f2a3b4c5d'
 

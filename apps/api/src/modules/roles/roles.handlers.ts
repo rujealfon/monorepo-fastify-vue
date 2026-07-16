@@ -11,7 +11,7 @@ export function listRoles() {
 }
 
 export async function createRole(request: FastifyRequest<{ Body: CreateRole }>, reply: FastifyReply) {
-  const role = await service.createRole(request.body)
+  const role = await service.createRole(request.body, request.authorization!.user.id)
   reply.code(201)
   return role
 }
@@ -21,11 +21,11 @@ export function getRole(request: FastifyRequest<{ Params: RoleParams }>) {
 }
 
 export function patchRole(request: FastifyRequest<{ Params: RoleParams, Body: PatchRole }>) {
-  return service.updateRole(request.params.roleId, request.body)
+  return service.updateRole(request.params.roleId, request.body, request.authorization!.user.id)
 }
 
 export async function deleteRole(request: FastifyRequest<{ Params: RoleParams }>, reply: FastifyReply) {
-  await service.deleteRole(request.params.roleId)
+  await service.deleteRole(request.params.roleId, request.authorization!.user.id)
   reply.code(204)
 }
 

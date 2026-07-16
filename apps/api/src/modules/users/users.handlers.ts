@@ -1,6 +1,7 @@
 import type { FastifyReply, FastifyRequest } from 'fastify'
 import type { LoginUser, PatchProfile, RegisterUser } from './users.schema.js'
 
+import { recordAuditEvent } from '#api/modules/audit-logs'
 import { SESSION_COOKIE } from '#api/plugins/auth.js'
 
 import * as service from './users.service.js'
@@ -18,7 +19,11 @@ export async function login(request: FastifyRequest<{ Body: LoginUser }>, reply:
   return user
 }
 
-export async function logout(_request: FastifyRequest, reply: FastifyReply) {
+export async function logout(request: FastifyRequest, reply: FastifyReply) {
+  // logout has no authenticate hook: verify best-effort so anonymous calls still clear the cookie
+  const actorId = await request.jwtVerify().then(() => request.user.sub).catch(() => null)
+  if (actorId)
+    await recordAuditEvent({ actorId, action: 'auth.logout', entityType: 'user', entityId: actorId })
   reply.clearCookie(SESSION_COOKIE, { path: '/' }).code(204)
 }
 
