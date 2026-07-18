@@ -7,7 +7,7 @@ services:
       POSTGRES_PASSWORD: root
       POSTGRES_DB: fastify_vue
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql
     healthcheck:
@@ -16,19 +16,16 @@ services:
       timeout: 5s
       retries: 10
 
-  pgadmin:
-    image: dpage/pgadmin4:latest
+  valkey:
+    image: valkey/valkey:9.1-alpine
     restart: unless-stopped
-    environment:
-      PGADMIN_DEFAULT_EMAIL: admin@admin.com
-      PGADMIN_DEFAULT_PASSWORD: admin
     ports:
-      - "5050:80"
-    volumes:
-      - pgadmin_data:/var/lib/pgadmin
-    depends_on:
-      postgres:
-        condition: service_healthy
+      - "6380:6379"
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   api:
     build:
@@ -40,6 +37,7 @@ services:
       - ./apps/api/.env
     environment:
       DATABASE_URL: postgresql://root:root@postgres:5432/fastify_vue
+      REDIS_URL: redis://valkey:6379
       PORT: 3000
       NODE_ENV: development
     ports:
@@ -48,6 +46,8 @@ services:
       - ./apps/api/src:/app/apps/api/src
     depends_on:
       postgres:
+        condition: service_healthy
+      valkey:
         condition: service_healthy
 
   drizzle-studio:
@@ -84,4 +84,3 @@ services:
 
 volumes:
   postgres_data:
-  pgadmin_data:

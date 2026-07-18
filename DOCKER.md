@@ -1,6 +1,6 @@
 # Docker
 
-This project runs entirely in Docker for local development. The setup includes the API, web frontend, PostgreSQL database, Drizzle Studio, and pgAdmin 4.
+This project runs entirely in Docker for local development. The setup includes the API, web frontend, PostgreSQL database, Valkey, and Drizzle Studio.
 
 ## Services
 
@@ -9,8 +9,8 @@ This project runs entirely in Docker for local development. The setup includes t
 | API (Fastify) | http://localhost:3000 | Backend API with hot-reload |
 | Web (Vue 3) | http://localhost:5173 | Frontend with Vite dev server |
 | Drizzle Studio | http://localhost:4983 | Visual database browser |
-| pgAdmin 4 | http://localhost:5050 | Full-featured DB admin UI |
-| PostgreSQL | localhost:5432 | Database |
+| PostgreSQL | localhost:5433 | Database |
+| Valkey | localhost:6380 | Redis-compatible rate-limit store |
 
 ## Prerequisites
 
@@ -42,18 +42,10 @@ pnpm docker:db:migrate
 
 - **API docs (Scalar, development only):** http://localhost:3000
 - **Drizzle Studio:** http://localhost:4983
-- **pgAdmin 4:** http://localhost:5050
 
 ## pgAdmin 4
 
-Login at http://localhost:5050 with:
-
-| Field | Value |
-|---|---|
-| Email | admin@admin.com |
-| Password | admin |
-
-### Connect to the database
+Run pgAdmin outside Docker, then register the Docker PostgreSQL server:
 
 1. Right-click **Servers** → **Register** → **Server**
 2. **General** tab — Name: `monorepo-fastify-vue` (or anything)
@@ -61,17 +53,33 @@ Login at http://localhost:5050 with:
 
 | Field | Value |
 |---|---|
-| Host | postgres |
-| Port | 5432 |
+| Host | localhost |
+| Port | 5433 |
 | Database | fastify_vue |
 | Username | root |
 | Password | root |
 
-> Use `postgres` as the host, not `localhost` — services communicate over the internal Docker network.
-
 ## Drizzle Studio
 
 Open http://localhost:4983 to browse and edit your database visually. It connects automatically using the `DATABASE_URL` environment variable.
+
+## Valkey
+
+Open the built-in CLI:
+
+```bash
+docker compose exec valkey valkey-cli
+```
+
+Useful commands:
+
+```text
+PING
+SCAN 0
+GET key_name
+```
+
+External clients such as RedisInsight can connect to `localhost:6380`. Docker services connect to `valkey:6379`.
 
 ## Environment Variables
 
@@ -80,6 +88,7 @@ The API service uses these environment variables (set in `docker-compose.yml`):
 | Variable | Value | Description |
 |---|---|---|
 | `DATABASE_URL` | `postgresql://root:root@postgres:5432/fastify_vue` | PostgreSQL connection string |
+| `REDIS_URL` | `redis://valkey:6379` | Valkey connection string |
 | `PORT` | `3000` | API server port |
 | `NODE_ENV` | `development` | Runtime environment |
 
@@ -144,8 +153,8 @@ docker compose logs -f postgres
 ### Individual services
 
 ```bash
-# Start only the database and pgAdmin
-docker compose up postgres pgadmin
+# Start only the database
+docker compose up postgres
 
 # Start only the API and its dependencies
 docker compose up api
@@ -153,12 +162,11 @@ docker compose up api
 
 ## Volumes
 
-Two named volumes persist data between container restarts:
+One named volume persists data between container restarts:
 
 | Volume | Used by | Contains |
 |---|---|---|
 | `postgres_data` | `postgres` | All database data |
-| `pgadmin_data` | `pgadmin` | pgAdmin server/connection configs |
 
 Source code is mounted directly from the host, so edits to `apps/api/src` and `apps/web/src` are reflected immediately without rebuilding.
 
