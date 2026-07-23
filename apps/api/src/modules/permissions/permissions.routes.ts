@@ -12,7 +12,7 @@ export const permissionsRoutes: FastifyPluginAsync = async (fastify) => {
   const app = fastify.withTypeProvider<ZodTypeProvider>()
 
   app.get('/', {
-    onRequest: [app.authenticate, app.authorize(['permissions.read'])],
+    onRequest: [app.authenticate, app.authorize('read', 'permissions')],
     schema: {
       tags: ['Permissions'],
       response: {

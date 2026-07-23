@@ -73,7 +73,7 @@ async function confirmDelete() {
       </p>
     </div>
 
-    <Can permission="roles.create">
+    <Can action="create" subject="roles">
       <UForm ref="form" :state="state" class="flex items-start gap-2" novalidate @submit.prevent="create">
         <UFormField name="name" class="flex-1">
           <UInput
@@ -137,7 +137,7 @@ async function confirmDelete() {
         </div>
         <UBadge v-if="role.isSystem" color="neutral" variant="subtle" label="System" />
         <UBadge v-if="!role.isActive" color="warning" variant="subtle" label="Inactive" />
-        <Can permission="roles.delete">
+        <Can action="delete" subject="roles">
           <UButton
             v-if="!role.isSystem"
             :aria-label="`Delete ${role.name}`"

@@ -15,7 +15,7 @@ const { can, authorization } = useAuthorization()
 
 watch(search, () => page.value = 1)
 
-const canAssign = computed(() => can('users.assign_roles'))
+const canAssign = computed(() => can('assign_roles', 'users'))
 const pending = computed(() => replaceMutation.asyncStatus.value === 'loading')
 const error = computed(() => users.error.value ?? roles.error.value ?? replaceMutation.error.value)
 

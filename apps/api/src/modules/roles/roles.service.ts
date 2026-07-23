@@ -1,7 +1,8 @@
+import type { AbilityRule, AppAbility } from '#api/modules/permissions'
 import type { AssignedRole, CreateRole, PatchRole } from './roles.schema.js'
 
 import { recordAuditEvent } from '#api/modules/audit-logs'
-import { findPermissionsByIds, WILDCARD_PERMISSION } from '#api/modules/permissions'
+import { buildAbilityRules, createAppAbility, findPermissionsByIds, WILDCARD_PERMISSION } from '#api/modules/permissions'
 
 import {
   LastSuperAdminError,
@@ -20,7 +21,9 @@ import { SUPER_ADMIN_SLUG } from './roles.schema.js'
 export type AuthorizationContext = {
   user: { id: string, email: string }
   roles: AssignedRole[]
-  permissions: Set<string>
+  permissionKeys: Set<string>
+  rules: AbilityRule[]
+  ability: AppAbility
   authorizationVersion: number
 }
 
@@ -31,19 +34,29 @@ export async function getAuthorization(userId: string): Promise<AuthorizationCon
     return null
 
   const roleMap = new Map<number, AssignedRole>()
-  const permissions = new Set<string>()
+  const permissions = new Map<string, { key: string, resource: string, action: string }>()
 
   for (const row of rows) {
     if (row.roleId !== null && row.roleName !== null && row.roleSlug !== null)
       roleMap.set(row.roleId, { id: row.roleId, name: row.roleName, slug: row.roleSlug })
-    if (row.permissionKey !== null)
-      permissions.add(row.permissionKey)
+    if (row.permissionKey !== null && row.permissionResource !== null && row.permissionAction !== null) {
+      permissions.set(row.permissionKey, {
+        key: row.permissionKey,
+        resource: row.permissionResource,
+        action: row.permissionAction
+      })
+    }
   }
+
+  const permissionKeys = new Set(permissions.keys())
+  const rules = buildAbilityRules(firstRow.userId, [...permissions.values()])
 
   return {
     user: { id: firstRow.userId, email: firstRow.email },
     roles: [...roleMap.values()],
-    permissions,
+    permissionKeys,
+    rules,
+    ability: createAppAbility(rules),
     authorizationVersion: firstRow.authorizationVersion
   }
 }
@@ -133,7 +146,7 @@ export async function replaceRolePermissions(roleId: number, permissionIds: numb
     throw new UnknownPermissionIdsError()
 
   const requestedKeys = requested.map(permission => permission.key)
-  validateAssignablePermissions(caller.permissions, requestedKeys)
+  validateAssignablePermissions(caller.permissionKeys, requestedKeys)
 
   if (role.slug === SUPER_ADMIN_SLUG && !requestedKeys.includes(WILDCARD_PERMISSION))
     throw new SystemRoleProtectedError('The super admin role must keep the wildcard permission')
@@ -187,10 +200,10 @@ export async function replaceUserRoles(userId: string, roleIds: number[], caller
   const grantsWildcard = requestedHasWildcard && !currentHasWildcard
   const revokesWildcard = currentHasWildcard && !requestedHasWildcard
 
-  if ((grantsWildcard || revokesWildcard) && !caller.permissions.has(WILDCARD_PERMISSION))
+  if ((grantsWildcard || revokesWildcard) && !caller.permissionKeys.has(WILDCARD_PERMISSION))
     throw new SuperAdminAssignmentError()
 
-  validateAssignablePermissions(caller.permissions, requestedPermissionKeys)
+  validateAssignablePermissions(caller.permissionKeys, requestedPermissionKeys)
 
   const replaced = await repository.replaceUserRoles(
     userId,

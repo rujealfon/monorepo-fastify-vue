@@ -18,13 +18,28 @@ describe('tasksView', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     const response = { ok: true, status: 200 }
-    api.GET.mockResolvedValue({
-      data: {
-        data: [{ id: 1, name: 'Ship CRUD', done: false, createdAt: '', updatedAt: '' }],
-        pagination: { page: 1, limit: 20, total: 21, totalPages: 2 }
-      },
-      response
-    })
+    api.GET.mockImplementation(async (url: string) => url === '/api/v1/me/authorization'
+      ? {
+          data: {
+            user: { id: 'user-1', email: 'person@example.com' },
+            roles: [],
+            rules: [
+              { action: 'create', subject: 'tasks' },
+              { action: 'read', subject: 'tasks', conditions: { userId: 'user-1' } },
+              { action: 'update', subject: 'tasks', conditions: { userId: 'user-1' } },
+              { action: 'delete', subject: 'tasks', conditions: { userId: 'user-1' } }
+            ],
+            authorizationVersion: 1
+          },
+          response
+        }
+      : {
+          data: {
+            data: [{ id: 1, userId: 'user-1', name: 'Ship CRUD', done: false, createdAt: '', updatedAt: '' }],
+            pagination: { page: 1, limit: 20, total: 21, totalPages: 2 }
+          },
+          response
+        })
     api.POST.mockResolvedValue({ response })
     api.PATCH.mockResolvedValue({ response })
     api.DELETE.mockResolvedValue({ response })
@@ -42,7 +57,7 @@ describe('tasksView', () => {
 
     api.GET.mockResolvedValueOnce({
       data: {
-        data: [{ id: 1, name: 'Ship CRUD', done: false, createdAt: '', updatedAt: '' }],
+        data: [{ id: 1, userId: 'user-1', name: 'Ship CRUD', done: false, createdAt: '', updatedAt: '' }],
         pagination: { page: 2, limit: 20, total: 21, totalPages: 2 }
       },
       response: { ok: true, status: 200 }
@@ -74,7 +89,9 @@ describe('tasksView', () => {
   })
 
   it('shows query failures', async () => {
-    api.GET.mockResolvedValue({ response: { ok: false, status: 503 } })
+    api.GET.mockImplementation(async (url: string) => url === '/api/v1/me/authorization'
+      ? { response: { ok: false, status: 401 } }
+      : { response: { ok: false, status: 503 } })
     const wrapper = mount(TasksView, {
       global: { plugins: [createPinia(), [PiniaColada, { queryOptions: { staleTime: 0 } }]] }
     })

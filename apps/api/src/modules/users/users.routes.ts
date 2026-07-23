@@ -59,7 +59,7 @@ export const profileRoutes: FastifyPluginAsync = async (fastify) => {
   const app = fastify.withTypeProvider<ZodTypeProvider>()
 
   app.get('/', {
-    onRequest: [app.authenticate, app.authorize(['profile.read_own'])],
+    onRequest: [app.authenticate, app.authorize('read', 'profile')],
     schema: {
       tags: ['Profile'],
       response: { 200: publicUserSchema, 401: httpErrorSchema, 403: httpErrorSchema, 429: httpErrorSchema, 500: httpErrorSchema }
@@ -67,7 +67,7 @@ export const profileRoutes: FastifyPluginAsync = async (fastify) => {
   }, handlers.profile)
 
   app.patch<{ Body: PatchProfile }>('/', {
-    onRequest: [app.authenticate, app.authorize(['profile.update_own'])],
+    onRequest: [app.authenticate, app.authorize('update', 'profile')],
     preHandler: app.sameOrigin,
     schema: {
       tags: ['Profile'],

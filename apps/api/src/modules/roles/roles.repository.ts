@@ -25,7 +25,9 @@ export function findAuthorizationRows(userId: string) {
     roleId: roles.id,
     roleName: roles.name,
     roleSlug: roles.slug,
-    permissionKey: permissions.key
+    permissionKey: permissions.key,
+    permissionResource: permissions.resource,
+    permissionAction: permissions.action
   })
     .from(users)
     .leftJoin(userRoles, eq(userRoles.userId, users.id))

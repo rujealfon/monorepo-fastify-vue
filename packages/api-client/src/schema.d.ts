@@ -329,7 +329,13 @@ export interface paths {
                                 name: string;
                                 slug: string;
                             }[];
-                            permissions: string[];
+                            rules: {
+                                action: string;
+                                subject: string;
+                                conditions?: {
+                                    [key: string]: (string | number | boolean) | null;
+                                };
+                            }[];
                             authorizationVersion: number;
                         };
                     };

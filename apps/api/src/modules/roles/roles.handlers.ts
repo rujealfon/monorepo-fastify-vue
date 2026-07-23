@@ -47,6 +47,6 @@ export function putUserRoles(request: FastifyRequest<{ Params: UserParams, Body:
 }
 
 export function getMyAuthorization(request: FastifyRequest) {
-  const { user, roles, permissions, authorizationVersion } = request.authorization!
-  return { user, roles, permissions: [...permissions].sort(), authorizationVersion }
+  const { user, roles, rules, authorizationVersion } = request.authorization!
+  return { user, roles, rules, authorizationVersion }
 }

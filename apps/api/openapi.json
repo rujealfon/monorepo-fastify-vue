@@ -577,12 +577,42 @@
                         "additionalProperties": false
                       }
                     },
-                    "permissions": {
+                    "rules": {
                       "type": "array",
                       "items": {
-                        "type": "string",
-                        "maxLength": 150,
-                        "pattern": "^(\\*|[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)+)$"
+                        "type": "object",
+                        "properties": {
+                          "action": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "subject": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "conditions": {
+                            "type": "object",
+                            "additionalProperties": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "number"
+                                },
+                                {
+                                  "type": "boolean"
+                                }
+                              ],
+                              "nullable": true
+                            }
+                          }
+                        },
+                        "required": [
+                          "action",
+                          "subject"
+                        ],
+                        "additionalProperties": false
                       }
                     },
                     "authorizationVersion": {
@@ -595,7 +625,7 @@
                   "required": [
                     "user",
                     "roles",
-                    "permissions",
+                    "rules",
                     "authorizationVersion"
                   ],
                   "additionalProperties": false

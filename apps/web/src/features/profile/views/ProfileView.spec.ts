@@ -21,7 +21,17 @@ describe('profile view', () => {
     vi.clearAllMocks()
     const response = { ok: true, status: 200 }
     const profile = { firstName: 'Person', lastName: null, gender: null, birthDate: null, bio: null, createdAt: '', updatedAt: '' }
-    api.GET.mockResolvedValue({ data: { id: '1', email: 'person@example.com', profile, createdAt: '', updatedAt: '' }, response })
+    api.GET.mockImplementation(async (url: string) => url === '/api/v1/me/authorization'
+      ? {
+          data: {
+            user: { id: '1', email: 'person@example.com' },
+            roles: [],
+            rules: [{ action: 'update', subject: 'profile', conditions: { id: '1' } }],
+            authorizationVersion: 1
+          },
+          response
+        }
+      : { data: { id: '1', email: 'person@example.com', profile, createdAt: '', updatedAt: '' }, response })
     api.PATCH.mockResolvedValue({ data: { id: '1', email: 'person@example.com', profile: { ...profile, firstName: 'Updated' }, createdAt: '', updatedAt: '' }, response })
     api.POST.mockResolvedValue({ response: { ok: true, status: 204 } })
   })

@@ -37,7 +37,7 @@ export const rolesRoutes: FastifyPluginAsync = async (fastify) => {
   const app = fastify.withTypeProvider<ZodTypeProvider>()
 
   app.get('/', {
-    onRequest: [app.authenticate, app.authorize(['roles.read'])],
+    onRequest: [app.authenticate, app.authorize('read', 'roles')],
     schema: {
       tags: ['Roles'],
       response: { 200: z.array(roleWithUserCountSchema), ...readErrors }
@@ -45,7 +45,7 @@ export const rolesRoutes: FastifyPluginAsync = async (fastify) => {
   }, handlers.listRoles)
 
   app.post<{ Body: CreateRole }>('/', {
-    onRequest: [app.authenticate, app.authorize(['roles.create'])],
+    onRequest: [app.authenticate, app.authorize('create', 'roles')],
     preHandler: app.sameOrigin,
     schema: {
       tags: ['Roles'],
@@ -55,7 +55,7 @@ export const rolesRoutes: FastifyPluginAsync = async (fastify) => {
   }, handlers.createRole)
 
   app.get<{ Params: { roleId: number } }>('/:roleId', {
-    onRequest: [app.authenticate, app.authorize(['roles.read'])],
+    onRequest: [app.authenticate, app.authorize('read', 'roles')],
     schema: {
       tags: ['Roles'],
       params: roleParamsSchema,
@@ -64,7 +64,7 @@ export const rolesRoutes: FastifyPluginAsync = async (fastify) => {
   }, handlers.getRole)
 
   app.patch<{ Params: { roleId: number }, Body: PatchRole }>('/:roleId', {
-    onRequest: [app.authenticate, app.authorize(['roles.update'])],
+    onRequest: [app.authenticate, app.authorize('update', 'roles')],
     preHandler: app.sameOrigin,
     schema: {
       tags: ['Roles'],
@@ -76,7 +76,7 @@ export const rolesRoutes: FastifyPluginAsync = async (fastify) => {
 
   // eslint-disable-next-line drizzle/enforce-delete-with-where -- this is a Fastify route, not a Drizzle query
   app.delete<{ Params: { roleId: number } }>('/:roleId', {
-    onRequest: [app.authenticate, app.authorize(['roles.delete'])],
+    onRequest: [app.authenticate, app.authorize('delete', 'roles')],
     preHandler: app.sameOrigin,
     schema: {
       tags: ['Roles'],
@@ -86,7 +86,7 @@ export const rolesRoutes: FastifyPluginAsync = async (fastify) => {
   }, handlers.deleteRole)
 
   app.put<{ Params: { roleId: number }, Body: ReplaceRolePermissions }>('/:roleId/permissions', {
-    onRequest: [app.authenticate, app.authorize(['roles.assign_permissions'])],
+    onRequest: [app.authenticate, app.authorize('assign_permissions', 'roles')],
     preHandler: app.sameOrigin,
     schema: {
       tags: ['Roles'],
@@ -101,7 +101,7 @@ export const userRolesRoutes: FastifyPluginAsync = async (fastify) => {
   const app = fastify.withTypeProvider<ZodTypeProvider>()
 
   app.get<{ Querystring: UsersPageQuery }>('/', {
-    onRequest: [app.authenticate, app.authorize(['users.read'])],
+    onRequest: [app.authenticate, app.authorize('read', 'users')],
     schema: {
       tags: ['Roles'],
       querystring: usersPageQuerySchema,
@@ -110,7 +110,7 @@ export const userRolesRoutes: FastifyPluginAsync = async (fastify) => {
   }, handlers.listUsers)
 
   app.get<{ Params: { userId: string } }>('/:userId/roles', {
-    onRequest: [app.authenticate, app.authorize(['users.read'])],
+    onRequest: [app.authenticate, app.authorize('read', 'users')],
     schema: {
       tags: ['Roles'],
       params: userParamsSchema,
@@ -119,7 +119,7 @@ export const userRolesRoutes: FastifyPluginAsync = async (fastify) => {
   }, handlers.getUserRoles)
 
   app.put<{ Params: { userId: string }, Body: ReplaceUserRoles }>('/:userId/roles', {
-    onRequest: [app.authenticate, app.authorize(['users.assign_roles'])],
+    onRequest: [app.authenticate, app.authorize('assign_roles', 'users')],
     preHandler: app.sameOrigin,
     schema: {
       tags: ['Roles'],
@@ -134,7 +134,7 @@ export const authorizationRoutes: FastifyPluginAsync = async (fastify) => {
   const app = fastify.withTypeProvider<ZodTypeProvider>()
 
   app.get('/authorization', {
-    onRequest: [app.authenticate, app.authorize([])],
+    onRequest: [app.authenticate, request => app.loadAuthorization(request).then(() => undefined)],
     schema: {
       tags: ['Authorization'],
       response: { 200: authorizationSchema, 401: httpErrorSchema, 429: httpErrorSchema, 500: httpErrorSchema }

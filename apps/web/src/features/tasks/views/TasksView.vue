@@ -2,6 +2,7 @@
 import { useQuery } from '@pinia/colada'
 import { computed, reactive, ref, useTemplateRef } from 'vue'
 
+import { useAuthorization } from '@/features/permissions'
 import { useTaskMutations } from '@/features/tasks/mutations'
 import { tasksQuery } from '@/features/tasks/queries'
 import { apiFormErrors } from '@/shared/api/form-errors'
@@ -10,6 +11,7 @@ const state = reactive({ name: '' })
 const form = useTemplateRef('form')
 const page = ref(1)
 const tasks = useQuery(() => tasksQuery(page.value))
+const { can } = useAuthorization()
 const { create: createMutation, update: updateMutation, remove: deleteMutation } = useTaskMutations(() => state.name = '')
 
 const pending = computed(() => [createMutation, updateMutation, deleteMutation]
@@ -40,7 +42,7 @@ async function create() {
       </p>
     </div>
 
-    <UForm ref="form" :state="state" class="flex items-start gap-2" novalidate @submit.prevent="create">
+    <UForm v-if="can('create', 'tasks')" ref="form" :state="state" class="flex items-start gap-2" novalidate @submit.prevent="create">
       <UFormField name="name" class="flex-1">
         <UInput
           id="task-name"
@@ -85,7 +87,7 @@ async function create() {
         <UCheckbox
           :aria-label="`${task.done ? 'Reopen' : 'Complete'} ${task.name}`"
           :model-value="task.done"
-          :disabled="pending"
+          :disabled="pending || !can('update', 'tasks', task)"
           @update:model-value="updateMutation.mutate({ id: task.id, done: !task.done })"
         />
         <span
@@ -93,6 +95,7 @@ async function create() {
           :class="task.done ? 'text-dimmed line-through' : 'text-default'"
         >{{ task.name }}</span>
         <UButton
+          v-if="can('delete', 'tasks', task)"
           :aria-label="`Delete ${task.name}`"
           icon="i-lucide-trash-2"
           color="error"

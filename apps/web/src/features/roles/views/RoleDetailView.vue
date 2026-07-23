@@ -43,8 +43,8 @@ const error = computed(() => role.error.value
   ?? updateMutation.error.value
   ?? replaceMutation.error.value)
 
-const canEdit = computed(() => can('roles.update'))
-const canAssign = computed(() => can('roles.assign_permissions'))
+const canEdit = computed(() => can('update', 'roles'))
+const canAssign = computed(() => can('assign_permissions', 'roles'))
 
 function togglePermission(id: number, checked: boolean) {
   const next = new Set(selectedIds.value)

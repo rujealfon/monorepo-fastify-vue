@@ -145,7 +145,7 @@ function requestContext(log: { ipAddress: string | null, userAgent: string | nul
         <div class="flex flex-wrap items-center gap-2">
           <UBadge color="primary" variant="subtle" :label="actionLabels.get(log.action) ?? log.action" />
           <RouterLink
-            v-if="log.entityType === 'role' && can('roles.read')"
+            v-if="log.entityType === 'role' && can('read', 'roles')"
             :to="`/admin/roles/${log.entityId}`"
             class="text-sm text-primary hover:underline"
           >
