@@ -1,16 +1,12 @@
-import type { Authorization, PermissionKey } from '@monorepo-fastify-vue/api-client'
+import type { MongoAbility } from '@casl/ability'
+import type { Authorization } from '@monorepo-fastify-vue/api-client'
 
-const WILDCARD: PermissionKey = '*'
+import { createMongoAbility, subject } from '@casl/ability'
 
-export function can(authorization: Authorization | null | undefined, permission: PermissionKey) {
-  const granted = authorization?.permissions
-  return Boolean(granted && (granted.includes(WILDCARD) || granted.includes(permission)))
+export function createAbility(authorization: Authorization | null | undefined) {
+  return createMongoAbility(authorization?.rules ?? [])
 }
 
-export function canAll(authorization: Authorization | null | undefined, permissions: readonly PermissionKey[]) {
-  return permissions.every(permission => can(authorization, permission))
-}
-
-export function canAny(authorization: Authorization | null | undefined, permissions: readonly PermissionKey[]) {
-  return permissions.some(permission => can(authorization, permission))
+export function can(ability: MongoAbility, action: string, subjectType: string, resource?: Record<string, unknown>) {
+  return ability.can(action, resource ? subject(subjectType, resource) : subjectType)
 }

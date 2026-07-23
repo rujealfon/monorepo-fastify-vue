@@ -2,7 +2,7 @@ import { boolean, index, integer, pgTable, primaryKey, text, timestamp, uuid, va
 import { createSelectSchema } from 'drizzle-zod'
 import { z } from 'zod'
 
-import { permissionKeySchema, permissions, selectPermissionSchema } from '#api/modules/permissions/permissions.schema.js'
+import { abilityRuleSchema, permissions, selectPermissionSchema } from '#api/modules/permissions/permissions.schema.js'
 import { users } from '#api/modules/users/users.schema.js'
 
 export const roles = pgTable('roles', {
@@ -111,7 +111,7 @@ export const usersPageSchema = z.object({
 export const authorizationSchema = z.object({
   user: z.object({ id: z.uuid(), email: z.string() }),
   roles: z.array(assignedRoleSchema),
-  permissions: z.array(permissionKeySchema),
+  rules: z.array(abilityRuleSchema),
   authorizationVersion: z.number().int().positive()
 })
 export type Authorization = z.infer<typeof authorizationSchema>

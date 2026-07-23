@@ -1,5 +1,4 @@
 import type { FastifyReply, FastifyRequest } from 'fastify'
-import type { PermissionMode } from '#api/modules/permissions'
 import type { AuthorizationContext } from '#api/modules/roles'
 
 import cookie from '@fastify/cookie'
@@ -8,7 +7,7 @@ import fp from 'fastify-plugin'
 
 import { config } from '#api/config/index.js'
 import { recordAuditEvent } from '#api/modules/audit-logs'
-import { hasAllPermissions, hasAnyPermission, InsufficientPermissionError } from '#api/modules/permissions'
+import { InsufficientPermissionError } from '#api/modules/permissions'
 import { getAuthorization } from '#api/modules/roles'
 import { UnauthorizedError } from '#api/modules/users'
 
@@ -45,19 +44,16 @@ export default fp(async (fastify) => {
     return context
   })
 
-  fastify.decorate('authorize', (permissions: readonly string[], mode: PermissionMode = 'all') => {
+  fastify.decorate('authorize', (action: string, subject: string) => {
     return async (request: FastifyRequest) => {
       const context = await fastify.loadAuthorization(request)
-      const allowed = mode === 'any'
-        ? hasAnyPermission(context.permissions, permissions)
-        : hasAllPermissions(context.permissions, permissions)
-      if (!allowed) {
+      if (!context.ability.can(action, subject)) {
         await recordAuditEvent({
           actorId: context.user.id,
           action: 'auth.permission_denied',
           entityType: 'user',
           entityId: context.user.id,
-          metadata: { method: request.method, url: request.url, requiredPermissions: [...permissions] }
+          metadata: { method: request.method, url: request.url, action, subject }
         })
         throw new InsufficientPermissionError()
       }
@@ -90,7 +86,7 @@ declare module 'fastify' {
   // eslint-disable-next-line ts/consistent-type-definitions -- interface required for declaration merging
   interface FastifyInstance {
     authenticate: (request: FastifyRequest) => Promise<void>
-    authorize: (permissions: readonly string[], mode?: PermissionMode) => (request: FastifyRequest) => Promise<void>
+    authorize: (action: string, subject: string) => (request: FastifyRequest) => Promise<void>
     loadAuthorization: (request: FastifyRequest) => Promise<AuthorizationContext>
     sameOrigin: (request: FastifyRequest) => Promise<void>
     setSession: (reply: FastifyReply, userId: string) => void

@@ -17,8 +17,6 @@ export const permissions = pgTable('permissions', {
 
 export const WILDCARD_PERMISSION = '*'
 
-export type PermissionMode = 'all' | 'any'
-
 export const permissionKeySchema = z.string().max(150).regex(
   /^(\*|[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+)$/,
   'Permission keys use the resource.action format'
@@ -29,3 +27,12 @@ export const selectPermissionSchema = createSelectSchema(permissions, {
   key: permissionKeySchema
 })
 export type SelectPermission = z.infer<typeof selectPermissionSchema>
+
+const abilityConditionValueSchema = z.union([z.string(), z.number(), z.boolean(), z.null()])
+
+export const abilityRuleSchema = z.object({
+  action: z.string().min(1),
+  subject: z.string().min(1),
+  conditions: z.record(z.string(), abilityConditionValueSchema).optional()
+})
+export type AbilityRule = z.infer<typeof abilityRuleSchema>

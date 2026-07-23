@@ -1,5 +1,3 @@
-import type { PermissionKey } from '@monorepo-fastify-vue/api-client'
-
 import { useQueryCache } from '@pinia/colada'
 import { createRouter, createWebHistory } from 'vue-router'
 
@@ -10,7 +8,7 @@ import { auditLogRoutes } from '@/features/audit-logs'
 import { authRoutes } from '@/features/auth'
 import { healthRoutes } from '@/features/health'
 import { homeRoutes } from '@/features/home'
-import { authorizationQuery, canAll, canAny, permissionRoutes } from '@/features/permissions'
+import { authorizationQuery, createAbility, permissionRoutes } from '@/features/permissions'
 import { profileRoutes } from '@/features/profile'
 import { roleRoutes } from '@/features/roles'
 import { taskRoutes } from '@/features/tasks'
@@ -33,9 +31,9 @@ const router = createRouter({
 
 router.beforeEach(async (to) => {
   const cache = useQueryCache()
-  const requiredPermissions = (to.meta.permissions as PermissionKey[] | undefined) ?? []
+  const requiredAbility = to.meta.ability as { action: string, subject: string } | undefined
 
-  if (!to.meta.requiresAuth && requiredPermissions.length === 0)
+  if (!to.meta.requiresAuth && !requiredAbility)
     return
 
   const state = await cache.refresh(cache.ensure(authorizationQuery)).catch(() => null)
@@ -46,14 +44,10 @@ router.beforeEach(async (to) => {
   if (!authorization)
     return { path: '/login', query: { redirect: to.fullPath } }
 
-  if (requiredPermissions.length === 0)
+  if (!requiredAbility)
     return
 
-  const allowed = to.meta.permissionMode === 'any'
-    ? canAny(authorization, requiredPermissions)
-    : canAll(authorization, requiredPermissions)
-
-  if (!allowed)
+  if (!createAbility(authorization).can(requiredAbility.action, requiredAbility.subject))
     return { name: 'forbidden' }
 })
 

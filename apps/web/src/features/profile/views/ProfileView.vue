@@ -5,6 +5,7 @@ import { computed, reactive, useTemplateRef, watchEffect } from 'vue'
 import { useRouter } from 'vue-router'
 
 import { useAuthMutations } from '@/features/auth'
+import { useAuthorization } from '@/features/permissions'
 
 import { useProfileMutation } from '@/features/profile/mutations'
 import { profileQuery } from '@/features/profile/queries'
@@ -14,6 +15,7 @@ const router = useRouter()
 const profile = useQuery(profileQuery)
 const update = useProfileMutation()
 const { logout } = useAuthMutations()
+const { can } = useAuthorization()
 const form = useTemplateRef('form')
 const NOT_SPECIFIED = 'not_specified'
 const state = reactive({
@@ -109,7 +111,13 @@ async function signOut() {
         />
 
         <div class="col-span-full flex justify-end">
-          <UButton type="submit" label="Save" :disabled="pending" :loading="update.asyncStatus.value === 'loading'" />
+          <UButton
+            v-if="can('update', 'profile', profile.data.value ?? undefined)"
+            type="submit"
+            label="Save"
+            :disabled="pending"
+            :loading="update.asyncStatus.value === 'loading'"
+          />
         </div>
       </UForm>
     </UCard>

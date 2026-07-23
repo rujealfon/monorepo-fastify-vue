@@ -1,17 +1,17 @@
-import type { PermissionKey } from '@monorepo-fastify-vue/api-client'
 import { useQuery } from '@pinia/colada'
+import { computed } from 'vue'
 
-import { can, canAll, canAny } from '@/features/permissions/permissions.utils'
+import { can, createAbility } from '@/features/permissions/permissions.utils'
 import { authorizationQuery } from '@/features/permissions/queries'
 
 export function useAuthorization() {
   const query = useQuery(authorizationQuery)
+  const ability = computed(() => createAbility(query.data.value))
 
   return {
     authorization: query.data,
+    ability,
     isLoading: query.isLoading,
-    can: (permission: PermissionKey) => can(query.data.value, permission),
-    canAll: (permissions: readonly PermissionKey[]) => canAll(query.data.value, permissions),
-    canAny: (permissions: readonly PermissionKey[]) => canAny(query.data.value, permissions)
+    can: (action: string, subject: string, resource?: Record<string, unknown>) => can(ability.value, action, subject, resource)
   }
 }

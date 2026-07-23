@@ -74,9 +74,12 @@ describe('roles routes', () => {
     const body = response.json()
     expect(body.user.id).toBe(standardUserId)
     expect(body.roles.map((role: { slug: string }) => role.slug)).toEqual(['standard-user'])
-    expect(body.permissions).toContain('profile.read_own')
-    expect(body.permissions).toContain('tasks.read')
-    expect(body.permissions).not.toContain('roles.read')
+    expect(body.rules).toEqual(expect.arrayContaining([
+      { action: 'read', subject: 'profile', conditions: { id: standardUserId } },
+      { action: 'read', subject: 'tasks', conditions: { userId: standardUserId } }
+    ]))
+    expect(body.rules).not.toContainEqual({ action: 'read', subject: 'roles' })
+    expect(body).not.toHaveProperty('permissions')
     expect(body.authorizationVersion).toBeGreaterThanOrEqual(1)
   })
 
@@ -239,7 +242,7 @@ describe('roles routes', () => {
 
     const after = await app.inject({ method: 'GET', url: '/api/v1/me/authorization', headers: standardAuth })
     expect(after.json().authorizationVersion).toBe(versionBefore + 1)
-    expect(after.json().permissions).toContain('roles.read')
+    expect(after.json().rules).toContainEqual({ action: 'read', subject: 'roles' })
   })
 
   it('never removes the last super admin', async () => {

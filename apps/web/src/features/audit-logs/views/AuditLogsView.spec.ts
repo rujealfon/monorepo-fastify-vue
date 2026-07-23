@@ -29,7 +29,10 @@ const authorizationResponse = {
   data: {
     user: { id: 'a3f1c2d4-5b6e-4a7f-8c9d-0e1f2a3b4c5d', email: 'admin@example.com' },
     roles: [],
-    permissions: ['audit.read', 'roles.read'],
+    rules: [
+      { action: 'read', subject: 'audit' },
+      { action: 'read', subject: 'roles' }
+    ],
     authorizationVersion: 1
   },
   response: { ok: true, status: 200 }

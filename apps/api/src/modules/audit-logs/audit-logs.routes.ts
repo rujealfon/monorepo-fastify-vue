@@ -11,7 +11,7 @@ export const auditLogsRoutes: FastifyPluginAsync = async (fastify) => {
   const app = fastify.withTypeProvider<ZodTypeProvider>()
 
   app.get<{ Querystring: AuditLogsPageQuery }>('/', {
-    onRequest: [app.authenticate, app.authorize(['audit.read'])],
+    onRequest: [app.authenticate, app.authorize('read', 'audit')],
     schema: {
       tags: ['Audit Logs'],
       querystring: auditLogsPageQuerySchema,

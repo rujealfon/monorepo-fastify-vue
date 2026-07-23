@@ -17,13 +17,13 @@ const links = computed<NavigationMenuItem[]>(() => [
   { label: 'Tasks', to: '/tasks', icon: 'i-lucide-list-checks' },
   { label: 'Health', to: '/health', icon: 'i-lucide-activity' },
   { label: 'About', to: '/about', icon: 'i-lucide-info' },
-  ...can('roles.read')
+  ...can('read', 'roles')
     ? [{ label: 'Roles', to: '/admin/roles', icon: 'i-lucide-shield' } satisfies NavigationMenuItem]
     : [],
-  ...can('users.read')
+  ...can('read', 'users')
     ? [{ label: 'Users', to: '/admin/users', icon: 'i-lucide-users' } satisfies NavigationMenuItem]
     : [],
-  ...can('audit.read')
+  ...can('read', 'audit')
     ? [{ label: 'Audit Logs', to: '/admin/audit-logs', icon: 'i-lucide-scroll-text' } satisfies NavigationMenuItem]
     : []
 ])

@@ -2,6 +2,7 @@ import type { AuthorizationContext } from '#api/modules/roles/roles.service.js'
 
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { createAppAbility } from '#api/modules/permissions'
 import * as permissionsRepository from '#api/modules/permissions/permissions.repository.js'
 import {
   LastSuperAdminError,
@@ -51,10 +52,13 @@ const usersReadPermission = { id: 2, key: 'users.read', resource: 'users', actio
 const usersDeletePermission = { id: 3, key: 'users.delete', resource: 'users', action: 'delete', description: null, isSystem: true, createdAt: now }
 
 function caller(permissions: string[]): AuthorizationContext {
+  const rules = permissions.includes('*') ? [{ action: 'manage', subject: 'all' }] : []
   return {
     user: { id: 'caller-id', email: 'caller@example.com' },
     roles: [],
-    permissions: new Set(permissions),
+    permissionKeys: new Set(permissions),
+    rules,
+    ability: createAppAbility(rules),
     authorizationVersion: 1
   }
 }
@@ -68,9 +72,9 @@ describe('roles.service', () => {
   describe('getAuthorization', () => {
     it('collapses join rows into roles and a permission set', async () => {
       vi.mocked(rolesRepository.findAuthorizationRows).mockResolvedValue([
-        { userId: 'u1', email: 'a@example.com', authorizationVersion: 3, roleId: 1, roleName: 'Admin', roleSlug: 'admin', permissionKey: 'users.read' },
-        { userId: 'u1', email: 'a@example.com', authorizationVersion: 3, roleId: 1, roleName: 'Admin', roleSlug: 'admin', permissionKey: 'roles.read' },
-        { userId: 'u1', email: 'a@example.com', authorizationVersion: 3, roleId: 2, roleName: 'Viewer', roleSlug: 'viewer', permissionKey: 'users.read' }
+        { userId: 'u1', email: 'a@example.com', authorizationVersion: 3, roleId: 1, roleName: 'Admin', roleSlug: 'admin', permissionKey: 'users.read', permissionResource: 'users', permissionAction: 'read' },
+        { userId: 'u1', email: 'a@example.com', authorizationVersion: 3, roleId: 1, roleName: 'Admin', roleSlug: 'admin', permissionKey: 'roles.read', permissionResource: 'roles', permissionAction: 'read' },
+        { userId: 'u1', email: 'a@example.com', authorizationVersion: 3, roleId: 2, roleName: 'Viewer', roleSlug: 'viewer', permissionKey: 'users.read', permissionResource: 'users', permissionAction: 'read' }
       ])
 
       const context = await rolesService.getAuthorization('u1')
@@ -78,18 +82,23 @@ describe('roles.service', () => {
         { id: 1, name: 'Admin', slug: 'admin' },
         { id: 2, name: 'Viewer', slug: 'viewer' }
       ])
-      expect([...context!.permissions].sort()).toEqual(['roles.read', 'users.read'])
+      expect([...context!.permissionKeys].sort()).toEqual(['roles.read', 'users.read'])
+      expect(context?.rules).toEqual([
+        { action: 'read', subject: 'users' },
+        { action: 'read', subject: 'roles' }
+      ])
       expect(context?.authorizationVersion).toBe(3)
     })
 
     it('returns a context with no permissions for a user without roles', async () => {
       vi.mocked(rolesRepository.findAuthorizationRows).mockResolvedValue([
-        { userId: 'u1', email: 'a@example.com', authorizationVersion: 1, roleId: null, roleName: null, roleSlug: null, permissionKey: null }
+        { userId: 'u1', email: 'a@example.com', authorizationVersion: 1, roleId: null, roleName: null, roleSlug: null, permissionKey: null, permissionResource: null, permissionAction: null }
       ])
 
       const context = await rolesService.getAuthorization('u1')
       expect(context?.roles).toEqual([])
-      expect(context?.permissions.size).toBe(0)
+      expect(context?.permissionKeys.size).toBe(0)
+      expect(context?.rules).toEqual([])
     })
 
     it('returns null for an unknown user', async () => {

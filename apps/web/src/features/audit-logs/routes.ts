@@ -5,6 +5,6 @@ export const auditLogRoutes: RouteRecordRaw[] = [
     path: '/admin/audit-logs',
     name: 'admin-audit-logs',
     component: () => import('./views/AuditLogsView.vue'),
-    meta: { requiresAuth: true, permissions: ['audit.read'] }
+    meta: { requiresAuth: true, ability: { action: 'read', subject: 'audit' } }
   }
 ]
