@@ -4,7 +4,7 @@ import type { Role } from '@monorepo-fastify-vue/api-client'
 import { useQuery } from '@pinia/colada'
 import { computed, reactive, ref, useTemplateRef } from 'vue'
 
-import { Can } from '@/features/permissions'
+import { Can, subject } from '@/features/permissions'
 import { useRoleMutations } from '@/features/roles/mutations'
 import { rolesQuery } from '@/features/roles/queries'
 import { apiFormErrors } from '@/shared/api/form-errors'
@@ -69,11 +69,11 @@ async function confirmDelete() {
         Roles
       </h1>
       <p class="text-muted">
-        Manage roles and the permissions they grant.
+        Manage roles and the ability rules they grant.
       </p>
     </div>
 
-    <Can permission="roles.create">
+    <Can action="create" subject="Role">
       <UForm ref="form" :state="state" class="flex items-start gap-2" novalidate @submit.prevent="create">
         <UFormField name="name" class="flex-1">
           <UInput
@@ -137,7 +137,7 @@ async function confirmDelete() {
         </div>
         <UBadge v-if="role.isSystem" color="neutral" variant="subtle" label="System" />
         <UBadge v-if="!role.isActive" color="warning" variant="subtle" label="Inactive" />
-        <Can permission="roles.delete">
+        <Can action="delete" :subject="subject('Role', role)">
           <UButton
             v-if="!role.isSystem"
             :aria-label="`Delete ${role.name}`"
@@ -157,7 +157,7 @@ async function confirmDelete() {
         <p v-if="roleToDelete?.userCount" class="text-sm text-default">
           This role is currently assigned to
           <strong>{{ roleToDelete.userCount }}</strong>
-          {{ roleToDelete.userCount === 1 ? 'user' : 'users' }}. Deleting it will remove it, and any permissions it
+          {{ roleToDelete.userCount === 1 ? 'user' : 'users' }}. Deleting it will remove it, and any ability rules it
           uniquely grants, from {{ roleToDelete.userCount === 1 ? 'them' : 'all of them' }} immediately.
         </p>
         <p v-else class="text-sm text-default">

@@ -1,55 +1,31 @@
-import type { AssignedRole, CreateRole, PatchRole } from './roles.schema.js'
+import type { AuthorizationContext } from '#api/modules/authorization'
+import type { CreateRole, PatchRole } from './roles.schema.js'
 
 import { recordAuditEvent } from '#api/modules/audit-logs'
-import { findPermissionsByIds, WILDCARD_PERMISSION } from '#api/modules/permissions'
+import { listRoleRules, projectSubject, replaceRoleRules as replaceAssignedRoleRules, subject } from '#api/modules/authorization'
 
 import {
+  AbilityEscalationError,
+  AtLeastOneRoleRequiredError,
   LastSuperAdminError,
-  PermissionEscalationError,
   RoleNotFoundError,
   RoleSlugTakenError,
+  SoleAssignedRoleError,
   SuperAdminAssignmentError,
   SystemRoleProtectedError,
   TargetUserNotFoundError,
-  UnknownPermissionIdsError,
   UnknownRoleIdsError
 } from './roles.errors.js'
 import * as repository from './roles.repository.js'
 import { SUPER_ADMIN_SLUG } from './roles.schema.js'
 
-export type AuthorizationContext = {
-  user: { id: string, email: string }
-  roles: AssignedRole[]
-  permissions: Set<string>
-  authorizationVersion: number
+function projectRole<T extends Record<string, unknown>>(caller: AuthorizationContext | undefined, role: T) {
+  return caller ? projectSubject(caller.ability, 'Role', role) : role
 }
 
-export async function getAuthorization(userId: string): Promise<AuthorizationContext | null> {
-  const rows = await repository.findAuthorizationRows(userId)
-  const firstRow = rows.at(0)
-  if (!firstRow)
-    return null
-
-  const roleMap = new Map<number, AssignedRole>()
-  const permissions = new Set<string>()
-
-  for (const row of rows) {
-    if (row.roleId !== null && row.roleName !== null && row.roleSlug !== null)
-      roleMap.set(row.roleId, { id: row.roleId, name: row.roleName, slug: row.roleSlug })
-    if (row.permissionKey !== null)
-      permissions.add(row.permissionKey)
-  }
-
-  return {
-    user: { id: firstRow.userId, email: firstRow.email },
-    roles: [...roleMap.values()],
-    permissions,
-    authorizationVersion: firstRow.authorizationVersion
-  }
-}
-
-export function listRoles() {
-  return repository.findRoles()
+export async function listRoles(caller?: AuthorizationContext) {
+  const found = await repository.findRoles(caller?.ability)
+  return found.map(role => projectRole(caller, role))
 }
 
 async function requireRole(roleId: number) {
@@ -59,12 +35,16 @@ async function requireRole(roleId: number) {
   return role
 }
 
-export async function getRole(roleId: number) {
+export async function getRole(roleId: number, caller?: AuthorizationContext) {
   const role = await requireRole(roleId)
-  return { ...role, permissions: await repository.findRolePermissions(roleId) }
+  if (caller && !caller.ability.can('read', subject('Role', role)))
+    throw new RoleNotFoundError()
+  return projectRole(caller, { ...role, abilityRules: await listRoleRules(roleId) })
 }
 
-export async function createRole(data: CreateRole, actorId: string) {
+export async function createRole(data: CreateRole, actorId: string, caller?: AuthorizationContext) {
+  if (caller && !caller.ability.can('create', subject('Role', { ...data, isSystem: false, isActive: true })))
+    throw new AbilityEscalationError()
   try {
     const role = await repository.insertRole(data)
     await recordAuditEvent({
@@ -74,7 +54,7 @@ export async function createRole(data: CreateRole, actorId: string) {
       entityId: role.id,
       metadata: { name: role.name, slug: role.slug }
     })
-    return { ...role, permissions: [] }
+    return projectRole(caller, { ...role, abilityRules: [] })
   }
   catch (error) {
     const cause = typeof error === 'object' && error && 'cause' in error ? error.cause : error
@@ -84,10 +64,14 @@ export async function createRole(data: CreateRole, actorId: string) {
   }
 }
 
-export async function updateRole(roleId: number, data: PatchRole, actorId: string) {
+export async function updateRole(roleId: number, data: PatchRole, actorId: string, caller?: AuthorizationContext) {
   const role = await requireRole(roleId)
-  if (role.slug === SUPER_ADMIN_SLUG && data.isActive === false)
-    throw new SystemRoleProtectedError('The super admin role cannot be deactivated')
+  if (caller && (!caller.ability.can('update', subject('Role', role))
+    || Object.keys(data).some(field => !caller.ability.can('update', subject('Role', role), field)))) {
+    throw new AbilityEscalationError()
+  }
+  if (role.isSystem && data.isActive === false)
+    throw new SystemRoleProtectedError('System roles cannot be deactivated')
   const changedKeys = Object.keys(data) as (keyof PatchRole)[]
   const updated = await repository.updateRoleById(roleId, data, tx => recordAuditEvent({
     actorId,
@@ -101,75 +85,66 @@ export async function updateRole(roleId: number, data: PatchRole, actorId: strin
   }, tx))
   if (!updated)
     throw new RoleNotFoundError()
-  return { ...updated, permissions: await repository.findRolePermissions(roleId) }
+  return projectRole(caller, { ...updated, abilityRules: await listRoleRules(roleId) })
 }
 
-export async function deleteRole(roleId: number, actorId: string) {
+export async function deleteRole(roleId: number, actorId: string, caller?: AuthorizationContext) {
   const role = await requireRole(roleId)
-  if (role.isSystem || (await repository.findPermissionKeysByRoleIds([roleId])).includes(WILDCARD_PERMISSION))
+  if (caller && !caller.ability.can('delete', subject('Role', role)))
+    throw new RoleNotFoundError()
+  if (role.isSystem)
     throw new SystemRoleProtectedError()
-  await repository.deleteRoleById(roleId, tx => recordAuditEvent({
-    actorId,
-    action: 'role.deleted',
-    entityType: 'role',
-    entityId: roleId,
-    metadata: { name: role.name, slug: role.slug }
-  }, tx))
+  try {
+    await repository.deleteRoleById(roleId, tx => recordAuditEvent({
+      actorId,
+      action: 'role.deleted',
+      entityType: 'role',
+      entityId: roleId,
+      metadata: { name: role.name, slug: role.slug }
+    }, tx))
+  }
+  catch (error) {
+    const cause = typeof error === 'object' && error && 'cause' in error ? error.cause : error
+    if (typeof cause === 'object' && cause && 'code' in cause && cause.code === '23514')
+      throw new SoleAssignedRoleError()
+    throw error
+  }
 }
 
-export function validateAssignablePermissions(callerPermissions: ReadonlySet<string>, requestedKeys: readonly string[]) {
-  if (callerPermissions.has(WILDCARD_PERMISSION))
-    return
-  if (requestedKeys.some(key => !callerPermissions.has(key)))
-    throw new PermissionEscalationError()
-}
-
-export async function replaceRolePermissions(roleId: number, permissionIds: number[], caller: AuthorizationContext) {
+export async function replaceRoleAbilityRules(roleId: number, abilityRuleIds: number[], caller: AuthorizationContext) {
   const role = await requireRole(roleId)
-
-  const uniqueIds = [...new Set(permissionIds)]
-  const requested = await findPermissionsByIds(uniqueIds)
-  if (requested.length !== uniqueIds.length)
-    throw new UnknownPermissionIdsError()
-
-  const requestedKeys = requested.map(permission => permission.key)
-  validateAssignablePermissions(caller.permissions, requestedKeys)
-
-  if (role.slug === SUPER_ADMIN_SLUG && !requestedKeys.includes(WILDCARD_PERMISSION))
-    throw new SystemRoleProtectedError('The super admin role must keep the wildcard permission')
-
-  const previousPermissionIds = (await repository.findRolePermissions(roleId)).map(permission => permission.id)
-  await repository.replaceRolePermissions(roleId, uniqueIds, caller.user.id, tx => recordAuditEvent({
-    actorId: caller.user.id,
-    action: 'role.permissions_replaced',
-    entityType: 'role',
-    entityId: roleId,
-    metadata: { previousPermissionIds, permissionIds: uniqueIds, permissionKeys: requestedKeys }
-  }, tx))
-  return getRole(roleId)
+  if (role.slug === SUPER_ADMIN_SLUG) {
+    const current = await listRoleRules(roleId)
+    const manageAll = current.find(rule => rule.isSystem && rule.action === 'manage' && rule.subject === 'all')
+    if (!manageAll || !abilityRuleIds.includes(manageAll.id))
+      throw new SystemRoleProtectedError('The super admin role must keep the manage all rule')
+  }
+  return replaceAssignedRoleRules(roleId, abilityRuleIds, caller)
 }
 
-export async function listUsers(page: number, limit: number, search?: string) {
-  const { data, total } = await repository.findUsersWithRoles(page, limit, search)
+export async function listUsers(page: number, limit: number, search?: string, caller?: AuthorizationContext) {
+  const { data, total } = await repository.findUsersWithRoles(page, limit, search, caller?.ability)
   return {
-    data,
+    data: caller ? data.map(user => projectSubject(caller.ability, 'User', user)) : data,
     pagination: { page, limit, total, totalPages: Math.ceil(total / limit) }
   }
 }
 
-async function requireUser(userId: string) {
+export async function getUserRoles(userId: string, caller?: AuthorizationContext) {
   const user = await repository.findUserById(userId)
-  if (!user)
+  if (!user || (caller && !caller.ability.can('read', subject('User', user))))
     throw new TargetUserNotFoundError()
-}
-
-export async function getUserRoles(userId: string) {
-  await requireUser(userId)
   return repository.findUserRoles(userId)
 }
 
 export async function replaceUserRoles(userId: string, roleIds: number[], caller: AuthorizationContext) {
-  await requireUser(userId)
+  if (roleIds.length === 0)
+    throw new AtLeastOneRoleRequiredError()
+  const target = await repository.findUserById(userId)
+  if (!target)
+    throw new TargetUserNotFoundError()
+  if (!caller.ability.can('update', subject('User', target)))
+    throw new AbilityEscalationError()
 
   const uniqueIds = [...new Set(roleIds)]
   const requested = await repository.findRolesByIds(uniqueIds)
@@ -177,26 +152,18 @@ export async function replaceUserRoles(userId: string, roleIds: number[], caller
     throw new UnknownRoleIdsError()
 
   const currentRoles = await repository.findUserRoles(userId)
-  const [currentPermissionKeys, requestedPermissionKeys] = await Promise.all([
-    repository.findPermissionKeysByRoleIds(currentRoles.map(role => role.id)),
-    repository.findPermissionKeysByRoleIds(uniqueIds)
-  ])
-  const currentHasWildcard = currentPermissionKeys.includes(WILDCARD_PERMISSION)
-  const requestedHasWildcard = requestedPermissionKeys.includes(WILDCARD_PERMISSION)
-
-  const grantsWildcard = requestedHasWildcard && !currentHasWildcard
-  const revokesWildcard = currentHasWildcard && !requestedHasWildcard
-
-  if ((grantsWildcard || revokesWildcard) && !caller.permissions.has(WILDCARD_PERMISSION))
+  if (requested.some(role => !caller.ability.can('assign', subject('Role', role))))
+    throw new AbilityEscalationError()
+  const currentHasSuperAdmin = currentRoles.some(role => role.slug === SUPER_ADMIN_SLUG)
+  const requestedHasSuperAdmin = requested.some(role => role.slug === SUPER_ADMIN_SLUG)
+  if (currentHasSuperAdmin !== requestedHasSuperAdmin && !caller.ability.can('manage', 'all'))
     throw new SuperAdminAssignmentError()
-
-  validateAssignablePermissions(caller.permissions, requestedPermissionKeys)
 
   const replaced = await repository.replaceUserRoles(
     userId,
     uniqueIds,
     caller.user.id,
-    revokesWildcard,
+    currentHasSuperAdmin && !requestedHasSuperAdmin,
     tx => recordAuditEvent({
       actorId: caller.user.id,
       action: 'user.roles_replaced',

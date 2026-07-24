@@ -1,8 +1,8 @@
-import type { PermissionKey } from '@monorepo-fastify-vue/api-client'
-
+import type { AbilityAction, AbilitySubject } from '@monorepo-fastify-vue/api-client'
+import { createMongoAbility } from '@casl/ability'
 import { useQueryCache } from '@pinia/colada'
-import { createRouter, createWebHistory } from 'vue-router'
 
+import { createRouter, createWebHistory } from 'vue-router'
 import AuthLayout from '@/app/layouts/AuthLayout.vue'
 import DefaultLayout from '@/app/layouts/DefaultLayout.vue'
 import { aboutRoutes } from '@/features/about'
@@ -10,7 +10,7 @@ import { auditLogRoutes } from '@/features/audit-logs'
 import { authRoutes } from '@/features/auth'
 import { healthRoutes } from '@/features/health'
 import { homeRoutes } from '@/features/home'
-import { authorizationQuery, canAll, canAny, permissionRoutes } from '@/features/permissions'
+import { authorizationQuery, permissionRoutes } from '@/features/permissions'
 import { profileRoutes } from '@/features/profile'
 import { roleRoutes } from '@/features/roles'
 import { taskRoutes } from '@/features/tasks'
@@ -33,9 +33,9 @@ const router = createRouter({
 
 router.beforeEach(async (to) => {
   const cache = useQueryCache()
-  const requiredPermissions = (to.meta.permissions as PermissionKey[] | undefined) ?? []
+  const requirement = to.meta.ability as { action: AbilityAction, subject: AbilitySubject } | undefined
 
-  if (!to.meta.requiresAuth && requiredPermissions.length === 0)
+  if (!to.meta.requiresAuth && !requirement)
     return
 
   const state = await cache.refresh(cache.ensure(authorizationQuery)).catch(() => null)
@@ -46,12 +46,10 @@ router.beforeEach(async (to) => {
   if (!authorization)
     return { path: '/login', query: { redirect: to.fullPath } }
 
-  if (requiredPermissions.length === 0)
+  if (!requirement)
     return
 
-  const allowed = to.meta.permissionMode === 'any'
-    ? canAny(authorization, requiredPermissions)
-    : canAll(authorization, requiredPermissions)
+  const allowed = createMongoAbility(authorization.rules).can(requirement.action, requirement.subject)
 
   if (!allowed)
     return { name: 'forbidden' }

@@ -1,6 +1,5 @@
 import type { FastifyReply, FastifyRequest } from 'fastify'
-import type { PermissionMode } from '#api/modules/permissions'
-import type { AuthorizationContext } from '#api/modules/roles'
+import type { AbilityAction, AbilitySubject, AuthorizationContext } from '#api/modules/authorization'
 
 import cookie from '@fastify/cookie'
 import jwt from '@fastify/jwt'
@@ -8,8 +7,7 @@ import fp from 'fastify-plugin'
 
 import { config } from '#api/config/index.js'
 import { recordAuditEvent } from '#api/modules/audit-logs'
-import { hasAllPermissions, hasAnyPermission, InsufficientPermissionError } from '#api/modules/permissions'
-import { getAuthorization } from '#api/modules/roles'
+import { getAuthorization, InsufficientAbilityError } from '#api/modules/authorization'
 import { UnauthorizedError } from '#api/modules/users'
 
 export const SESSION_COOKIE = 'session'
@@ -45,21 +43,18 @@ export default fp(async (fastify) => {
     return context
   })
 
-  fastify.decorate('authorize', (permissions: readonly string[], mode: PermissionMode = 'all') => {
+  fastify.decorate('authorize', (action: AbilityAction, subject: AbilitySubject) => {
     return async (request: FastifyRequest) => {
       const context = await fastify.loadAuthorization(request)
-      const allowed = mode === 'any'
-        ? hasAnyPermission(context.permissions, permissions)
-        : hasAllPermissions(context.permissions, permissions)
-      if (!allowed) {
+      if (!context.ability.can(action, subject)) {
         await recordAuditEvent({
           actorId: context.user.id,
           action: 'auth.permission_denied',
           entityType: 'user',
           entityId: context.user.id,
-          metadata: { method: request.method, url: request.url, requiredPermissions: [...permissions] }
+          metadata: { method: request.method, url: request.url, action, subject }
         })
-        throw new InsufficientPermissionError()
+        throw new InsufficientAbilityError()
       }
     }
   })
@@ -90,7 +85,7 @@ declare module 'fastify' {
   // eslint-disable-next-line ts/consistent-type-definitions -- interface required for declaration merging
   interface FastifyInstance {
     authenticate: (request: FastifyRequest) => Promise<void>
-    authorize: (permissions: readonly string[], mode?: PermissionMode) => (request: FastifyRequest) => Promise<void>
+    authorize: (action: AbilityAction, subject: AbilitySubject) => (request: FastifyRequest) => Promise<void>
     loadAuthorization: (request: FastifyRequest) => Promise<AuthorizationContext>
     sameOrigin: (request: FastifyRequest) => Promise<void>
     setSession: (reply: FastifyReply, userId: string) => void

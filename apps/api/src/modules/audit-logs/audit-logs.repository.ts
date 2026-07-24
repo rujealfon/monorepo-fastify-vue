@@ -1,8 +1,10 @@
+import type { AppAbility } from '#api/modules/authorization'
 import type { AuditAction, AuditEntityType } from './audit-logs.schema.js'
 
 import { and, count, desc, eq, gte, ilike, lte, sql } from 'drizzle-orm'
 
 import { db } from '#api/db/index.js'
+import { rulesToDrizzleWhere } from '#api/modules/authorization'
 import { users } from '#api/modules/users/users.schema.js'
 
 import { auditLogs } from './audit-logs.schema.js'
@@ -33,8 +35,9 @@ export type AuditLogFilters = {
   to?: string
 }
 
-export async function findAuditLogs(filters: AuditLogFilters, page: number, limit: number) {
+export async function findAuditLogs(filters: AuditLogFilters, page: number, limit: number, ability?: AppAbility) {
   const where = and(
+    ability ? rulesToDrizzleWhere(ability, 'read', 'AuditLog') : undefined,
     filters.actorId ? eq(auditLogs.actorId, filters.actorId) : undefined,
     filters.actorEmail ? ilike(users.email, `%${filters.actorEmail.replaceAll(/[%_\\]/g, String.raw`\$&`)}%`) : undefined,
     filters.action ? eq(auditLogs.action, filters.action) : undefined,

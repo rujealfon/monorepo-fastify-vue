@@ -17,6 +17,7 @@ export const tasks = pgTable('tasks', {
 
 export const selectTasksSchema = createSelectSchema(tasks, { id: schema => schema.positive() })
 export type selectTasksSchema = z.infer<typeof selectTasksSchema>
+export const taskResponseSchema = selectTasksSchema.partial().required({ id: true })
 
 export const tasksPageQuerySchema = z.object({
   page: z.coerce.number().int().positive().default(1),
@@ -25,7 +26,7 @@ export const tasksPageQuerySchema = z.object({
 export type TasksPageQuery = z.infer<typeof tasksPageQuerySchema>
 
 export const tasksPageSchema = z.object({
-  data: z.array(selectTasksSchema),
+  data: z.array(taskResponseSchema),
   pagination: z.object({
     page: z.number().int().positive(),
     limit: z.number().int().positive(),

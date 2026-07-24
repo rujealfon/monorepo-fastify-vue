@@ -1,6 +1,6 @@
 import { config } from 'dotenv'
 
-config({ path: '.env.test', override: true })
+config({ path: '.env.test' })
 
 const { config: appConfig } = await import('./src/config/index.js')
 if (new URL(appConfig.DATABASE_URL).pathname !== '/fastify_vue_test')

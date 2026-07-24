@@ -2,6 +2,7 @@
 import { useQuery } from '@pinia/colada'
 import { computed, reactive, ref, useTemplateRef } from 'vue'
 
+import { subject, useAuthorization } from '@/features/permissions'
 import { useTaskMutations } from '@/features/tasks/mutations'
 import { tasksQuery } from '@/features/tasks/queries'
 import { apiFormErrors } from '@/shared/api/form-errors'
@@ -11,6 +12,8 @@ const form = useTemplateRef('form')
 const page = ref(1)
 const tasks = useQuery(() => tasksQuery(page.value))
 const { create: createMutation, update: updateMutation, remove: deleteMutation } = useTaskMutations(() => state.name = '')
+const { can, authorization } = useAuthorization()
+const canCreate = computed(() => can('create', subject('Task', { userId: authorization.value?.user?.id, name: state.name, done: false })))
 
 const pending = computed(() => [createMutation, updateMutation, deleteMutation]
   .some(mutation => mutation.asyncStatus.value === 'loading'))
@@ -40,7 +43,7 @@ async function create() {
       </p>
     </div>
 
-    <UForm ref="form" :state="state" class="flex items-start gap-2" novalidate @submit.prevent="create">
+    <UForm v-if="canCreate" ref="form" :state="state" class="flex items-start gap-2" novalidate @submit.prevent="create">
       <UFormField name="name" class="flex-1">
         <UInput
           id="task-name"
@@ -83,7 +86,8 @@ async function create() {
         class="flex items-center gap-3 rounded-lg border border-default bg-elevated/50 px-4 py-3"
       >
         <UCheckbox
-          :aria-label="`${task.done ? 'Reopen' : 'Complete'} ${task.name}`"
+          v-if="can('update', subject('Task', task), 'done')"
+          :aria-label="`${task.done ? 'Reopen' : 'Complete'} ${task.name ?? 'task'}`"
           :model-value="task.done"
           :disabled="pending"
           @update:model-value="updateMutation.mutate({ id: task.id, done: !task.done })"
@@ -91,9 +95,10 @@ async function create() {
         <span
           class="flex-1 truncate"
           :class="task.done ? 'text-dimmed line-through' : 'text-default'"
-        >{{ task.name }}</span>
+        >{{ task.name ?? 'Protected task' }}</span>
         <UButton
-          :aria-label="`Delete ${task.name}`"
+          v-if="can('delete', subject('Task', task))"
+          :aria-label="`Delete ${task.name ?? 'task'}`"
           icon="i-lucide-trash-2"
           color="error"
           variant="ghost"

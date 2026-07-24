@@ -6,7 +6,8 @@ import { api } from '@/shared/api/client'
 import { fail } from '@/shared/api/fail'
 
 export const AUTHORIZATION_KEY = ['authorization'] as const
-export const PERMISSIONS_KEY = ['permissions'] as const
+export const ABILITY_RULES_KEY = ['ability-rules'] as const
+export const AUTHORIZATION_CATALOG_KEY = ['authorization-catalog'] as const
 
 export const authorizationQuery = defineQueryOptions({
   key: AUTHORIZATION_KEY,
@@ -21,11 +22,21 @@ export const authorizationQuery = defineQueryOptions({
   staleTime: 30_000
 })
 
-export const permissionsQuery = defineQueryOptions({
-  key: PERMISSIONS_KEY,
+export const abilityRulesQuery = defineQueryOptions({
+  key: ABILITY_RULES_KEY,
   query: async () => {
-    const { data, response } = await api.GET('/api/v1/permissions/')
+    const { data, response } = await api.GET('/api/v1/ability-rules/')
     await fail(response)
     return data
   }
+})
+
+export const authorizationCatalogQuery = defineQueryOptions({
+  key: AUTHORIZATION_CATALOG_KEY,
+  query: async () => {
+    const { data, response } = await api.GET('/api/v1/authorization/catalog')
+    await fail(response)
+    return data
+  },
+  staleTime: Number.POSITIVE_INFINITY
 })

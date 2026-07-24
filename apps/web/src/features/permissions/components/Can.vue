@@ -1,31 +1,20 @@
 <script setup lang="ts">
-import type { PermissionKey } from '@monorepo-fastify-vue/api-client'
+import type { AbilityAction, AbilitySubject } from '@monorepo-fastify-vue/api-client'
 import { computed } from 'vue'
 
 import { useAuthorization } from '@/features/permissions/composables/use-authorization'
 
 const props = withDefaults(defineProps<{
-  permission?: PermissionKey
-  permissions?: PermissionKey[]
-  mode?: 'all' | 'any'
+  action: AbilityAction
+  subject: AbilitySubject | object
+  field?: string
 }>(), {
-  permission: undefined,
-  permissions: () => [],
-  mode: 'all'
+  field: undefined
 })
 
 const authorization = useAuthorization()
 
-const requiredPermissions = computed(() =>
-  props.permission ? [props.permission] : props.permissions)
-
-const allowed = computed(() => {
-  if (requiredPermissions.value.length === 0)
-    return true
-  return props.mode === 'any'
-    ? authorization.canAny(requiredPermissions.value)
-    : authorization.canAll(requiredPermissions.value)
-})
+const allowed = computed(() => authorization.can(props.action, props.subject, props.field))
 </script>
 
 <template>

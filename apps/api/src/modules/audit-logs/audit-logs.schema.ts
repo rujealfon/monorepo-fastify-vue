@@ -12,6 +12,10 @@ export const AUDIT_ACTIONS = [
   'role.updated',
   'role.deleted',
   'role.permissions_replaced',
+  'role.ability_rules_replaced',
+  'ability_rule.created',
+  'ability_rule.updated',
+  'ability_rule.deleted',
   'user.roles_replaced',
   'user.registered',
   'profile.updated',
@@ -23,7 +27,7 @@ export const AUDIT_ACTIONS = [
 export const auditActionSchema = z.enum(AUDIT_ACTIONS)
 export type AuditAction = z.infer<typeof auditActionSchema>
 
-export const AUDIT_ENTITY_TYPES = ['task', 'role', 'user'] as const
+export const AUDIT_ENTITY_TYPES = ['task', 'role', 'user', 'ability_rule'] as const
 export const auditEntityTypeSchema = z.enum(AUDIT_ENTITY_TYPES)
 export type AuditEntityType = z.infer<typeof auditEntityTypeSchema>
 
@@ -50,7 +54,7 @@ export const auditLogWithActorSchema = createSelectSchema(auditLogs, {
   action: auditActionSchema,
   entityType: auditEntityTypeSchema,
   metadata: z.record(z.string(), z.unknown()).nullable()
-}).extend({ actorEmail: z.string().nullable() })
+}).extend({ actorEmail: z.string().nullable() }).partial().required({ id: true })
 export type AuditLogWithActor = z.infer<typeof auditLogWithActorSchema>
 
 export const auditLogsPageQuerySchema = z.object({

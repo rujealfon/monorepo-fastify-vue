@@ -35,7 +35,10 @@ describe('authentication router guard', () => {
     cache.setQueryData(AUTHORIZATION_KEY, {
       user: { id: '00000000-0000-0000-0000-000000000001', email: 'person@example.com' },
       roles: [],
-      permissions: [],
+      rules: [
+        { action: 'read', subject: 'Profile' },
+        { action: 'read', subject: 'Task' }
+      ],
       authorizationVersion: 1
     })
     await router.push('/profile')

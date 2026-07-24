@@ -1,7 +1,7 @@
-import type { CreateRole, ReplaceRolePermissions, ReplaceUserRoles, UpdateRole } from '@monorepo-fastify-vue/api-client'
+import type { CreateRole, ReplaceRoleAbilityRules, ReplaceUserRoles, UpdateRole } from '@monorepo-fastify-vue/api-client'
 import { useMutation, useQueryCache } from '@pinia/colada'
 
-import { AUTHORIZATION_KEY } from '@/features/permissions'
+import { ABILITY_RULES_KEY, AUTHORIZATION_KEY } from '@/features/permissions'
 import { ROLE_KEYS, USER_KEYS } from '@/features/roles/queries'
 import { api } from '@/shared/api/client'
 import { fail } from '@/shared/api/fail'
@@ -10,6 +10,7 @@ export function useRoleMutations(onCreate?: () => void) {
   const queryCache = useQueryCache()
   const refresh = () => Promise.all([
     queryCache.invalidateQueries({ key: ROLE_KEYS.root }),
+    queryCache.invalidateQueries({ key: ABILITY_RULES_KEY }),
     queryCache.invalidateQueries({ key: AUTHORIZATION_KEY })
   ])
 
@@ -38,9 +39,9 @@ export function useRoleMutations(onCreate?: () => void) {
       },
       onSettled: refresh
     }),
-    replacePermissions: useMutation({
-      mutation: async ({ roleId, ...body }: ReplaceRolePermissions & { roleId: number }) => {
-        const { data, error, response } = await api.PUT('/api/v1/roles/{roleId}/permissions', { params: { path: { roleId } }, body })
+    replaceAbilityRules: useMutation({
+      mutation: async ({ roleId, ...body }: ReplaceRoleAbilityRules & { roleId: number }) => {
+        const { data, error, response } = await api.PUT('/api/v1/roles/{roleId}/ability-rules', { params: { path: { roleId } }, body })
         await fail(response, error)
         return data
       },

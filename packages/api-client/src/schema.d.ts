@@ -329,7 +329,18 @@ export interface paths {
                                 name: string;
                                 slug: string;
                             }[];
-                            permissions: string[];
+                            rules: {
+                                /** @enum {string} */
+                                action: "manage" | "create" | "read" | "update" | "delete" | "assign";
+                                /** @enum {string} */
+                                subject: "all" | "Task" | "Profile" | "User" | "Role" | "AbilityRule" | "AuditLog";
+                                fields?: string[];
+                                conditions?: {
+                                    [key: string]: unknown;
+                                };
+                                inverted?: boolean;
+                                reason?: string;
+                            }[];
                             authorizationVersion: number;
                         };
                     };
@@ -385,8 +396,8 @@ export interface paths {
                     limit?: number;
                     actorId?: string;
                     actorEmail?: string;
-                    action?: "task.created" | "task.updated" | "task.deleted" | "role.created" | "role.updated" | "role.deleted" | "role.permissions_replaced" | "user.roles_replaced" | "user.registered" | "profile.updated" | "auth.login" | "auth.login_failed" | "auth.logout" | "auth.permission_denied";
-                    entityType?: "task" | "role" | "user";
+                    action?: "task.created" | "task.updated" | "task.deleted" | "role.created" | "role.updated" | "role.deleted" | "role.permissions_replaced" | "role.ability_rules_replaced" | "ability_rule.created" | "ability_rule.updated" | "ability_rule.deleted" | "user.roles_replaced" | "user.registered" | "profile.updated" | "auth.login" | "auth.login_failed" | "auth.logout" | "auth.permission_denied";
+                    entityType?: "task" | "role" | "user" | "ability_rule";
                     from?: string;
                     to?: string;
                 };
@@ -406,21 +417,21 @@ export interface paths {
                             data: {
                                 id: string;
                                 /** Format: uuid */
-                                actorId: string | null;
+                                actorId?: string | null;
                                 /** @enum {string} */
-                                action: "task.created" | "task.updated" | "task.deleted" | "role.created" | "role.updated" | "role.deleted" | "role.permissions_replaced" | "user.roles_replaced" | "user.registered" | "profile.updated" | "auth.login" | "auth.login_failed" | "auth.logout" | "auth.permission_denied";
+                                action?: "task.created" | "task.updated" | "task.deleted" | "role.created" | "role.updated" | "role.deleted" | "role.permissions_replaced" | "role.ability_rules_replaced" | "ability_rule.created" | "ability_rule.updated" | "ability_rule.deleted" | "user.roles_replaced" | "user.registered" | "profile.updated" | "auth.login" | "auth.login_failed" | "auth.logout" | "auth.permission_denied";
                                 /** @enum {string} */
-                                entityType: "task" | "role" | "user";
-                                entityId: string;
-                                metadata: {
+                                entityType?: "task" | "role" | "user" | "ability_rule";
+                                entityId?: string;
+                                metadata?: {
                                     [key: string]: unknown;
                                 } | null;
-                                ipAddress: string | null;
-                                userAgent: string | null;
-                                requestId: string | null;
+                                ipAddress?: string | null;
+                                userAgent?: string | null;
+                                requestId?: string | null;
                                 /** Format: date-time */
-                                createdAt: string;
-                                actorEmail: string | null;
+                                createdAt?: string;
+                                actorEmail?: string | null;
                             }[];
                             pagination: {
                                 page: number;
@@ -442,6 +453,773 @@ export interface paths {
                 };
                 /** @description Default Response */
                 403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HttpError"];
+                    };
+                };
+                /** @description Default Response */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ValidationError"];
+                    };
+                };
+                /** @description Default Response */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HttpError"];
+                    };
+                };
+                /** @description Default Response */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HttpError"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ability-rules/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            id: number;
+                            key: string;
+                            description: string | null;
+                            /** @enum {string} */
+                            effect: "allow" | "deny";
+                            /** @enum {string} */
+                            action: "manage" | "create" | "read" | "update" | "delete" | "assign";
+                            /** @enum {string} */
+                            subject: "all" | "Task" | "Profile" | "User" | "Role" | "AbilityRule" | "AuditLog";
+                            fields: string[] | null;
+                            actorConditions: {
+                                [key: string]: unknown;
+                            } | null;
+                            resourceConditions: {
+                                [key: string]: unknown;
+                            } | null;
+                            denialReason: string | null;
+                            priority: number;
+                            isSystem: boolean;
+                            isActive: boolean;
+                            conditionSchemaVersion: number;
+                            /** Format: date-time */
+                            createdAt: string;
+                            /** Format: date-time */
+                            updatedAt: string;
+                        }[];
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HttpError"];
+                    };
+                };
+                /** @description Default Response */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HttpError"];
+                    };
+                };
+                /** @description Default Response */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HttpError"];
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HttpError"];
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HttpError"];
+                    };
+                };
+                /** @description Default Response */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ValidationError"];
+                    };
+                };
+                /** @description Default Response */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HttpError"];
+                    };
+                };
+                /** @description Default Response */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HttpError"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        key: string;
+                        description?: string | null;
+                        /** @enum {string} */
+                        effect: "allow" | "deny";
+                        /** @enum {string} */
+                        action: "manage" | "create" | "read" | "update" | "delete" | "assign";
+                        /** @enum {string} */
+                        subject: "all" | "Task" | "Profile" | "User" | "Role" | "AbilityRule" | "AuditLog";
+                        fields?: string[] | null;
+                        actorConditions?: {
+                            [key: string]: unknown;
+                        } | null;
+                        resourceConditions?: {
+                            [key: string]: unknown;
+                        } | null;
+                        denialReason?: string | null;
+                        /** @default 0 */
+                        priority?: number;
+                        /** @default true */
+                        isActive?: boolean;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            id: number;
+                            key: string;
+                            description: string | null;
+                            /** @enum {string} */
+                            effect: "allow" | "deny";
+                            /** @enum {string} */
+                            action: "manage" | "create" | "read" | "update" | "delete" | "assign";
+                            /** @enum {string} */
+                            subject: "all" | "Task" | "Profile" | "User" | "Role" | "AbilityRule" | "AuditLog";
+                            fields: string[] | null;
+                            actorConditions: {
+                                [key: string]: unknown;
+                            } | null;
+                            resourceConditions: {
+                                [key: string]: unknown;
+                            } | null;
+                            denialReason: string | null;
+                            priority: number;
+                            isSystem: boolean;
+                            isActive: boolean;
+                            conditionSchemaVersion: number;
+                            /** Format: date-time */
+                            createdAt: string;
+                            /** Format: date-time */
+                            updatedAt: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HttpError"];
+                    };
+                };
+                /** @description Default Response */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HttpError"];
+                    };
+                };
+                /** @description Default Response */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HttpError"];
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HttpError"];
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HttpError"];
+                    };
+                };
+                /** @description Default Response */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ValidationError"];
+                    };
+                };
+                /** @description Default Response */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HttpError"];
+                    };
+                };
+                /** @description Default Response */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HttpError"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ability-rules/{ruleId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    ruleId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            id: number;
+                            key: string;
+                            description: string | null;
+                            /** @enum {string} */
+                            effect: "allow" | "deny";
+                            /** @enum {string} */
+                            action: "manage" | "create" | "read" | "update" | "delete" | "assign";
+                            /** @enum {string} */
+                            subject: "all" | "Task" | "Profile" | "User" | "Role" | "AbilityRule" | "AuditLog";
+                            fields: string[] | null;
+                            actorConditions: {
+                                [key: string]: unknown;
+                            } | null;
+                            resourceConditions: {
+                                [key: string]: unknown;
+                            } | null;
+                            denialReason: string | null;
+                            priority: number;
+                            isSystem: boolean;
+                            isActive: boolean;
+                            conditionSchemaVersion: number;
+                            /** Format: date-time */
+                            createdAt: string;
+                            /** Format: date-time */
+                            updatedAt: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HttpError"];
+                    };
+                };
+                /** @description Default Response */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HttpError"];
+                    };
+                };
+                /** @description Default Response */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HttpError"];
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HttpError"];
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HttpError"];
+                    };
+                };
+                /** @description Default Response */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ValidationError"];
+                    };
+                };
+                /** @description Default Response */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HttpError"];
+                    };
+                };
+                /** @description Default Response */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HttpError"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    ruleId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": unknown;
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HttpError"];
+                    };
+                };
+                /** @description Default Response */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HttpError"];
+                    };
+                };
+                /** @description Default Response */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HttpError"];
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HttpError"];
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HttpError"];
+                    };
+                };
+                /** @description Default Response */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ValidationError"];
+                    };
+                };
+                /** @description Default Response */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HttpError"];
+                    };
+                };
+                /** @description Default Response */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HttpError"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    ruleId: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        key?: string;
+                        description?: string | null;
+                        /** @enum {string} */
+                        effect?: "allow" | "deny";
+                        /** @enum {string} */
+                        action?: "manage" | "create" | "read" | "update" | "delete" | "assign";
+                        /** @enum {string} */
+                        subject?: "all" | "Task" | "Profile" | "User" | "Role" | "AbilityRule" | "AuditLog";
+                        fields?: string[] | null;
+                        actorConditions?: {
+                            [key: string]: unknown;
+                        } | null;
+                        resourceConditions?: {
+                            [key: string]: unknown;
+                        } | null;
+                        denialReason?: string | null;
+                        /** @default 0 */
+                        priority?: number;
+                        /** @default true */
+                        isActive?: boolean;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            id: number;
+                            key: string;
+                            description: string | null;
+                            /** @enum {string} */
+                            effect: "allow" | "deny";
+                            /** @enum {string} */
+                            action: "manage" | "create" | "read" | "update" | "delete" | "assign";
+                            /** @enum {string} */
+                            subject: "all" | "Task" | "Profile" | "User" | "Role" | "AbilityRule" | "AuditLog";
+                            fields: string[] | null;
+                            actorConditions: {
+                                [key: string]: unknown;
+                            } | null;
+                            resourceConditions: {
+                                [key: string]: unknown;
+                            } | null;
+                            denialReason: string | null;
+                            priority: number;
+                            isSystem: boolean;
+                            isActive: boolean;
+                            conditionSchemaVersion: number;
+                            /** Format: date-time */
+                            createdAt: string;
+                            /** Format: date-time */
+                            updatedAt: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HttpError"];
+                    };
+                };
+                /** @description Default Response */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HttpError"];
+                    };
+                };
+                /** @description Default Response */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HttpError"];
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HttpError"];
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HttpError"];
+                    };
+                };
+                /** @description Default Response */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ValidationError"];
+                    };
+                };
+                /** @description Default Response */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HttpError"];
+                    };
+                };
+                /** @description Default Response */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HttpError"];
+                    };
+                };
+            };
+        };
+        trace?: never;
+    };
+    "/api/v1/authorization/catalog": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            actions: ("manage" | "create" | "read" | "update" | "delete" | "assign")[];
+                            subjects: {
+                                /** @enum {string} */
+                                subject: "all" | "Task" | "Profile" | "User" | "Role" | "AbilityRule" | "AuditLog";
+                                conditionFields: string[];
+                                readableFields: string[];
+                                writableFields: string[];
+                                identityFields: string[];
+                            }[];
+                            operators: string[];
+                            actorReferences: string[];
+                            conditionSchemaVersion: number;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HttpError"];
+                    };
+                };
+                /** @description Default Response */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HttpError"];
+                    };
+                };
+                /** @description Default Response */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HttpError"];
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HttpError"];
+                    };
+                };
+                /** @description Default Response */
+                409: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -581,95 +1359,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/permissions/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Default Response */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            id: number;
-                            key: string;
-                            resource: string;
-                            action: string;
-                            description: string | null;
-                            isSystem: boolean;
-                            /** Format: date-time */
-                            createdAt: string;
-                        }[];
-                    };
-                };
-                /** @description Default Response */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["HttpError"];
-                    };
-                };
-                /** @description Default Response */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["HttpError"];
-                    };
-                };
-                /** @description Default Response */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ValidationError"];
-                    };
-                };
-                /** @description Default Response */
-                429: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["HttpError"];
-                    };
-                };
-                /** @description Default Response */
-                500: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["HttpError"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/profile/": {
         parameters: {
             query?: never;
@@ -701,17 +1390,17 @@ export interface paths {
                             /** Format: date-time */
                             updatedAt: string;
                             profile: {
-                                firstName: string | null;
-                                lastName: string | null;
+                                firstName?: string | null;
+                                lastName?: string | null;
                                 /** @enum {string|null} */
-                                gender: "male" | "female" | "intersex" | "prefer_not_to_say" | null;
+                                gender?: "male" | "female" | "intersex" | "prefer_not_to_say" | null;
                                 /** Format: date */
-                                birthDate: string | null;
-                                bio: string | null;
+                                birthDate?: string | null;
+                                bio?: string | null;
                                 /** Format: date-time */
-                                createdAt: string;
+                                createdAt?: string;
                                 /** Format: date-time */
-                                updatedAt: string;
+                                updatedAt?: string;
                             };
                         };
                     };
@@ -804,17 +1493,17 @@ export interface paths {
                             /** Format: date-time */
                             updatedAt: string;
                             profile: {
-                                firstName: string | null;
-                                lastName: string | null;
+                                firstName?: string | null;
+                                lastName?: string | null;
                                 /** @enum {string|null} */
-                                gender: "male" | "female" | "intersex" | "prefer_not_to_say" | null;
+                                gender?: "male" | "female" | "intersex" | "prefer_not_to_say" | null;
                                 /** Format: date */
-                                birthDate: string | null;
-                                bio: string | null;
+                                birthDate?: string | null;
+                                bio?: string | null;
                                 /** Format: date-time */
-                                createdAt: string;
+                                createdAt?: string;
                                 /** Format: date-time */
-                                updatedAt: string;
+                                updatedAt?: string;
                             };
                         };
                     };
@@ -892,16 +1581,16 @@ export interface paths {
                     content: {
                         "application/json": {
                             id: number;
-                            name: string;
+                            name?: string;
                             slug: string;
-                            description: string | null;
-                            isSystem: boolean;
-                            isActive: boolean;
+                            description?: string | null;
+                            isSystem?: boolean;
+                            isActive?: boolean;
                             /** Format: date-time */
-                            createdAt: string;
+                            createdAt?: string;
                             /** Format: date-time */
-                            updatedAt: string;
-                            userCount: number;
+                            updatedAt?: string;
+                            userCount?: number;
                         }[];
                     };
                 };
@@ -985,24 +1674,41 @@ export interface paths {
                     content: {
                         "application/json": {
                             id: number;
-                            name: string;
+                            name?: string;
                             slug: string;
-                            description: string | null;
-                            isSystem: boolean;
-                            isActive: boolean;
+                            description?: string | null;
+                            isSystem?: boolean;
+                            isActive?: boolean;
                             /** Format: date-time */
-                            createdAt: string;
+                            createdAt?: string;
                             /** Format: date-time */
-                            updatedAt: string;
-                            permissions: {
+                            updatedAt?: string;
+                            abilityRules?: {
                                 id: number;
                                 key: string;
-                                resource: string;
-                                action: string;
                                 description: string | null;
+                                /** @enum {string} */
+                                effect: "allow" | "deny";
+                                /** @enum {string} */
+                                action: "manage" | "create" | "read" | "update" | "delete" | "assign";
+                                /** @enum {string} */
+                                subject: "all" | "Task" | "Profile" | "User" | "Role" | "AbilityRule" | "AuditLog";
+                                fields: string[] | null;
+                                actorConditions: {
+                                    [key: string]: unknown;
+                                } | null;
+                                resourceConditions: {
+                                    [key: string]: unknown;
+                                } | null;
+                                denialReason: string | null;
+                                priority: number;
                                 isSystem: boolean;
+                                isActive: boolean;
+                                conditionSchemaVersion: number;
                                 /** Format: date-time */
                                 createdAt: string;
+                                /** Format: date-time */
+                                updatedAt: string;
                             }[];
                         };
                     };
@@ -1113,24 +1819,41 @@ export interface paths {
                     content: {
                         "application/json": {
                             id: number;
-                            name: string;
+                            name?: string;
                             slug: string;
-                            description: string | null;
-                            isSystem: boolean;
-                            isActive: boolean;
+                            description?: string | null;
+                            isSystem?: boolean;
+                            isActive?: boolean;
                             /** Format: date-time */
-                            createdAt: string;
+                            createdAt?: string;
                             /** Format: date-time */
-                            updatedAt: string;
-                            permissions: {
+                            updatedAt?: string;
+                            abilityRules?: {
                                 id: number;
                                 key: string;
-                                resource: string;
-                                action: string;
                                 description: string | null;
+                                /** @enum {string} */
+                                effect: "allow" | "deny";
+                                /** @enum {string} */
+                                action: "manage" | "create" | "read" | "update" | "delete" | "assign";
+                                /** @enum {string} */
+                                subject: "all" | "Task" | "Profile" | "User" | "Role" | "AbilityRule" | "AuditLog";
+                                fields: string[] | null;
+                                actorConditions: {
+                                    [key: string]: unknown;
+                                } | null;
+                                resourceConditions: {
+                                    [key: string]: unknown;
+                                } | null;
+                                denialReason: string | null;
+                                priority: number;
                                 isSystem: boolean;
+                                isActive: boolean;
+                                conditionSchemaVersion: number;
                                 /** Format: date-time */
                                 createdAt: string;
+                                /** Format: date-time */
+                                updatedAt: string;
                             }[];
                         };
                     };
@@ -1314,24 +2037,41 @@ export interface paths {
                     content: {
                         "application/json": {
                             id: number;
-                            name: string;
+                            name?: string;
                             slug: string;
-                            description: string | null;
-                            isSystem: boolean;
-                            isActive: boolean;
+                            description?: string | null;
+                            isSystem?: boolean;
+                            isActive?: boolean;
                             /** Format: date-time */
-                            createdAt: string;
+                            createdAt?: string;
                             /** Format: date-time */
-                            updatedAt: string;
-                            permissions: {
+                            updatedAt?: string;
+                            abilityRules?: {
                                 id: number;
                                 key: string;
-                                resource: string;
-                                action: string;
                                 description: string | null;
+                                /** @enum {string} */
+                                effect: "allow" | "deny";
+                                /** @enum {string} */
+                                action: "manage" | "create" | "read" | "update" | "delete" | "assign";
+                                /** @enum {string} */
+                                subject: "all" | "Task" | "Profile" | "User" | "Role" | "AbilityRule" | "AuditLog";
+                                fields: string[] | null;
+                                actorConditions: {
+                                    [key: string]: unknown;
+                                } | null;
+                                resourceConditions: {
+                                    [key: string]: unknown;
+                                } | null;
+                                denialReason: string | null;
+                                priority: number;
                                 isSystem: boolean;
+                                isActive: boolean;
+                                conditionSchemaVersion: number;
                                 /** Format: date-time */
                                 createdAt: string;
+                                /** Format: date-time */
+                                updatedAt: string;
                             }[];
                         };
                     };
@@ -1403,7 +2143,7 @@ export interface paths {
         };
         trace?: never;
     };
-    "/api/v1/roles/{roleId}/permissions": {
+    "/api/v1/roles/{roleId}/ability-rules": {
         parameters: {
             query?: never;
             header?: never;
@@ -1422,17 +2162,8 @@ export interface paths {
             };
             requestBody: {
                 content: {
-                    /**
-                     * @example {
-                     *       "permissionIds": [
-                     *         1,
-                     *         2,
-                     *         4
-                     *       ]
-                     *     }
-                     */
                     "application/json": {
-                        permissionIds: number[];
+                        abilityRuleIds: number[];
                     };
                 };
             };
@@ -1445,26 +2176,31 @@ export interface paths {
                     content: {
                         "application/json": {
                             id: number;
-                            name: string;
-                            slug: string;
+                            key: string;
                             description: string | null;
+                            /** @enum {string} */
+                            effect: "allow" | "deny";
+                            /** @enum {string} */
+                            action: "manage" | "create" | "read" | "update" | "delete" | "assign";
+                            /** @enum {string} */
+                            subject: "all" | "Task" | "Profile" | "User" | "Role" | "AbilityRule" | "AuditLog";
+                            fields: string[] | null;
+                            actorConditions: {
+                                [key: string]: unknown;
+                            } | null;
+                            resourceConditions: {
+                                [key: string]: unknown;
+                            } | null;
+                            denialReason: string | null;
+                            priority: number;
                             isSystem: boolean;
                             isActive: boolean;
+                            conditionSchemaVersion: number;
                             /** Format: date-time */
                             createdAt: string;
                             /** Format: date-time */
                             updatedAt: string;
-                            permissions: {
-                                id: number;
-                                key: string;
-                                resource: string;
-                                action: string;
-                                description: string | null;
-                                isSystem: boolean;
-                                /** Format: date-time */
-                                createdAt: string;
-                            }[];
-                        };
+                        }[];
                     };
                 };
                 /** @description Default Response */
@@ -1568,13 +2304,13 @@ export interface paths {
                             data: {
                                 id: number;
                                 /** Format: uuid */
-                                userId: string;
-                                name: string;
-                                done: boolean;
+                                userId?: string;
+                                name?: string;
+                                done?: boolean;
                                 /** Format: date-time */
-                                createdAt: string;
+                                createdAt?: string;
                                 /** Format: date-time */
-                                updatedAt: string;
+                                updatedAt?: string;
                             }[];
                             pagination: {
                                 page: number;
@@ -1664,13 +2400,13 @@ export interface paths {
                         "application/json": {
                             id: number;
                             /** Format: uuid */
-                            userId: string;
-                            name: string;
-                            done: boolean;
+                            userId?: string;
+                            name?: string;
+                            done?: boolean;
                             /** Format: date-time */
-                            createdAt: string;
+                            createdAt?: string;
                             /** Format: date-time */
-                            updatedAt: string;
+                            updatedAt?: string;
                         };
                     };
                 };
@@ -1754,13 +2490,13 @@ export interface paths {
                         "application/json": {
                             id: number;
                             /** Format: uuid */
-                            userId: string;
-                            name: string;
-                            done: boolean;
+                            userId?: string;
+                            name?: string;
+                            done?: boolean;
                             /** Format: date-time */
-                            createdAt: string;
+                            createdAt?: string;
                             /** Format: date-time */
-                            updatedAt: string;
+                            updatedAt?: string;
                         };
                     };
                 };
@@ -1933,13 +2669,13 @@ export interface paths {
                         "application/json": {
                             id: number;
                             /** Format: uuid */
-                            userId: string;
-                            name: string;
-                            done: boolean;
+                            userId?: string;
+                            name?: string;
+                            done?: boolean;
                             /** Format: date-time */
-                            createdAt: string;
+                            createdAt?: string;
                             /** Format: date-time */
-                            updatedAt: string;
+                            updatedAt?: string;
                         };
                     };
                 };
@@ -2031,10 +2767,10 @@ export interface paths {
                             data: {
                                 /** Format: uuid */
                                 id: string;
-                                email: string;
+                                email?: string;
                                 /** Format: date-time */
-                                createdAt: string;
-                                roles: {
+                                createdAt?: string;
+                                roles?: {
                                     id: number;
                                     name: string;
                                     slug: string;

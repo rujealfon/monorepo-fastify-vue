@@ -1,13 +1,14 @@
 import type { DbExecutor } from '#api/modules/audit-logs'
+import type { AppAbility } from '#api/modules/authorization'
 import type { CreateRole, PatchRole } from './roles.schema.js'
 
 import { and, asc, count, eq, ilike, inArray, ne, sql } from 'drizzle-orm'
 
 import { db } from '#api/db/index.js'
-import { permissions, WILDCARD_PERMISSION } from '#api/modules/permissions'
+import { rulesToDrizzleWhere } from '#api/modules/authorization'
 import { users } from '#api/modules/users/users.schema.js'
 
-import { rolePermissions, roles, userRoles } from './roles.schema.js'
+import { roles, SUPER_ADMIN_SLUG, userRoles } from './roles.schema.js'
 
 type AuditCallback = (tx: DbExecutor) => Promise<void>
 
@@ -17,25 +18,7 @@ function bumpAuthorizationVersionForRole(tx: DbExecutor, roleId: number) {
     .where(inArray(users.id, db.select({ id: userRoles.userId }).from(userRoles).where(eq(userRoles.roleId, roleId))))
 }
 
-export function findAuthorizationRows(userId: string) {
-  return db.select({
-    userId: users.id,
-    email: users.email,
-    authorizationVersion: users.authorizationVersion,
-    roleId: roles.id,
-    roleName: roles.name,
-    roleSlug: roles.slug,
-    permissionKey: permissions.key
-  })
-    .from(users)
-    .leftJoin(userRoles, eq(userRoles.userId, users.id))
-    .leftJoin(roles, and(eq(roles.id, userRoles.roleId), eq(roles.isActive, true)))
-    .leftJoin(rolePermissions, eq(rolePermissions.roleId, roles.id))
-    .leftJoin(permissions, eq(permissions.id, rolePermissions.permissionId))
-    .where(eq(users.id, userId))
-}
-
-export function findRoles() {
+export function findRoles(ability?: AppAbility) {
   return db.select({
     id: roles.id,
     name: roles.name,
@@ -49,6 +32,7 @@ export function findRoles() {
   })
     .from(roles)
     .leftJoin(userRoles, eq(userRoles.roleId, roles.id))
+    .where(ability ? rulesToDrizzleWhere(ability, 'read', 'Role') : undefined)
     .groupBy(roles.id)
     .orderBy(asc(roles.id))
 }
@@ -61,25 +45,6 @@ export function findRolesByIds(ids: number[]) {
 
 export function findRoleById(id: number) {
   return db.select().from(roles).where(eq(roles.id, id)).then(rows => rows.at(0))
-}
-
-export function findRolePermissions(roleId: number) {
-  return db.select({ permission: permissions })
-    .from(rolePermissions)
-    .innerJoin(permissions, eq(permissions.id, rolePermissions.permissionId))
-    .where(eq(rolePermissions.roleId, roleId))
-    .orderBy(asc(permissions.resource), asc(permissions.action))
-    .then(rows => rows.map(row => row.permission))
-}
-
-export async function findPermissionKeysByRoleIds(roleIds: number[]) {
-  if (roleIds.length === 0)
-    return []
-  const rows = await db.selectDistinct({ key: permissions.key })
-    .from(rolePermissions)
-    .innerJoin(permissions, eq(permissions.id, rolePermissions.permissionId))
-    .where(inArray(rolePermissions.roleId, roleIds))
-  return rows.map(row => row.key)
 }
 
 export function insertRole(data: CreateRole) {
@@ -107,19 +72,11 @@ export function deleteRoleById(id: number, audit?: AuditCallback) {
   })
 }
 
-export function replaceRolePermissions(roleId: number, permissionIds: number[], assignedBy: string, audit?: AuditCallback) {
-  return db.transaction(async (tx) => {
-    await tx.delete(rolePermissions).where(eq(rolePermissions.roleId, roleId))
-    if (permissionIds.length > 0)
-      await tx.insert(rolePermissions).values(permissionIds.map(permissionId => ({ roleId, permissionId, assignedBy })))
-    await bumpAuthorizationVersionForRole(tx, roleId)
-    if (audit)
-      await audit(tx)
-  })
-}
-
-export async function findUsersWithRoles(page: number, limit: number, search?: string) {
-  const where = search ? ilike(users.email, `%${search.replaceAll(/[%_\\]/g, String.raw`\$&`)}%`) : undefined
+export async function findUsersWithRoles(page: number, limit: number, search?: string, ability?: AppAbility) {
+  const where = and(
+    ability ? rulesToDrizzleWhere(ability, 'read', 'User') : undefined,
+    search ? ilike(users.email, `%${search.replaceAll(/[%_\\]/g, String.raw`\$&`)}%`) : undefined
+  )
 
   const [data, [{ total }]] = await Promise.all([
     db.select({ id: users.id, email: users.email, createdAt: users.createdAt })
@@ -152,7 +109,10 @@ export async function findUsersWithRoles(page: number, limit: number, search?: s
 }
 
 export function findUserById(userId: string) {
-  return db.select({ id: users.id }).from(users).where(eq(users.id, userId)).then(rows => rows.at(0))
+  return db.select({ id: users.id, email: users.email, createdAt: users.createdAt, updatedAt: users.updatedAt })
+    .from(users)
+    .where(eq(users.id, userId))
+    .then(rows => rows.at(0))
 }
 
 export function findUserRoles(userId: string) {
@@ -167,12 +127,11 @@ export function findUserRoles(userId: string) {
 export function replaceUserRoles(userId: string, roleIds: number[], assignedBy: string, protectWildcardAccess = false, audit?: AuditCallback) {
   return db.transaction(async (tx) => {
     if (protectWildcardAccess) {
-      await tx.execute(sql`select 1 from ${permissions} where ${permissions.key} = ${WILDCARD_PERMISSION} for update`)
+      await tx.execute(sql`select 1 from ${roles} where ${roles.slug} = ${SUPER_ADMIN_SLUG} for update`)
       const otherWildcardHolder = await tx.select({ userId: userRoles.userId })
         .from(userRoles)
-        .innerJoin(rolePermissions, eq(rolePermissions.roleId, userRoles.roleId))
-        .innerJoin(permissions, eq(permissions.id, rolePermissions.permissionId))
-        .where(and(ne(userRoles.userId, userId), eq(permissions.key, WILDCARD_PERMISSION)))
+        .innerJoin(roles, eq(roles.id, userRoles.roleId))
+        .where(and(ne(userRoles.userId, userId), eq(roles.slug, SUPER_ADMIN_SLUG)))
         .limit(1)
         .then(rows => rows.at(0))
       if (!otherWildcardHolder)

@@ -18,13 +18,23 @@ describe('tasksView', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     const response = { ok: true, status: 200 }
-    api.GET.mockResolvedValue({
-      data: {
-        data: [{ id: 1, name: 'Ship CRUD', done: false, createdAt: '', updatedAt: '' }],
-        pagination: { page: 1, limit: 20, total: 21, totalPages: 2 }
-      },
-      response
-    })
+    api.GET.mockImplementation(async (url: string) => url === '/api/v1/me/authorization'
+      ? {
+          data: {
+            user: { id: '00000000-0000-0000-0000-000000000001', email: 'person@example.com' },
+            roles: [],
+            rules: [{ action: 'manage', subject: 'Task' }],
+            authorizationVersion: 1
+          },
+          response
+        }
+      : {
+          data: {
+            data: [{ id: 1, userId: '00000000-0000-0000-0000-000000000001', name: 'Ship CRUD', done: false, createdAt: '', updatedAt: '' }],
+            pagination: { page: 1, limit: 20, total: 21, totalPages: 2 }
+          },
+          response
+        })
     api.POST.mockResolvedValue({ response })
     api.PATCH.mockResolvedValue({ response })
     api.DELETE.mockResolvedValue({ response })
@@ -74,7 +84,12 @@ describe('tasksView', () => {
   })
 
   it('shows query failures', async () => {
-    api.GET.mockResolvedValue({ response: { ok: false, status: 503 } })
+    api.GET.mockImplementation(async (url: string) => url === '/api/v1/me/authorization'
+      ? {
+          data: { user: { id: '00000000-0000-0000-0000-000000000001', email: 'person@example.com' }, roles: [], rules: [{ action: 'manage', subject: 'Task' }], authorizationVersion: 1 },
+          response: { ok: true, status: 200 }
+        }
+      : { response: { ok: false, status: 503 } })
     const wrapper = mount(TasksView, {
       global: { plugins: [createPinia(), [PiniaColada, { queryOptions: { staleTime: 0 } }]] }
     })
