@@ -2,6 +2,7 @@ import type { UpdateProfile } from '@monorepo-fastify-vue/api-client'
 import { RpcError } from '@monorepo-fastify-vue/api-client'
 import { useMutation, useQueryCache } from '@pinia/colada'
 
+import { AUTHORIZATION_KEY } from '@/features/permissions'
 import { api } from '@/shared/api/client'
 
 import { PROFILE_KEY } from './queries'
@@ -15,6 +16,9 @@ export function useProfileMutation() {
         throw new RpcError(response.status, error)
       return data
     },
-    onSuccess: user => cache.setQueryData(PROFILE_KEY, user)
+    onSuccess: async (user) => {
+      cache.setQueryData(PROFILE_KEY, user)
+      await cache.invalidateQueries({ key: AUTHORIZATION_KEY })
+    }
   })
 }

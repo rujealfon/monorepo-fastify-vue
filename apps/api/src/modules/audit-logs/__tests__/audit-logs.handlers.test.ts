@@ -132,7 +132,7 @@ describe('audit routes', () => {
       entityType: 'user',
       entityId: standardUserId,
       actorEmail: 'audit-standard@example.com',
-      metadata: { method: 'GET', url: '/api/v1/audit-logs', requiredPermissions: ['audit.read'] }
+      metadata: { method: 'GET', url: '/api/v1/audit-logs', action: 'read', subject: 'AuditLog' }
     })
   })
 

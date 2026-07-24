@@ -13,7 +13,7 @@ function cookie(response: { headers: Record<string, number | string | string[] |
   return String(response.headers['set-cookie']).split(';')[0]
 }
 
-describe('permissions routes', () => {
+describe('authorization administration routes', () => {
   let app: FastifyInstance
   let adminAuth: Record<string, string>
   let standardAuth: Record<string, string>
@@ -46,22 +46,22 @@ describe('permissions routes', () => {
   })
 
   it('rejects unauthenticated requests', async () => {
-    const response = await app.inject({ method: 'GET', url: '/api/v1/permissions' })
+    const response = await app.inject({ method: 'GET', url: '/api/v1/ability-rules' })
     expect(response.statusCode).toBe(401)
   })
 
-  it('forbids users without permissions.read', async () => {
-    const response = await app.inject({ method: 'GET', url: '/api/v1/permissions', headers: standardAuth })
+  it('forbids users without read AbilityRule', async () => {
+    const response = await app.inject({ method: 'GET', url: '/api/v1/ability-rules', headers: standardAuth })
     expect(response.statusCode).toBe(403)
   })
 
-  it('lists the seeded permissions for an admin', async () => {
-    const response = await app.inject({ method: 'GET', url: '/api/v1/permissions', headers: adminAuth })
+  it('lists the seeded ability rules for an admin', async () => {
+    const response = await app.inject({ method: 'GET', url: '/api/v1/ability-rules', headers: adminAuth })
     expect(response.statusCode).toBe(200)
 
-    const keys = response.json().map((permission: { key: string }) => permission.key)
-    expect(keys).toContain('*')
+    const keys = response.json().map((rule: { key: string }) => rule.key)
+    expect(keys).toContain('system.manage_all')
     expect(keys).toContain('users.read')
-    expect(keys).toContain('profile.read_own')
+    expect(keys).toContain('tasks.read_own')
   })
 })

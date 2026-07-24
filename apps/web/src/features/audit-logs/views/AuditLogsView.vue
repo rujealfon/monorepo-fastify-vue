@@ -35,7 +35,11 @@ const actionItems: { label: string, value: AuditAction | null }[] = [
   { label: 'Role created', value: 'role.created' },
   { label: 'Role updated', value: 'role.updated' },
   { label: 'Role deleted', value: 'role.deleted' },
+  { label: 'Role ability rules replaced', value: 'role.ability_rules_replaced' },
   { label: 'Role permissions replaced', value: 'role.permissions_replaced' },
+  { label: 'Ability rule created', value: 'ability_rule.created' },
+  { label: 'Ability rule updated', value: 'ability_rule.updated' },
+  { label: 'Ability rule deleted', value: 'ability_rule.deleted' },
   { label: 'User roles replaced', value: 'user.roles_replaced' },
   { label: 'User registered', value: 'user.registered' },
   { label: 'Profile updated', value: 'profile.updated' },
@@ -49,7 +53,8 @@ const entityTypeItems: { label: string, value: AuditEntityType | null }[] = [
   { label: 'All entities', value: null },
   { label: 'Task', value: 'task' },
   { label: 'Role', value: 'role' },
-  { label: 'User', value: 'user' }
+  { label: 'User', value: 'user' },
+  { label: 'Ability rule', value: 'ability_rule' }
 ]
 
 const actionLabels = computed(() => new Map(actionItems.map(item => [item.value, item.label])))
@@ -58,7 +63,7 @@ function hasMetadata(metadata: Record<string, unknown> | null | undefined) {
   return metadata != null && Object.keys(metadata).length > 0
 }
 
-function requestContext(log: { ipAddress: string | null, userAgent: string | null, requestId: string | null }) {
+function requestContext(log: { ipAddress?: string | null, userAgent?: string | null, requestId?: string | null }) {
   return [
     log.ipAddress,
     log.userAgent,
@@ -143,16 +148,16 @@ function requestContext(log: { ipAddress: string | null, userAgent: string | nul
         class="flex flex-col gap-1 rounded-lg border border-default bg-elevated/50 px-4 py-3"
       >
         <div class="flex flex-wrap items-center gap-2">
-          <UBadge color="primary" variant="subtle" :label="actionLabels.get(log.action) ?? log.action" />
+          <UBadge color="primary" variant="subtle" :label="log.action ? (actionLabels.get(log.action) ?? log.action) : 'Protected event'" />
           <RouterLink
-            v-if="log.entityType === 'role' && can('roles.read')"
+            v-if="log.entityType === 'role' && can('read', 'Role')"
             :to="`/admin/roles/${log.entityId}`"
             class="text-sm text-primary hover:underline"
           >
             {{ log.entityType }} #{{ log.entityId }}
           </RouterLink>
-          <span v-else class="text-sm text-muted">{{ log.entityType }} #{{ log.entityId }}</span>
-          <span class="ml-auto text-sm text-muted">{{ new Date(log.createdAt).toLocaleString() }}</span>
+          <span v-else-if="log.entityType || log.entityId" class="text-sm text-muted">{{ log.entityType ?? 'entity' }} #{{ log.entityId ?? 'hidden' }}</span>
+          <span v-if="log.createdAt" class="ml-auto text-sm text-muted">{{ new Date(log.createdAt).toLocaleString() }}</span>
         </div>
         <p class="truncate text-sm text-default">
           {{ log.actorEmail ?? 'Deleted user' }}

@@ -1,17 +1,17 @@
 <script setup lang="ts">
-import type { Permission } from '@monorepo-fastify-vue/api-client'
+import type { AbilityRule, UpdateRole } from '@monorepo-fastify-vue/api-client'
 import { useQuery } from '@pinia/colada'
 import { computed, reactive, ref, watch } from 'vue'
 
-import { permissionsQuery, useAuthorization } from '@/features/permissions'
+import { abilityRulesQuery, subject, useAuthorization } from '@/features/permissions'
 import { useRoleMutations } from '@/features/roles/mutations'
 import { roleQuery } from '@/features/roles/queries'
 
 const props = defineProps<{ roleId: number }>()
 
 const role = useQuery(() => roleQuery(props.roleId))
-const permissions = useQuery(permissionsQuery)
-const { update: updateMutation, replacePermissions: replaceMutation } = useRoleMutations()
+const abilityRules = useQuery(abilityRulesQuery)
+const { update: updateMutation, replaceAbilityRules: replaceMutation } = useRoleMutations()
 const { can } = useAuthorization()
 
 const state = reactive({ name: '', description: '', isActive: true })
@@ -20,18 +20,18 @@ const selectedIds = ref(new Set<number>())
 watch(role.data, (value) => {
   if (!value)
     return
-  state.name = value.name
+  state.name = value.name ?? ''
   state.description = value.description ?? ''
-  state.isActive = value.isActive
-  selectedIds.value = new Set(value.permissions.map(permission => permission.id))
+  state.isActive = value.isActive ?? false
+  selectedIds.value = new Set((value.abilityRules ?? []).map(rule => rule.id))
 }, { immediate: true })
 
-const permissionsByResource = computed(() => {
-  const groups = new Map<string, Permission[]>()
-  for (const permission of permissions.data.value ?? []) {
-    const group = groups.get(permission.resource) ?? []
-    group.push(permission)
-    groups.set(permission.resource, group)
+const rulesBySubject = computed(() => {
+  const groups = new Map<string, AbilityRule[]>()
+  for (const rule of abilityRules.data.value ?? []) {
+    const group = groups.get(rule.subject) ?? []
+    group.push(rule)
+    groups.set(rule.subject, group)
   }
   return [...groups.entries()]
 })
@@ -39,14 +39,17 @@ const permissionsByResource = computed(() => {
 const pending = computed(() => [updateMutation, replaceMutation]
   .some(mutation => mutation.asyncStatus.value === 'loading'))
 const error = computed(() => role.error.value
-  ?? permissions.error.value
+  ?? abilityRules.error.value
   ?? updateMutation.error.value
   ?? replaceMutation.error.value)
 
-const canEdit = computed(() => can('roles.update'))
-const canAssign = computed(() => can('roles.assign_permissions'))
+const canEdit = computed(() => role.data.value ? can('update', subject('Role', role.data.value)) : false)
+function canEditField(field: 'name' | 'description' | 'isActive') {
+  return role.data.value ? can('update', subject('Role', role.data.value), field) : false
+}
+const canAssign = computed(() => can('manage', 'all'))
 
-function togglePermission(id: number, checked: boolean) {
+function toggleRule(id: number, checked: boolean) {
   const next = new Set(selectedIds.value)
   if (checked)
     next.add(id)
@@ -56,20 +59,23 @@ function togglePermission(id: number, checked: boolean) {
 }
 
 async function save() {
-  const permissionIds = [...selectedIds.value]
+  const abilityRuleIds = [...selectedIds.value]
   try {
     if (canEdit.value) {
-      await updateMutation.mutateAsync({
-        roleId: props.roleId,
-        name: state.name.trim(),
-        description: state.description.trim() || null,
-        isActive: state.isActive
-      })
+      const body: UpdateRole & { roleId: number } = { roleId: props.roleId }
+      if (canEditField('name'))
+        body.name = state.name.trim()
+      if (canEditField('description'))
+        body.description = state.description.trim() || null
+      if (canEditField('isActive'))
+        body.isActive = state.isActive
+      if (Object.keys(body).length > 1)
+        await updateMutation.mutateAsync(body)
     }
     if (canAssign.value) {
       await replaceMutation.mutateAsync({
         roleId: props.roleId,
-        permissionIds
+        abilityRuleIds
       })
     }
   }
@@ -115,36 +121,36 @@ async function save() {
     <template v-else-if="role.data.value">
       <UForm :state="state" class="flex flex-col gap-4" novalidate @submit.prevent="save">
         <UFormField name="name" label="Name">
-          <UInput v-model="state.name" maxlength="100" required :disabled="!canEdit" class="w-full" />
+          <UInput v-model="state.name" maxlength="100" required :disabled="!canEditField('name')" class="w-full" />
         </UFormField>
         <UFormField name="description" label="Description">
-          <UInput v-model="state.description" maxlength="500" :disabled="!canEdit" class="w-full" />
+          <UInput v-model="state.description" maxlength="500" :disabled="!canEditField('description')" class="w-full" />
         </UFormField>
         <UFormField name="isActive">
-          <UCheckbox v-model="state.isActive" label="Active" :disabled="!canEdit" />
+          <UCheckbox v-model="state.isActive" label="Active" :disabled="!canEditField('isActive')" />
         </UFormField>
 
         <div class="flex flex-col gap-4">
           <h2 class="text-lg font-semibold text-highlighted">
-            Permissions
+            Ability rules
           </h2>
           <div
-            v-for="[resource, group] in permissionsByResource"
-            :key="resource"
+            v-for="[ruleSubject, group] in rulesBySubject"
+            :key="ruleSubject"
             class="rounded-lg border border-default bg-elevated/50 p-4"
           >
             <h3 class="mb-2 font-medium capitalize text-default">
-              {{ resource }}
+              {{ ruleSubject }}
             </h3>
             <div class="flex flex-col gap-2">
               <UCheckbox
-                v-for="permission in group"
-                :key="permission.id"
-                :model-value="selectedIds.has(permission.id)"
-                :label="permission.key"
-                :description="permission.description ?? undefined"
+                v-for="ruleItem in group"
+                :key="ruleItem.id"
+                :model-value="selectedIds.has(ruleItem.id)"
+                :label="`${ruleItem.effect === 'deny' ? 'Deny' : 'Allow'} ${ruleItem.action} ${ruleItem.subject}`"
+                :description="[ruleItem.description, ruleItem.fields?.length ? `Fields: ${ruleItem.fields.join(', ')}` : null, ruleItem.resourceConditions ? `When: ${JSON.stringify(ruleItem.resourceConditions)}` : null].filter(Boolean).join(' · ')"
                 :disabled="!canAssign"
-                @update:model-value="togglePermission(permission.id, $event === true)"
+                @update:model-value="toggleRule(ruleItem.id, $event === true)"
               />
             </div>
           </div>

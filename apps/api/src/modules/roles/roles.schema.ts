@@ -2,7 +2,7 @@ import { boolean, index, integer, pgTable, primaryKey, text, timestamp, uuid, va
 import { createSelectSchema } from 'drizzle-zod'
 import { z } from 'zod'
 
-import { permissionKeySchema, permissions, selectPermissionSchema } from '#api/modules/permissions/permissions.schema.js'
+import { selectAbilityRuleSchema } from '#api/modules/authorization/authorization.schema.js'
 import { users } from '#api/modules/users/users.schema.js'
 
 export const roles = pgTable('roles', {
@@ -26,16 +26,6 @@ export const userRoles = pgTable('user_roles', {
   index('user_roles_role_id_idx').on(table.roleId)
 ])
 
-export const rolePermissions = pgTable('role_permissions', {
-  roleId: integer('role_id').notNull().references(() => roles.id, { onDelete: 'cascade' }),
-  permissionId: integer('permission_id').notNull().references(() => permissions.id, { onDelete: 'cascade' }),
-  assignedBy: uuid('assigned_by').references(() => users.id, { onDelete: 'set null' }),
-  assignedAt: timestamp('assigned_at', { withTimezone: true }).notNull().defaultNow()
-}, table => [
-  primaryKey({ columns: [table.roleId, table.permissionId] }),
-  index('role_permissions_permission_id_idx').on(table.permissionId)
-])
-
 export const SUPER_ADMIN_SLUG = 'super-admin'
 export const DEFAULT_ROLE_SLUG = 'standard-user'
 
@@ -46,13 +36,14 @@ const roleSlugSchema = z.string().trim().min(1).max(100).regex(
 
 export const selectRoleSchema = createSelectSchema(roles, { id: schema => schema.positive() })
 export type SelectRole = z.infer<typeof selectRoleSchema>
+export const roleResponseSchema = selectRoleSchema.partial().required({ id: true, slug: true })
 
-export const roleWithPermissionsSchema = selectRoleSchema.extend({
-  permissions: z.array(selectPermissionSchema)
+export const roleWithAbilityRulesSchema = roleResponseSchema.extend({
+  abilityRules: z.array(z.lazy(() => selectAbilityRuleSchema)).optional()
 })
 
-export const roleWithUserCountSchema = selectRoleSchema.extend({
-  userCount: z.number().int().nonnegative()
+export const roleWithUserCountSchema = roleResponseSchema.extend({
+  userCount: z.number().int().nonnegative().optional()
 })
 
 export const createRoleSchema = z.object({
@@ -71,13 +62,10 @@ export const patchRoleSchema = z.object({
 }).meta({ examples: [{ name: 'Support Agent', description: 'Handles customer tickets', isActive: true }] })
 export type PatchRole = z.infer<typeof patchRoleSchema>
 
-export const replaceRolePermissionsSchema = z.object({
-  permissionIds: z.array(z.number().int().positive()).max(500)
-}).meta({ examples: [{ permissionIds: [1, 2, 4] }] })
-export type ReplaceRolePermissions = z.infer<typeof replaceRolePermissionsSchema>
-
 export const replaceUserRolesSchema = z.object({
-  roleIds: z.array(z.number().int().positive()).max(100)
+  roleIds: z.array(z.number().int().positive())
+    .min(1, 'Every user must have at least one role')
+    .max(100)
 }).meta({ examples: [{ roleIds: [2, 3] }] })
 export type ReplaceUserRoles = z.infer<typeof replaceUserRolesSchema>
 
@@ -93,9 +81,9 @@ export type UsersPageQuery = z.infer<typeof usersPageQuerySchema>
 
 export const userWithRolesSchema = z.object({
   id: z.uuid(),
-  email: z.string(),
-  createdAt: z.date(),
-  roles: z.array(assignedRoleSchema)
+  email: z.string().optional(),
+  createdAt: z.date().optional(),
+  roles: z.array(assignedRoleSchema).optional()
 })
 
 export const usersPageSchema = z.object({
@@ -107,11 +95,3 @@ export const usersPageSchema = z.object({
     totalPages: z.number().int().nonnegative()
   })
 })
-
-export const authorizationSchema = z.object({
-  user: z.object({ id: z.uuid(), email: z.string() }),
-  roles: z.array(assignedRoleSchema),
-  permissions: z.array(permissionKeySchema),
-  authorizationVersion: z.number().int().positive()
-})
-export type Authorization = z.infer<typeof authorizationSchema>

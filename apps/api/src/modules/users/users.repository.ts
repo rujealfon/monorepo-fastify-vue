@@ -1,6 +1,7 @@
+import type { DbExecutor } from '#api/modules/audit-logs'
 import type { PatchProfile, RegisterUser } from './users.schema.js'
 
-import { eq } from 'drizzle-orm'
+import { eq, sql } from 'drizzle-orm'
 
 import { db } from '#api/db/index.js'
 import { assignRoleBySlug, DEFAULT_ROLE_SLUG } from '#api/modules/roles'
@@ -32,7 +33,17 @@ export function insert(data: Omit<RegisterUser, 'password'> & { passwordHash: st
   })
 }
 
-export async function updateProfile(id: string, data: PatchProfile) {
-  const profile = await db.update(profiles).set(data).where(eq(profiles.userId, id)).returning().then(rows => rows.at(0))
-  return profile && findById(id)
+export function updateProfile(id: string, data: PatchProfile, audit?: (tx: DbExecutor) => Promise<void>) {
+  return db.transaction(async (tx) => {
+    const profile = await tx.update(profiles).set(data).where(eq(profiles.userId, id)).returning().then(rows => rows.at(0))
+    if (!profile)
+      return undefined
+    await tx.update(users)
+      .set({ authorizationVersion: sql`${users.authorizationVersion} + 1` })
+      .where(eq(users.id, id))
+    if (audit)
+      await audit(tx)
+    const user = await tx.select().from(users).where(eq(users.id, id)).then(rows => rows.at(0))
+    return user ? { user, profile } : undefined
+  })
 }

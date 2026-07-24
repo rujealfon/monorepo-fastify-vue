@@ -1,11 +1,13 @@
 import type { FastifyInstance } from 'fastify'
 
-import { eq, sql } from 'drizzle-orm'
+import { and, eq, sql } from 'drizzle-orm'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { buildApp } from '#api/app.js'
 import { db } from '#api/db/index.js'
+import { auditLogs } from '#api/modules/audit-logs/audit-logs.schema.js'
 import { roles, userRoles } from '#api/modules/roles/roles.schema.js'
+import { users } from '#api/modules/users/users.schema.js'
 
 const password = 'correct horse battery staple'
 
@@ -74,9 +76,11 @@ describe('roles routes', () => {
     const body = response.json()
     expect(body.user.id).toBe(standardUserId)
     expect(body.roles.map((role: { slug: string }) => role.slug)).toEqual(['standard-user'])
-    expect(body.permissions).toContain('profile.read_own')
-    expect(body.permissions).toContain('tasks.read')
-    expect(body.permissions).not.toContain('roles.read')
+    expect(body.rules).toEqual(expect.arrayContaining([
+      expect.objectContaining({ action: 'read', subject: 'Profile' }),
+      expect.objectContaining({ action: 'read', subject: 'Task' })
+    ]))
+    expect(body.rules).not.toContainEqual(expect.objectContaining({ action: 'read', subject: 'Role' }))
     expect(body.authorizationVersion).toBeGreaterThanOrEqual(1)
   })
 
@@ -134,7 +138,7 @@ describe('roles routes', () => {
     })
     expect(createResponse.statusCode).toBe(201)
     const role = createResponse.json()
-    expect(role).toMatchObject({ name: 'Support', slug: 'support', isSystem: false, permissions: [] })
+    expect(role).toMatchObject({ name: 'Support', slug: 'support', isSystem: false, abilityRules: [] })
 
     const conflictResponse = await app.inject({
       method: 'POST',
@@ -153,22 +157,22 @@ describe('roles routes', () => {
     expect(patchResponse.statusCode).toBe(200)
     expect(patchResponse.json().description).toBe('Customer support')
 
-    const permissionsResponse = await app.inject({ method: 'GET', url: '/api/v1/permissions', headers: superAuth })
-    const allPermissions = permissionsResponse.json() as { id: number, key: string }[]
-    const profileRead = allPermissions.find(permission => permission.key === 'profile.read_own')!
+    const rulesResponse = await app.inject({ method: 'GET', url: '/api/v1/ability-rules', headers: superAuth })
+    const allRules = rulesResponse.json() as { id: number, key: string }[]
+    const profileRead = allRules.find(rule => rule.key === 'profile.read_own')!
 
     const assignResponse = await app.inject({
       method: 'PUT',
-      url: `/api/v1/roles/${role.id}/permissions`,
+      url: `/api/v1/roles/${role.id}/ability-rules`,
       headers: superAuth,
-      payload: { permissionIds: [profileRead.id] }
+      payload: { abilityRuleIds: [profileRead.id] }
     })
     expect(assignResponse.statusCode).toBe(200)
-    expect(assignResponse.json().permissions.map((permission: { key: string }) => permission.key)).toEqual(['profile.read_own'])
+    expect(assignResponse.json().map((rule: { key: string }) => rule.key)).toEqual(['profile.read_own'])
 
     const getResponse = await app.inject({ method: 'GET', url: `/api/v1/roles/${role.id}`, headers: superAuth })
     expect(getResponse.statusCode).toBe(200)
-    expect(getResponse.json().permissions).toHaveLength(1)
+    expect(getResponse.json().abilityRules).toHaveLength(1)
 
     const deleteResponse = await app.inject({ method: 'DELETE', url: `/api/v1/roles/${role.id}`, headers: superAuth })
     expect(deleteResponse.statusCode).toBe(204)
@@ -193,9 +197,9 @@ describe('roles routes', () => {
 
     const stripResponse = await app.inject({
       method: 'PUT',
-      url: `/api/v1/roles/${superAdminRole.id}/permissions`,
+      url: `/api/v1/roles/${superAdminRole.id}/ability-rules`,
       headers: superAuth,
-      payload: { permissionIds: [] }
+      payload: { abilityRuleIds: [] }
     })
     expect(stripResponse.statusCode).toBe(403)
   })
@@ -207,6 +211,22 @@ describe('roles routes', () => {
     const [standardRole] = await db.select().from(roles).where(eq(roles.slug, 'standard-user'))
     const [adminRole] = await db.select().from(roles).where(eq(roles.slug, 'admin'))
     const [superAdminRole] = await db.select().from(roles).where(eq(roles.slug, 'super-admin'))
+
+    const emptyResponse = await app.inject({
+      method: 'PUT',
+      url: `/api/v1/users/${standardUserId}/roles`,
+      headers: superAuth,
+      payload: { roleIds: [] }
+    })
+    expect(emptyResponse.statusCode).toBe(422)
+
+    const tooManyResponse = await app.inject({
+      method: 'PUT',
+      url: `/api/v1/users/${standardUserId}/roles`,
+      headers: superAuth,
+      payload: { roleIds: Array.from({ length: 101 }, (_, index) => index + 1) }
+    })
+    expect(tooManyResponse.statusCode).toBe(422)
 
     const escalationResponse = await app.inject({
       method: 'PUT',
@@ -239,7 +259,115 @@ describe('roles routes', () => {
 
     const after = await app.inject({ method: 'GET', url: '/api/v1/me/authorization', headers: standardAuth })
     expect(after.json().authorizationVersion).toBe(versionBefore + 1)
-    expect(after.json().permissions).toContain('roles.read')
+    expect(after.json().rules).toContainEqual(expect.objectContaining({ action: 'read', subject: 'Role' }))
+  })
+
+  it('enforces the role invariant in the database', async () => {
+    await expect(db.delete(userRoles).where(eq(userRoles.userId, standardUserId)))
+      .rejects
+      .toMatchObject({ cause: { code: '23514', constraint: 'users_require_role' } })
+    const assignments = await db.select().from(userRoles).where(eq(userRoles.userId, standardUserId))
+    expect(assignments.length).toBeGreaterThan(0)
+  })
+
+  it('rejects deleting a role that is a user sole assignment and rolls back the audit event', async () => {
+    const assignedUser = await register('roles-sole-assignment@example.com')
+    const createResponse = await app.inject({
+      method: 'POST',
+      url: '/api/v1/roles',
+      headers: superAuth,
+      payload: { name: 'Sole Assignment', slug: 'sole-assignment' }
+    })
+    expect(createResponse.statusCode).toBe(201)
+    const role = createResponse.json() as { id: number }
+
+    const replaceResponse = await app.inject({
+      method: 'PUT',
+      url: `/api/v1/users/${assignedUser.id}/roles`,
+      headers: superAuth,
+      payload: { roleIds: [role.id] }
+    })
+    expect(replaceResponse.statusCode).toBe(200)
+
+    const deleteResponse = await app.inject({
+      method: 'DELETE',
+      url: `/api/v1/roles/${role.id}`,
+      headers: superAuth
+    })
+    expect(deleteResponse.statusCode).toBe(409)
+    expect(deleteResponse.json().message).toBe('This role cannot be deleted because it is the only role assigned to one or more users')
+
+    const [persistedRole] = await db.select().from(roles).where(eq(roles.id, role.id))
+    expect(persistedRole).toBeDefined()
+    const assignments = await db.select().from(userRoles).where(eq(userRoles.userId, assignedUser.id))
+    expect(assignments.map(assignment => assignment.roleId)).toEqual([role.id])
+    const deletionAudits = await db.select().from(auditLogs).where(and(
+      eq(auditLogs.action, 'role.deleted'),
+      eq(auditLogs.entityId, String(role.id))
+    ))
+    expect(deletionAudits).toHaveLength(0)
+  })
+
+  it('deletes an assigned role when every affected user retains another role', async () => {
+    const assignedUser = await register('roles-extra-assignment@example.com')
+    const [standardRole] = await db.select().from(roles).where(eq(roles.slug, 'standard-user'))
+    const createResponse = await app.inject({
+      method: 'POST',
+      url: '/api/v1/roles',
+      headers: superAuth,
+      payload: { name: 'Extra Assignment', slug: 'extra-assignment' }
+    })
+    expect(createResponse.statusCode).toBe(201)
+    const role = createResponse.json() as { id: number }
+
+    const replaceResponse = await app.inject({
+      method: 'PUT',
+      url: `/api/v1/users/${assignedUser.id}/roles`,
+      headers: superAuth,
+      payload: { roleIds: [standardRole.id, role.id] }
+    })
+    expect(replaceResponse.statusCode).toBe(200)
+    const authorizationBefore = await app.inject({
+      method: 'GET',
+      url: '/api/v1/me/authorization',
+      headers: assignedUser.auth
+    })
+
+    const deleteResponse = await app.inject({
+      method: 'DELETE',
+      url: `/api/v1/roles/${role.id}`,
+      headers: superAuth
+    })
+    expect(deleteResponse.statusCode).toBe(204)
+
+    const remainingAssignments = await db.select().from(userRoles).where(eq(userRoles.userId, assignedUser.id))
+    expect(remainingAssignments.map(assignment => assignment.roleId)).toEqual([standardRole.id])
+    const authorizationAfter = await app.inject({
+      method: 'GET',
+      url: '/api/v1/me/authorization',
+      headers: assignedUser.auth
+    })
+    expect(authorizationAfter.json().authorizationVersion)
+      .toBe(authorizationBefore.json().authorizationVersion + 1)
+  })
+
+  it('requires a role for direct user inserts while allowing atomic assignment and user deletion', async () => {
+    const email = 'roles-direct-insert@example.com'
+    await expect(db.insert(users).values({ email, passwordHash: 'hash' }))
+      .rejects
+      .toMatchObject({ cause: { code: '23514', constraint: 'users_require_role' } })
+    expect(await db.select().from(users).where(eq(users.email, email))).toHaveLength(0)
+
+    const [standardRole] = await db.select().from(roles).where(eq(roles.slug, 'standard-user'))
+    const insertedUser = await db.transaction(async (tx) => {
+      const [user] = await tx.insert(users).values({ email, passwordHash: 'hash' }).returning()
+      await tx.insert(userRoles).values({ userId: user.id, roleId: standardRole.id })
+      return user
+    })
+    expect(await db.select().from(userRoles).where(eq(userRoles.userId, insertedUser.id))).toHaveLength(1)
+
+    await expect(db.delete(users).where(eq(users.id, insertedUser.id))).resolves.toBeDefined()
+    expect(await db.select().from(users).where(eq(users.id, insertedUser.id))).toHaveLength(0)
   })
 
   it('never removes the last super admin', async () => {

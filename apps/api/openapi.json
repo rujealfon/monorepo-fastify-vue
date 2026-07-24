@@ -558,15 +558,13 @@
                             "type": "integer",
                             "minimum": 0,
                             "exclusiveMinimum": true,
-                            "maximum": 2147483647
+                            "maximum": 9007199254740991
                           },
                           "name": {
-                            "type": "string",
-                            "maxLength": 100
+                            "type": "string"
                           },
                           "slug": {
-                            "type": "string",
-                            "maxLength": 100
+                            "type": "string"
                           }
                         },
                         "required": [
@@ -577,12 +575,56 @@
                         "additionalProperties": false
                       }
                     },
-                    "permissions": {
+                    "rules": {
                       "type": "array",
                       "items": {
-                        "type": "string",
-                        "maxLength": 150,
-                        "pattern": "^(\\*|[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)+)$"
+                        "type": "object",
+                        "properties": {
+                          "action": {
+                            "type": "string",
+                            "enum": [
+                              "manage",
+                              "create",
+                              "read",
+                              "update",
+                              "delete",
+                              "assign"
+                            ]
+                          },
+                          "subject": {
+                            "type": "string",
+                            "enum": [
+                              "all",
+                              "Task",
+                              "Profile",
+                              "User",
+                              "Role",
+                              "AbilityRule",
+                              "AuditLog"
+                            ]
+                          },
+                          "fields": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "conditions": {
+                            "type": "object",
+                            "additionalProperties": {}
+                          },
+                          "inverted": {
+                            "type": "boolean"
+                          },
+                          "reason": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "action",
+                          "subject"
+                        ],
+                        "additionalProperties": false
                       }
                     },
                     "authorizationVersion": {
@@ -595,7 +637,7 @@
                   "required": [
                     "user",
                     "roles",
-                    "permissions",
+                    "rules",
                     "authorizationVersion"
                   ],
                   "additionalProperties": false
@@ -697,6 +739,10 @@
                 "role.updated",
                 "role.deleted",
                 "role.permissions_replaced",
+                "role.ability_rules_replaced",
+                "ability_rule.created",
+                "ability_rule.updated",
+                "ability_rule.deleted",
                 "user.roles_replaced",
                 "user.registered",
                 "profile.updated",
@@ -716,7 +762,8 @@
               "enum": [
                 "task",
                 "role",
-                "user"
+                "user",
+                "ability_rule"
               ]
             },
             "in": "query",
@@ -777,6 +824,10 @@
                               "role.updated",
                               "role.deleted",
                               "role.permissions_replaced",
+                              "role.ability_rules_replaced",
+                              "ability_rule.created",
+                              "ability_rule.updated",
+                              "ability_rule.deleted",
                               "user.roles_replaced",
                               "user.registered",
                               "profile.updated",
@@ -791,7 +842,8 @@
                             "enum": [
                               "task",
                               "role",
-                              "user"
+                              "user",
+                              "ability_rule"
                             ]
                           },
                           "entityId": {
@@ -827,17 +879,7 @@
                           }
                         },
                         "required": [
-                          "id",
-                          "actorId",
-                          "action",
-                          "entityType",
-                          "entityId",
-                          "metadata",
-                          "ipAddress",
-                          "userAgent",
-                          "requestId",
-                          "createdAt",
-                          "actorEmail"
+                          "id"
                         ],
                         "additionalProperties": false
                       }
@@ -897,6 +939,1349 @@
             }
           },
           "403": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ability-rules/": {
+      "get": {
+        "tags": [
+          "Ability Rules"
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "exclusiveMinimum": true,
+                        "maximum": 2147483647
+                      },
+                      "key": {
+                        "type": "string",
+                        "maxLength": 150
+                      },
+                      "description": {
+                        "nullable": true,
+                        "type": "string"
+                      },
+                      "effect": {
+                        "type": "string",
+                        "enum": [
+                          "allow",
+                          "deny"
+                        ]
+                      },
+                      "action": {
+                        "type": "string",
+                        "enum": [
+                          "manage",
+                          "create",
+                          "read",
+                          "update",
+                          "delete",
+                          "assign"
+                        ]
+                      },
+                      "subject": {
+                        "type": "string",
+                        "enum": [
+                          "all",
+                          "Task",
+                          "Profile",
+                          "User",
+                          "Role",
+                          "AbilityRule",
+                          "AuditLog"
+                        ]
+                      },
+                      "fields": {
+                        "nullable": true,
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "actorConditions": {
+                        "nullable": true,
+                        "type": "object",
+                        "additionalProperties": {}
+                      },
+                      "resourceConditions": {
+                        "nullable": true,
+                        "type": "object",
+                        "additionalProperties": {}
+                      },
+                      "denialReason": {
+                        "nullable": true,
+                        "type": "string"
+                      },
+                      "priority": {
+                        "type": "integer",
+                        "minimum": -2147483648,
+                        "maximum": 2147483647
+                      },
+                      "isSystem": {
+                        "type": "boolean"
+                      },
+                      "isActive": {
+                        "type": "boolean"
+                      },
+                      "conditionSchemaVersion": {
+                        "type": "integer",
+                        "minimum": -2147483648,
+                        "maximum": 2147483647
+                      },
+                      "createdAt": {
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      "updatedAt": {
+                        "type": "string",
+                        "format": "date-time"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "key",
+                      "description",
+                      "effect",
+                      "action",
+                      "subject",
+                      "fields",
+                      "actorConditions",
+                      "resourceConditions",
+                      "denialReason",
+                      "priority",
+                      "isSystem",
+                      "isActive",
+                      "conditionSchemaVersion",
+                      "createdAt",
+                      "updatedAt"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Ability Rules"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "key": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 150,
+                    "pattern": "^[a-z][a-z0-9_.-]*$"
+                  },
+                  "description": {
+                    "nullable": true,
+                    "type": "string",
+                    "maxLength": 500
+                  },
+                  "effect": {
+                    "type": "string",
+                    "enum": [
+                      "allow",
+                      "deny"
+                    ]
+                  },
+                  "action": {
+                    "type": "string",
+                    "enum": [
+                      "manage",
+                      "create",
+                      "read",
+                      "update",
+                      "delete",
+                      "assign"
+                    ]
+                  },
+                  "subject": {
+                    "type": "string",
+                    "enum": [
+                      "all",
+                      "Task",
+                      "Profile",
+                      "User",
+                      "Role",
+                      "AbilityRule",
+                      "AuditLog"
+                    ]
+                  },
+                  "fields": {
+                    "nullable": true,
+                    "maxItems": 100,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 100
+                    }
+                  },
+                  "actorConditions": {
+                    "nullable": true,
+                    "type": "object",
+                    "additionalProperties": {}
+                  },
+                  "resourceConditions": {
+                    "nullable": true,
+                    "type": "object",
+                    "additionalProperties": {}
+                  },
+                  "denialReason": {
+                    "nullable": true,
+                    "type": "string",
+                    "maxLength": 500
+                  },
+                  "priority": {
+                    "default": 0,
+                    "type": "integer",
+                    "minimum": -1000000,
+                    "maximum": 999999
+                  },
+                  "isActive": {
+                    "default": true,
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "key",
+                  "effect",
+                  "action",
+                  "subject"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "exclusiveMinimum": true,
+                      "maximum": 2147483647
+                    },
+                    "key": {
+                      "type": "string",
+                      "maxLength": 150
+                    },
+                    "description": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "effect": {
+                      "type": "string",
+                      "enum": [
+                        "allow",
+                        "deny"
+                      ]
+                    },
+                    "action": {
+                      "type": "string",
+                      "enum": [
+                        "manage",
+                        "create",
+                        "read",
+                        "update",
+                        "delete",
+                        "assign"
+                      ]
+                    },
+                    "subject": {
+                      "type": "string",
+                      "enum": [
+                        "all",
+                        "Task",
+                        "Profile",
+                        "User",
+                        "Role",
+                        "AbilityRule",
+                        "AuditLog"
+                      ]
+                    },
+                    "fields": {
+                      "nullable": true,
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "actorConditions": {
+                      "nullable": true,
+                      "type": "object",
+                      "additionalProperties": {}
+                    },
+                    "resourceConditions": {
+                      "nullable": true,
+                      "type": "object",
+                      "additionalProperties": {}
+                    },
+                    "denialReason": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "priority": {
+                      "type": "integer",
+                      "minimum": -2147483648,
+                      "maximum": 2147483647
+                    },
+                    "isSystem": {
+                      "type": "boolean"
+                    },
+                    "isActive": {
+                      "type": "boolean"
+                    },
+                    "conditionSchemaVersion": {
+                      "type": "integer",
+                      "minimum": -2147483648,
+                      "maximum": 2147483647
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "key",
+                    "description",
+                    "effect",
+                    "action",
+                    "subject",
+                    "fields",
+                    "actorConditions",
+                    "resourceConditions",
+                    "denialReason",
+                    "priority",
+                    "isSystem",
+                    "isActive",
+                    "conditionSchemaVersion",
+                    "createdAt",
+                    "updatedAt"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ability-rules/{ruleId}": {
+      "get": {
+        "tags": [
+          "Ability Rules"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "exclusiveMinimum": true,
+              "maximum": 9007199254740991
+            },
+            "in": "path",
+            "name": "ruleId",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "exclusiveMinimum": true,
+                      "maximum": 2147483647
+                    },
+                    "key": {
+                      "type": "string",
+                      "maxLength": 150
+                    },
+                    "description": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "effect": {
+                      "type": "string",
+                      "enum": [
+                        "allow",
+                        "deny"
+                      ]
+                    },
+                    "action": {
+                      "type": "string",
+                      "enum": [
+                        "manage",
+                        "create",
+                        "read",
+                        "update",
+                        "delete",
+                        "assign"
+                      ]
+                    },
+                    "subject": {
+                      "type": "string",
+                      "enum": [
+                        "all",
+                        "Task",
+                        "Profile",
+                        "User",
+                        "Role",
+                        "AbilityRule",
+                        "AuditLog"
+                      ]
+                    },
+                    "fields": {
+                      "nullable": true,
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "actorConditions": {
+                      "nullable": true,
+                      "type": "object",
+                      "additionalProperties": {}
+                    },
+                    "resourceConditions": {
+                      "nullable": true,
+                      "type": "object",
+                      "additionalProperties": {}
+                    },
+                    "denialReason": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "priority": {
+                      "type": "integer",
+                      "minimum": -2147483648,
+                      "maximum": 2147483647
+                    },
+                    "isSystem": {
+                      "type": "boolean"
+                    },
+                    "isActive": {
+                      "type": "boolean"
+                    },
+                    "conditionSchemaVersion": {
+                      "type": "integer",
+                      "minimum": -2147483648,
+                      "maximum": 2147483647
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "key",
+                    "description",
+                    "effect",
+                    "action",
+                    "subject",
+                    "fields",
+                    "actorConditions",
+                    "resourceConditions",
+                    "denialReason",
+                    "priority",
+                    "isSystem",
+                    "isActive",
+                    "conditionSchemaVersion",
+                    "createdAt",
+                    "updatedAt"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Ability Rules"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "key": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 150,
+                    "pattern": "^[a-z][a-z0-9_.-]*$"
+                  },
+                  "description": {
+                    "nullable": true,
+                    "type": "string",
+                    "maxLength": 500
+                  },
+                  "effect": {
+                    "type": "string",
+                    "enum": [
+                      "allow",
+                      "deny"
+                    ]
+                  },
+                  "action": {
+                    "type": "string",
+                    "enum": [
+                      "manage",
+                      "create",
+                      "read",
+                      "update",
+                      "delete",
+                      "assign"
+                    ]
+                  },
+                  "subject": {
+                    "type": "string",
+                    "enum": [
+                      "all",
+                      "Task",
+                      "Profile",
+                      "User",
+                      "Role",
+                      "AbilityRule",
+                      "AuditLog"
+                    ]
+                  },
+                  "fields": {
+                    "nullable": true,
+                    "maxItems": 100,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 100
+                    }
+                  },
+                  "actorConditions": {
+                    "nullable": true,
+                    "type": "object",
+                    "additionalProperties": {}
+                  },
+                  "resourceConditions": {
+                    "nullable": true,
+                    "type": "object",
+                    "additionalProperties": {}
+                  },
+                  "denialReason": {
+                    "nullable": true,
+                    "type": "string",
+                    "maxLength": 500
+                  },
+                  "priority": {
+                    "default": 0,
+                    "type": "integer",
+                    "minimum": -1000000,
+                    "maximum": 999999
+                  },
+                  "isActive": {
+                    "default": true,
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "exclusiveMinimum": true,
+              "maximum": 9007199254740991
+            },
+            "in": "path",
+            "name": "ruleId",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "exclusiveMinimum": true,
+                      "maximum": 2147483647
+                    },
+                    "key": {
+                      "type": "string",
+                      "maxLength": 150
+                    },
+                    "description": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "effect": {
+                      "type": "string",
+                      "enum": [
+                        "allow",
+                        "deny"
+                      ]
+                    },
+                    "action": {
+                      "type": "string",
+                      "enum": [
+                        "manage",
+                        "create",
+                        "read",
+                        "update",
+                        "delete",
+                        "assign"
+                      ]
+                    },
+                    "subject": {
+                      "type": "string",
+                      "enum": [
+                        "all",
+                        "Task",
+                        "Profile",
+                        "User",
+                        "Role",
+                        "AbilityRule",
+                        "AuditLog"
+                      ]
+                    },
+                    "fields": {
+                      "nullable": true,
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "actorConditions": {
+                      "nullable": true,
+                      "type": "object",
+                      "additionalProperties": {}
+                    },
+                    "resourceConditions": {
+                      "nullable": true,
+                      "type": "object",
+                      "additionalProperties": {}
+                    },
+                    "denialReason": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "priority": {
+                      "type": "integer",
+                      "minimum": -2147483648,
+                      "maximum": 2147483647
+                    },
+                    "isSystem": {
+                      "type": "boolean"
+                    },
+                    "isActive": {
+                      "type": "boolean"
+                    },
+                    "conditionSchemaVersion": {
+                      "type": "integer",
+                      "minimum": -2147483648,
+                      "maximum": 2147483647
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "key",
+                    "description",
+                    "effect",
+                    "action",
+                    "subject",
+                    "fields",
+                    "actorConditions",
+                    "resourceConditions",
+                    "denialReason",
+                    "priority",
+                    "isSystem",
+                    "isActive",
+                    "conditionSchemaVersion",
+                    "createdAt",
+                    "updatedAt"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Ability Rules"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "exclusiveMinimum": true,
+              "maximum": 9007199254740991
+            },
+            "in": "path",
+            "name": "ruleId",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/authorization/catalog": {
+      "get": {
+        "tags": [
+          "Authorization"
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "actions": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "manage",
+                          "create",
+                          "read",
+                          "update",
+                          "delete",
+                          "assign"
+                        ]
+                      }
+                    },
+                    "subjects": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "subject": {
+                            "type": "string",
+                            "enum": [
+                              "all",
+                              "Task",
+                              "Profile",
+                              "User",
+                              "Role",
+                              "AbilityRule",
+                              "AuditLog"
+                            ]
+                          },
+                          "conditionFields": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "readableFields": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "writableFields": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "identityFields": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "required": [
+                          "subject",
+                          "conditionFields",
+                          "readableFields",
+                          "writableFields",
+                          "identityFields"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "operators": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "actorReferences": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "conditionSchemaVersion": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": [
+                    "actions",
+                    "subjects",
+                    "operators",
+                    "actorReferences",
+                    "conditionSchemaVersion"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpError"
+                }
+              }
+            }
+          },
+          "409": {
             "description": "Default Response",
             "content": {
               "application/json": {
@@ -1022,120 +2407,6 @@
         }
       }
     },
-    "/api/v1/permissions/": {
-      "get": {
-        "tags": [
-          "Permissions"
-        ],
-        "responses": {
-          "200": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "id": {
-                        "type": "integer",
-                        "minimum": 0,
-                        "exclusiveMinimum": true,
-                        "maximum": 2147483647
-                      },
-                      "key": {
-                        "type": "string",
-                        "maxLength": 150,
-                        "pattern": "^(\\*|[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)+)$"
-                      },
-                      "resource": {
-                        "type": "string",
-                        "maxLength": 100
-                      },
-                      "action": {
-                        "type": "string",
-                        "maxLength": 100
-                      },
-                      "description": {
-                        "nullable": true,
-                        "type": "string"
-                      },
-                      "isSystem": {
-                        "type": "boolean"
-                      },
-                      "createdAt": {
-                        "type": "string",
-                        "format": "date-time"
-                      }
-                    },
-                    "required": [
-                      "id",
-                      "key",
-                      "resource",
-                      "action",
-                      "description",
-                      "isSystem",
-                      "createdAt"
-                    ],
-                    "additionalProperties": false
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HttpError"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HttpError"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ValidationError"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HttpError"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HttpError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/v1/profile/": {
       "get": {
         "tags": [
@@ -1211,15 +2482,6 @@
                           "format": "date-time"
                         }
                       },
-                      "required": [
-                        "firstName",
-                        "lastName",
-                        "gender",
-                        "birthDate",
-                        "bio",
-                        "createdAt",
-                        "updatedAt"
-                      ],
                       "additionalProperties": false
                     }
                   },
@@ -1403,15 +2665,6 @@
                           "format": "date-time"
                         }
                       },
-                      "required": [
-                        "firstName",
-                        "lastName",
-                        "gender",
-                        "birthDate",
-                        "bio",
-                        "createdAt",
-                        "updatedAt"
-                      ],
                       "additionalProperties": false
                     }
                   },
@@ -1535,14 +2788,7 @@
                     },
                     "required": [
                       "id",
-                      "name",
-                      "slug",
-                      "description",
-                      "isSystem",
-                      "isActive",
-                      "createdAt",
-                      "updatedAt",
-                      "userCount"
+                      "slug"
                     ],
                     "additionalProperties": false
                   }
@@ -1683,7 +2929,7 @@
                       "type": "string",
                       "format": "date-time"
                     },
-                    "permissions": {
+                    "abilityRules": {
                       "type": "array",
                       "items": {
                         "type": "object",
@@ -1696,25 +2942,84 @@
                           },
                           "key": {
                             "type": "string",
-                            "maxLength": 150,
-                            "pattern": "^(\\*|[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)+)$"
-                          },
-                          "resource": {
-                            "type": "string",
-                            "maxLength": 100
-                          },
-                          "action": {
-                            "type": "string",
-                            "maxLength": 100
+                            "maxLength": 150
                           },
                           "description": {
                             "nullable": true,
                             "type": "string"
                           },
+                          "effect": {
+                            "type": "string",
+                            "enum": [
+                              "allow",
+                              "deny"
+                            ]
+                          },
+                          "action": {
+                            "type": "string",
+                            "enum": [
+                              "manage",
+                              "create",
+                              "read",
+                              "update",
+                              "delete",
+                              "assign"
+                            ]
+                          },
+                          "subject": {
+                            "type": "string",
+                            "enum": [
+                              "all",
+                              "Task",
+                              "Profile",
+                              "User",
+                              "Role",
+                              "AbilityRule",
+                              "AuditLog"
+                            ]
+                          },
+                          "fields": {
+                            "nullable": true,
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "actorConditions": {
+                            "nullable": true,
+                            "type": "object",
+                            "additionalProperties": {}
+                          },
+                          "resourceConditions": {
+                            "nullable": true,
+                            "type": "object",
+                            "additionalProperties": {}
+                          },
+                          "denialReason": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "priority": {
+                            "type": "integer",
+                            "minimum": -2147483648,
+                            "maximum": 2147483647
+                          },
                           "isSystem": {
                             "type": "boolean"
                           },
+                          "isActive": {
+                            "type": "boolean"
+                          },
+                          "conditionSchemaVersion": {
+                            "type": "integer",
+                            "minimum": -2147483648,
+                            "maximum": 2147483647
+                          },
                           "createdAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "updatedAt": {
                             "type": "string",
                             "format": "date-time"
                           }
@@ -1722,11 +3027,20 @@
                         "required": [
                           "id",
                           "key",
-                          "resource",
-                          "action",
                           "description",
+                          "effect",
+                          "action",
+                          "subject",
+                          "fields",
+                          "actorConditions",
+                          "resourceConditions",
+                          "denialReason",
+                          "priority",
                           "isSystem",
-                          "createdAt"
+                          "isActive",
+                          "conditionSchemaVersion",
+                          "createdAt",
+                          "updatedAt"
                         ],
                         "additionalProperties": false
                       }
@@ -1734,14 +3048,7 @@
                   },
                   "required": [
                     "id",
-                    "name",
-                    "slug",
-                    "description",
-                    "isSystem",
-                    "isActive",
-                    "createdAt",
-                    "updatedAt",
-                    "permissions"
+                    "slug"
                   ],
                   "additionalProperties": false
                 }
@@ -1889,7 +3196,7 @@
                       "type": "string",
                       "format": "date-time"
                     },
-                    "permissions": {
+                    "abilityRules": {
                       "type": "array",
                       "items": {
                         "type": "object",
@@ -1902,25 +3209,84 @@
                           },
                           "key": {
                             "type": "string",
-                            "maxLength": 150,
-                            "pattern": "^(\\*|[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)+)$"
-                          },
-                          "resource": {
-                            "type": "string",
-                            "maxLength": 100
-                          },
-                          "action": {
-                            "type": "string",
-                            "maxLength": 100
+                            "maxLength": 150
                           },
                           "description": {
                             "nullable": true,
                             "type": "string"
                           },
+                          "effect": {
+                            "type": "string",
+                            "enum": [
+                              "allow",
+                              "deny"
+                            ]
+                          },
+                          "action": {
+                            "type": "string",
+                            "enum": [
+                              "manage",
+                              "create",
+                              "read",
+                              "update",
+                              "delete",
+                              "assign"
+                            ]
+                          },
+                          "subject": {
+                            "type": "string",
+                            "enum": [
+                              "all",
+                              "Task",
+                              "Profile",
+                              "User",
+                              "Role",
+                              "AbilityRule",
+                              "AuditLog"
+                            ]
+                          },
+                          "fields": {
+                            "nullable": true,
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "actorConditions": {
+                            "nullable": true,
+                            "type": "object",
+                            "additionalProperties": {}
+                          },
+                          "resourceConditions": {
+                            "nullable": true,
+                            "type": "object",
+                            "additionalProperties": {}
+                          },
+                          "denialReason": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "priority": {
+                            "type": "integer",
+                            "minimum": -2147483648,
+                            "maximum": 2147483647
+                          },
                           "isSystem": {
                             "type": "boolean"
                           },
+                          "isActive": {
+                            "type": "boolean"
+                          },
+                          "conditionSchemaVersion": {
+                            "type": "integer",
+                            "minimum": -2147483648,
+                            "maximum": 2147483647
+                          },
                           "createdAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "updatedAt": {
                             "type": "string",
                             "format": "date-time"
                           }
@@ -1928,11 +3294,20 @@
                         "required": [
                           "id",
                           "key",
-                          "resource",
-                          "action",
                           "description",
+                          "effect",
+                          "action",
+                          "subject",
+                          "fields",
+                          "actorConditions",
+                          "resourceConditions",
+                          "denialReason",
+                          "priority",
                           "isSystem",
-                          "createdAt"
+                          "isActive",
+                          "conditionSchemaVersion",
+                          "createdAt",
+                          "updatedAt"
                         ],
                         "additionalProperties": false
                       }
@@ -1940,14 +3315,7 @@
                   },
                   "required": [
                     "id",
-                    "name",
-                    "slug",
-                    "description",
-                    "isSystem",
-                    "isActive",
-                    "createdAt",
-                    "updatedAt",
-                    "permissions"
+                    "slug"
                   ],
                   "additionalProperties": false
                 }
@@ -2103,7 +3471,7 @@
                       "type": "string",
                       "format": "date-time"
                     },
-                    "permissions": {
+                    "abilityRules": {
                       "type": "array",
                       "items": {
                         "type": "object",
@@ -2116,25 +3484,84 @@
                           },
                           "key": {
                             "type": "string",
-                            "maxLength": 150,
-                            "pattern": "^(\\*|[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)+)$"
-                          },
-                          "resource": {
-                            "type": "string",
-                            "maxLength": 100
-                          },
-                          "action": {
-                            "type": "string",
-                            "maxLength": 100
+                            "maxLength": 150
                           },
                           "description": {
                             "nullable": true,
                             "type": "string"
                           },
+                          "effect": {
+                            "type": "string",
+                            "enum": [
+                              "allow",
+                              "deny"
+                            ]
+                          },
+                          "action": {
+                            "type": "string",
+                            "enum": [
+                              "manage",
+                              "create",
+                              "read",
+                              "update",
+                              "delete",
+                              "assign"
+                            ]
+                          },
+                          "subject": {
+                            "type": "string",
+                            "enum": [
+                              "all",
+                              "Task",
+                              "Profile",
+                              "User",
+                              "Role",
+                              "AbilityRule",
+                              "AuditLog"
+                            ]
+                          },
+                          "fields": {
+                            "nullable": true,
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "actorConditions": {
+                            "nullable": true,
+                            "type": "object",
+                            "additionalProperties": {}
+                          },
+                          "resourceConditions": {
+                            "nullable": true,
+                            "type": "object",
+                            "additionalProperties": {}
+                          },
+                          "denialReason": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "priority": {
+                            "type": "integer",
+                            "minimum": -2147483648,
+                            "maximum": 2147483647
+                          },
                           "isSystem": {
                             "type": "boolean"
                           },
+                          "isActive": {
+                            "type": "boolean"
+                          },
+                          "conditionSchemaVersion": {
+                            "type": "integer",
+                            "minimum": -2147483648,
+                            "maximum": 2147483647
+                          },
                           "createdAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "updatedAt": {
                             "type": "string",
                             "format": "date-time"
                           }
@@ -2142,11 +3569,20 @@
                         "required": [
                           "id",
                           "key",
-                          "resource",
-                          "action",
                           "description",
+                          "effect",
+                          "action",
+                          "subject",
+                          "fields",
+                          "actorConditions",
+                          "resourceConditions",
+                          "denialReason",
+                          "priority",
                           "isSystem",
-                          "createdAt"
+                          "isActive",
+                          "conditionSchemaVersion",
+                          "createdAt",
+                          "updatedAt"
                         ],
                         "additionalProperties": false
                       }
@@ -2154,14 +3590,7 @@
                   },
                   "required": [
                     "id",
-                    "name",
-                    "slug",
-                    "description",
-                    "isSystem",
-                    "isActive",
-                    "createdAt",
-                    "updatedAt",
-                    "permissions"
+                    "slug"
                   ],
                   "additionalProperties": false
                 }
@@ -2339,7 +3768,7 @@
         }
       }
     },
-    "/api/v1/roles/{roleId}/permissions": {
+    "/api/v1/roles/{roleId}/ability-rules": {
       "put": {
         "tags": [
           "Roles"
@@ -2351,7 +3780,7 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "permissionIds": {
+                  "abilityRuleIds": {
                     "maxItems": 500,
                     "type": "array",
                     "items": {
@@ -2363,14 +3792,7 @@
                   }
                 },
                 "required": [
-                  "permissionIds"
-                ]
-              },
-              "example": {
-                "permissionIds": [
-                  1,
-                  2,
-                  4
+                  "abilityRuleIds"
                 ]
               }
             }
@@ -2395,101 +3817,120 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "id": {
-                      "type": "integer",
-                      "minimum": 0,
-                      "exclusiveMinimum": true,
-                      "maximum": 2147483647
-                    },
-                    "name": {
-                      "type": "string",
-                      "maxLength": 100
-                    },
-                    "slug": {
-                      "type": "string",
-                      "maxLength": 100
-                    },
-                    "description": {
-                      "nullable": true,
-                      "type": "string"
-                    },
-                    "isSystem": {
-                      "type": "boolean"
-                    },
-                    "isActive": {
-                      "type": "boolean"
-                    },
-                    "createdAt": {
-                      "type": "string",
-                      "format": "date-time"
-                    },
-                    "updatedAt": {
-                      "type": "string",
-                      "format": "date-time"
-                    },
-                    "permissions": {
-                      "type": "array",
-                      "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "exclusiveMinimum": true,
+                        "maximum": 2147483647
+                      },
+                      "key": {
+                        "type": "string",
+                        "maxLength": 150
+                      },
+                      "description": {
+                        "nullable": true,
+                        "type": "string"
+                      },
+                      "effect": {
+                        "type": "string",
+                        "enum": [
+                          "allow",
+                          "deny"
+                        ]
+                      },
+                      "action": {
+                        "type": "string",
+                        "enum": [
+                          "manage",
+                          "create",
+                          "read",
+                          "update",
+                          "delete",
+                          "assign"
+                        ]
+                      },
+                      "subject": {
+                        "type": "string",
+                        "enum": [
+                          "all",
+                          "Task",
+                          "Profile",
+                          "User",
+                          "Role",
+                          "AbilityRule",
+                          "AuditLog"
+                        ]
+                      },
+                      "fields": {
+                        "nullable": true,
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "actorConditions": {
+                        "nullable": true,
                         "type": "object",
-                        "properties": {
-                          "id": {
-                            "type": "integer",
-                            "minimum": 0,
-                            "exclusiveMinimum": true,
-                            "maximum": 2147483647
-                          },
-                          "key": {
-                            "type": "string",
-                            "maxLength": 150,
-                            "pattern": "^(\\*|[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)+)$"
-                          },
-                          "resource": {
-                            "type": "string",
-                            "maxLength": 100
-                          },
-                          "action": {
-                            "type": "string",
-                            "maxLength": 100
-                          },
-                          "description": {
-                            "nullable": true,
-                            "type": "string"
-                          },
-                          "isSystem": {
-                            "type": "boolean"
-                          },
-                          "createdAt": {
-                            "type": "string",
-                            "format": "date-time"
-                          }
-                        },
-                        "required": [
-                          "id",
-                          "key",
-                          "resource",
-                          "action",
-                          "description",
-                          "isSystem",
-                          "createdAt"
-                        ],
-                        "additionalProperties": false
+                        "additionalProperties": {}
+                      },
+                      "resourceConditions": {
+                        "nullable": true,
+                        "type": "object",
+                        "additionalProperties": {}
+                      },
+                      "denialReason": {
+                        "nullable": true,
+                        "type": "string"
+                      },
+                      "priority": {
+                        "type": "integer",
+                        "minimum": -2147483648,
+                        "maximum": 2147483647
+                      },
+                      "isSystem": {
+                        "type": "boolean"
+                      },
+                      "isActive": {
+                        "type": "boolean"
+                      },
+                      "conditionSchemaVersion": {
+                        "type": "integer",
+                        "minimum": -2147483648,
+                        "maximum": 2147483647
+                      },
+                      "createdAt": {
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      "updatedAt": {
+                        "type": "string",
+                        "format": "date-time"
                       }
-                    }
-                  },
-                  "required": [
-                    "id",
-                    "name",
-                    "slug",
-                    "description",
-                    "isSystem",
-                    "isActive",
-                    "createdAt",
-                    "updatedAt",
-                    "permissions"
-                  ],
-                  "additionalProperties": false
+                    },
+                    "required": [
+                      "id",
+                      "key",
+                      "description",
+                      "effect",
+                      "action",
+                      "subject",
+                      "fields",
+                      "actorConditions",
+                      "resourceConditions",
+                      "denialReason",
+                      "priority",
+                      "isSystem",
+                      "isActive",
+                      "conditionSchemaVersion",
+                      "createdAt",
+                      "updatedAt"
+                    ],
+                    "additionalProperties": false
+                  }
                 }
               }
             }
@@ -2638,12 +4079,7 @@
                           }
                         },
                         "required": [
-                          "id",
-                          "userId",
-                          "name",
-                          "done",
-                          "createdAt",
-                          "updatedAt"
+                          "id"
                         ],
                         "additionalProperties": false
                       }
@@ -2810,12 +4246,7 @@
                     }
                   },
                   "required": [
-                    "id",
-                    "userId",
-                    "name",
-                    "done",
-                    "createdAt",
-                    "updatedAt"
+                    "id"
                   ],
                   "additionalProperties": false
                 }
@@ -2928,12 +4359,7 @@
                     }
                   },
                   "required": [
-                    "id",
-                    "userId",
-                    "name",
-                    "done",
-                    "createdAt",
-                    "updatedAt"
+                    "id"
                   ],
                   "additionalProperties": false
                 }
@@ -3078,12 +4504,7 @@
                     }
                   },
                   "required": [
-                    "id",
-                    "userId",
-                    "name",
-                    "done",
-                    "createdAt",
-                    "updatedAt"
+                    "id"
                   ],
                   "additionalProperties": false
                 }
@@ -3337,10 +4758,7 @@
                           }
                         },
                         "required": [
-                          "id",
-                          "email",
-                          "createdAt",
-                          "roles"
+                          "id"
                         ],
                         "additionalProperties": false
                       }
@@ -3592,6 +5010,7 @@
                 "type": "object",
                 "properties": {
                   "roleIds": {
+                    "minItems": 1,
                     "maxItems": 100,
                     "type": "array",
                     "items": {

@@ -2,7 +2,7 @@
 import { useQuery } from '@pinia/colada'
 import { computed, ref, watch } from 'vue'
 
-import { useAuthorization } from '@/features/permissions'
+import { subject, useAuthorization } from '@/features/permissions'
 import { useUserRoleMutations } from '@/features/roles/mutations'
 import { rolesQuery, usersQuery } from '@/features/roles/queries'
 
@@ -15,19 +15,51 @@ const { can, authorization } = useAuthorization()
 
 watch(search, () => page.value = 1)
 
-const canAssign = computed(() => can('users.assign_roles'))
+type UserRow = NonNullable<typeof users.data.value>['data'][number]
+type RoleRow = NonNullable<typeof roles.data.value>[number]
+
+function canAssignRole(role: RoleRow) {
+  return role.isActive === true && can('assign', subject('Role', role))
+}
+
+function hasProtectedAssignment(user: UserRow) {
+  return (user.roles ?? []).some((assignedRole) => {
+    const role = roles.data.value?.find(candidate => candidate.id === assignedRole.id)
+    return !role || !canAssignRole(role)
+  })
+}
+
+function canUpdateUser(user: UserRow) {
+  return user.roles !== undefined
+    && !hasProtectedAssignment(user)
+    && can('update', subject('User', user))
+}
 const pending = computed(() => replaceMutation.asyncStatus.value === 'loading')
 const error = computed(() => users.error.value ?? roles.error.value ?? replaceMutation.error.value)
 
-const roleItems = computed(() => (roles.data.value ?? [])
-  .filter(role => role.isActive)
-  .map(role => ({ label: role.name, value: role.id })))
+function roleItems(user: UserRow) {
+  const assignedIds = new Set((user.roles ?? []).map(role => role.id))
+  const soleRoleId = assignedIds.size === 1 ? [...assignedIds][0] : undefined
+  const items = (roles.data.value ?? []).map(role => ({
+    label: role.name ?? role.slug,
+    value: role.id,
+    disabled: !canAssignRole(role) || role.id === soleRoleId
+  }))
+  const knownIds = new Set(items.map(item => item.value))
+  for (const role of user.roles ?? []) {
+    if (!knownIds.has(role.id))
+      items.push({ label: role.name, value: role.id, disabled: true })
+  }
+  return items
+}
 
 function isSelf(userId: string) {
   return authorization.value?.user.id === userId
 }
 
 function saveRoles(userId: string, roleIds: number[]) {
+  if (roleIds.length === 0)
+    return
   replaceMutation.mutate({ userId, roleIds })
 }
 </script>
@@ -82,16 +114,16 @@ function saveRoles(userId: string, roleIds: number[]) {
             <UBadge v-if="isSelf(user.id)" color="primary" variant="subtle" label="You" class="ml-1" />
           </p>
           <p class="text-sm text-muted">
-            Joined {{ new Date(user.createdAt).toLocaleDateString() }}
+            {{ user.createdAt ? `Joined ${new Date(user.createdAt).toLocaleDateString()}` : 'Join date hidden' }}
           </p>
         </div>
         <USelectMenu
-          :model-value="user.roles.map(role => role.id)"
-          :items="roleItems"
+          :model-value="(user.roles ?? []).map(role => role.id)"
+          :items="roleItems(user)"
           value-key="value"
           multiple
-          :placeholder="canAssign ? 'No roles' : 'No roles assigned'"
-          :disabled="!canAssign || pending"
+          :placeholder="canUpdateUser(user) ? 'No roles' : 'No roles assigned'"
+          :disabled="!canUpdateUser(user) || pending"
           :aria-label="`Roles for ${user.email}`"
           class="w-full sm:w-64"
           @update:model-value="saveRoles(user.id, $event)"

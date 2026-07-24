@@ -3,7 +3,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { db } from '#api/db/index.js'
 import * as tasksRepository from '#api/modules/tasks/tasks.repository.js'
-import { users } from '#api/modules/users/users.schema.js'
+import { createTestUsers } from '#api/test/user.fixtures.js'
 
 describe('tasks.repository', () => {
   let userId: string
@@ -13,10 +13,10 @@ describe('tasks.repository', () => {
     await db.execute(sql`truncate table tasks restart identity cascade`)
     await db.execute(sql`delete from users`)
 
-    const [user, otherUser] = await db.insert(users).values([
-      { email: 'tasks-repo-owner@example.com', passwordHash: 'hash' },
-      { email: 'tasks-repo-other@example.com', passwordHash: 'hash' }
-    ]).returning()
+    const [user, otherUser] = await createTestUsers([
+      'tasks-repo-owner@example.com',
+      'tasks-repo-other@example.com'
+    ])
     userId = user.id
     otherUserId = otherUser.id
   })

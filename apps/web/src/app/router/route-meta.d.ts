@@ -4,7 +4,9 @@ declare module 'vue-router' {
 
   interface RouteMeta {
     requiresAuth?: boolean
-    permissions?: import('@monorepo-fastify-vue/api-client').PermissionKey[]
-    permissionMode?: 'all' | 'any'
+    ability?: {
+      action: import('@monorepo-fastify-vue/api-client').AbilityAction
+      subject: import('@monorepo-fastify-vue/api-client').AbilitySubject
+    }
   }
 }

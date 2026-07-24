@@ -1,5 +1,4 @@
 export { default as Can } from './components/Can.vue'
-export { useAuthorization } from './composables/use-authorization'
-export { can, canAll, canAny } from './permissions.utils'
-export { AUTHORIZATION_KEY, authorizationQuery, PERMISSIONS_KEY, permissionsQuery } from './queries'
+export { subject, useAuthorization } from './composables/use-authorization'
+export { ABILITY_RULES_KEY, abilityRulesQuery, AUTHORIZATION_CATALOG_KEY, AUTHORIZATION_KEY, authorizationCatalogQuery, authorizationQuery } from './queries'
 export { permissionRoutes } from './routes'

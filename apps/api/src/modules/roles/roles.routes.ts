@@ -1,19 +1,19 @@
 import type { FastifyPluginAsync } from 'fastify'
 import type { ZodTypeProvider } from 'fastify-type-provider-zod'
-import type { CreateRole, PatchRole, ReplaceRolePermissions, ReplaceUserRoles, UsersPageQuery } from './roles.schema.js'
+import type { ReplaceRoleAbilityRules } from '#api/modules/authorization'
+import type { CreateRole, PatchRole, ReplaceUserRoles, UsersPageQuery } from './roles.schema.js'
 
 import { z } from 'zod'
 
 import { httpErrorSchema, validationErrorSchema } from '#api/lib/http-error.schema.js'
+import { replaceRoleAbilityRulesSchema, selectAbilityRuleSchema } from '#api/modules/authorization'
 
 import * as handlers from './roles.handlers.js'
 import {
-  authorizationSchema,
   createRoleSchema,
   patchRoleSchema,
-  replaceRolePermissionsSchema,
   replaceUserRolesSchema,
-  roleWithPermissionsSchema,
+  roleWithAbilityRulesSchema,
   roleWithUserCountSchema,
   selectRoleSchema,
   usersPageQuerySchema,
@@ -37,7 +37,7 @@ export const rolesRoutes: FastifyPluginAsync = async (fastify) => {
   const app = fastify.withTypeProvider<ZodTypeProvider>()
 
   app.get('/', {
-    onRequest: [app.authenticate, app.authorize(['roles.read'])],
+    onRequest: [app.authenticate, app.authorize('read', 'Role')],
     schema: {
       tags: ['Roles'],
       response: { 200: z.array(roleWithUserCountSchema), ...readErrors }
@@ -45,38 +45,38 @@ export const rolesRoutes: FastifyPluginAsync = async (fastify) => {
   }, handlers.listRoles)
 
   app.post<{ Body: CreateRole }>('/', {
-    onRequest: [app.authenticate, app.authorize(['roles.create'])],
+    onRequest: [app.authenticate, app.authorize('create', 'Role')],
     preHandler: app.sameOrigin,
     schema: {
       tags: ['Roles'],
       body: createRoleSchema,
-      response: { 201: roleWithPermissionsSchema, 409: httpErrorSchema, ...writeErrors }
+      response: { 201: roleWithAbilityRulesSchema, 409: httpErrorSchema, ...writeErrors }
     }
   }, handlers.createRole)
 
   app.get<{ Params: { roleId: number } }>('/:roleId', {
-    onRequest: [app.authenticate, app.authorize(['roles.read'])],
+    onRequest: [app.authenticate, app.authorize('read', 'Role')],
     schema: {
       tags: ['Roles'],
       params: roleParamsSchema,
-      response: { 200: roleWithPermissionsSchema, 404: httpErrorSchema, ...readErrors }
+      response: { 200: roleWithAbilityRulesSchema, 404: httpErrorSchema, ...readErrors }
     }
   }, handlers.getRole)
 
   app.patch<{ Params: { roleId: number }, Body: PatchRole }>('/:roleId', {
-    onRequest: [app.authenticate, app.authorize(['roles.update'])],
+    onRequest: [app.authenticate, app.authorize('update', 'Role')],
     preHandler: app.sameOrigin,
     schema: {
       tags: ['Roles'],
       params: roleParamsSchema,
       body: patchRoleSchema,
-      response: { 200: roleWithPermissionsSchema, ...writeErrors }
+      response: { 200: roleWithAbilityRulesSchema, ...writeErrors }
     }
   }, handlers.patchRole)
 
   // eslint-disable-next-line drizzle/enforce-delete-with-where -- this is a Fastify route, not a Drizzle query
   app.delete<{ Params: { roleId: number } }>('/:roleId', {
-    onRequest: [app.authenticate, app.authorize(['roles.delete'])],
+    onRequest: [app.authenticate, app.authorize('delete', 'Role')],
     preHandler: app.sameOrigin,
     schema: {
       tags: ['Roles'],
@@ -85,23 +85,23 @@ export const rolesRoutes: FastifyPluginAsync = async (fastify) => {
     }
   }, handlers.deleteRole)
 
-  app.put<{ Params: { roleId: number }, Body: ReplaceRolePermissions }>('/:roleId/permissions', {
-    onRequest: [app.authenticate, app.authorize(['roles.assign_permissions'])],
+  app.put<{ Params: { roleId: number }, Body: ReplaceRoleAbilityRules }>('/:roleId/ability-rules', {
+    onRequest: [app.authenticate, app.authorize('manage', 'all')],
     preHandler: app.sameOrigin,
     schema: {
       tags: ['Roles'],
       params: roleParamsSchema,
-      body: replaceRolePermissionsSchema,
-      response: { 200: roleWithPermissionsSchema, ...writeErrors }
+      body: replaceRoleAbilityRulesSchema,
+      response: { 200: z.array(selectAbilityRuleSchema), ...writeErrors }
     }
-  }, handlers.putRolePermissions)
+  }, handlers.putRoleAbilityRules)
 }
 
 export const userRolesRoutes: FastifyPluginAsync = async (fastify) => {
   const app = fastify.withTypeProvider<ZodTypeProvider>()
 
   app.get<{ Querystring: UsersPageQuery }>('/', {
-    onRequest: [app.authenticate, app.authorize(['users.read'])],
+    onRequest: [app.authenticate, app.authorize('read', 'User')],
     schema: {
       tags: ['Roles'],
       querystring: usersPageQuerySchema,
@@ -110,7 +110,7 @@ export const userRolesRoutes: FastifyPluginAsync = async (fastify) => {
   }, handlers.listUsers)
 
   app.get<{ Params: { userId: string } }>('/:userId/roles', {
-    onRequest: [app.authenticate, app.authorize(['users.read'])],
+    onRequest: [app.authenticate, app.authorize('read', 'User')],
     schema: {
       tags: ['Roles'],
       params: userParamsSchema,
@@ -119,7 +119,7 @@ export const userRolesRoutes: FastifyPluginAsync = async (fastify) => {
   }, handlers.getUserRoles)
 
   app.put<{ Params: { userId: string }, Body: ReplaceUserRoles }>('/:userId/roles', {
-    onRequest: [app.authenticate, app.authorize(['users.assign_roles'])],
+    onRequest: [app.authenticate, app.authorize('update', 'User')],
     preHandler: app.sameOrigin,
     schema: {
       tags: ['Roles'],
@@ -128,16 +128,4 @@ export const userRolesRoutes: FastifyPluginAsync = async (fastify) => {
       response: { 200: z.array(selectRoleSchema), 409: httpErrorSchema, ...writeErrors }
     }
   }, handlers.putUserRoles)
-}
-
-export const authorizationRoutes: FastifyPluginAsync = async (fastify) => {
-  const app = fastify.withTypeProvider<ZodTypeProvider>()
-
-  app.get('/authorization', {
-    onRequest: [app.authenticate, app.authorize([])],
-    schema: {
-      tags: ['Authorization'],
-      response: { 200: authorizationSchema, 401: httpErrorSchema, 429: httpErrorSchema, 500: httpErrorSchema }
-    }
-  }, handlers.getMyAuthorization)
 }

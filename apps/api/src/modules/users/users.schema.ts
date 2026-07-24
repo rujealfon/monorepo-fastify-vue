@@ -69,3 +69,4 @@ export const publicUserSchema = createSelectSchema(users)
   .omit({ passwordHash: true, authorizationVersion: true })
   .extend({ profile: publicProfileSchema })
 export type PublicUser = z.infer<typeof publicUserSchema>
+export const profileResponseSchema = publicUserSchema.extend({ profile: publicProfileSchema.partial() })

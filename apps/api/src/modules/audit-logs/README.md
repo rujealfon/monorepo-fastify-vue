@@ -22,7 +22,7 @@ export const AUDIT_ACTIONS = [
 ] as const
 ```
 
-Naming: `<entity>.<past_tense_verb>` — `task.created`, `role.permissions_replaced`, `auth.login_failed`. The `action` column is varchar, so **no DB migration is needed** for new actions.
+Naming: `<entity>.<past_tense_verb>` — `task.created`, `role.ability_rules_replaced`, `auth.login_failed`. The `action` column is varchar, so **no DB migration is needed** for new actions.
 
 ### 2. Call `recordAuditEvent` from the service layer
 
@@ -86,5 +86,5 @@ pnpm api-client:generate && pnpm --filter @monorepo-fastify-vue/api-client build
 
 - **Immutable rows**: a `BEFORE UPDATE` trigger (`0011_audit-logs-immutable.sql`) rejects direct updates; only trigger-cascaded updates (the actor FK's `SET NULL` on user deletion) pass. `DELETE` stays allowed for retention pruning.
 - **Actor survives deletion**: `actor_id` nulls out when the user is deleted; `actorEmail` in the list response comes from a live join and turns null too.
-- **Viewing**: `GET /api/v1/audit-logs/` requires the `audit.read` permission (seeded to `admin`; `super-admin` has `*`). Web page: `/admin/audit-logs`.
+- **Viewing**: `GET /api/v1/audit-logs/` requires an effective CASL `read AuditLog` ability (seeded for Admin; Super Admin has the immutable `manage all` rule). Web page: `/admin/audit-logs`.
 - **Retention**: not implemented yet — login events will dominate volume; prune with plain `DELETE` when a policy lands.

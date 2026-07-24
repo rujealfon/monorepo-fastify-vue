@@ -3,7 +3,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { db } from '#api/db/index.js'
 import { listAuditLogs, recordAuditEvent } from '#api/modules/audit-logs/audit-logs.service.js'
-import { users } from '#api/modules/users/users.schema.js'
+import { createTestUsers } from '#api/test/user.fixtures.js'
 
 describe('audit.service', () => {
   let actorId: string
@@ -12,9 +12,7 @@ describe('audit.service', () => {
     await db.execute(sql`delete from audit_logs`)
     await db.execute(sql`delete from users`)
 
-    const [actor] = await db.insert(users).values([
-      { email: 'audit-service-actor@example.com', passwordHash: 'hash' }
-    ]).returning()
+    const [actor] = await createTestUsers(['audit-service-actor@example.com'])
     actorId = actor.id
   })
 

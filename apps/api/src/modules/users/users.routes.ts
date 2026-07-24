@@ -7,7 +7,7 @@ import { z } from 'zod'
 import { httpErrorSchema, validationErrorSchema } from '#api/lib/http-error.schema.js'
 
 import * as handlers from './users.handlers.js'
-import { loginUserSchema, patchProfileSchema, publicUserSchema, registerUserSchema } from './users.schema.js'
+import { loginUserSchema, patchProfileSchema, profileResponseSchema, publicUserSchema, registerUserSchema } from './users.schema.js'
 
 export const authRoutes: FastifyPluginAsync = async (fastify) => {
   const app = fastify.withTypeProvider<ZodTypeProvider>()
@@ -59,21 +59,21 @@ export const profileRoutes: FastifyPluginAsync = async (fastify) => {
   const app = fastify.withTypeProvider<ZodTypeProvider>()
 
   app.get('/', {
-    onRequest: [app.authenticate, app.authorize(['profile.read_own'])],
+    onRequest: [app.authenticate, app.authorize('read', 'Profile')],
     schema: {
       tags: ['Profile'],
-      response: { 200: publicUserSchema, 401: httpErrorSchema, 403: httpErrorSchema, 429: httpErrorSchema, 500: httpErrorSchema }
+      response: { 200: profileResponseSchema, 401: httpErrorSchema, 403: httpErrorSchema, 429: httpErrorSchema, 500: httpErrorSchema }
     }
   }, handlers.profile)
 
   app.patch<{ Body: PatchProfile }>('/', {
-    onRequest: [app.authenticate, app.authorize(['profile.update_own'])],
+    onRequest: [app.authenticate, app.authorize('update', 'Profile')],
     preHandler: app.sameOrigin,
     schema: {
       tags: ['Profile'],
       body: patchProfileSchema,
       response: {
-        200: publicUserSchema,
+        200: profileResponseSchema,
         401: httpErrorSchema,
         403: httpErrorSchema,
         422: validationErrorSchema,

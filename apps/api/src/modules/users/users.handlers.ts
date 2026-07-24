@@ -28,9 +28,9 @@ export async function logout(request: FastifyRequest, reply: FastifyReply) {
 }
 
 export function profile(request: FastifyRequest) {
-  return service.getProfile(request.user.sub)
+  return service.getProfile(request.authorization!)
 }
 
 export function patchProfile(request: FastifyRequest<{ Body: PatchProfile }>) {
-  return service.updateProfile(request.user.sub, request.body)
+  return service.updateProfile(request.authorization!, request.body)
 }
