@@ -128,6 +128,21 @@ describe('roles.repository', () => {
     expect(await rolesRepository.findRoleById(concurrentRole.id)).toBeUndefined()
   })
 
+  it('does not deadlock when deletion races a retained role assignment', async () => {
+    const [retainedRole] = await db.insert(roles).values({ name: 'Retained Role', slug: 'retained-role' }).returning()
+    await db.insert(userRoles).values({ userId, roleId: retainedRole.id })
+
+    const results = await Promise.allSettled([
+      rolesRepository.replaceUserRoles(userId, [standardRoleId, retainedRole.id], userId),
+      rolesRepository.deleteRoleById(retainedRole.id)
+    ])
+
+    const rejected = results.filter(result => result.status === 'rejected')
+    expect(rejected).not.toContainEqual(
+      expect.objectContaining({ reason: expect.objectContaining({ cause: expect.objectContaining({ code: '40P01' }) }) })
+    )
+  })
+
   it('replaces user roles and bumps the version', async () => {
     const before = await db.select({ version: users.authorizationVersion }).from(users).where(eq(users.id, userId))
 

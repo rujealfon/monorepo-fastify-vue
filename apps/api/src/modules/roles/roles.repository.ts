@@ -196,6 +196,14 @@ export function findUserRoles(userId: string) {
 
 export function replaceUserRoles(userId: string, roleIds: number[], assignedBy: string, protectWildcardAccess = false, audit?: AuditCallback) {
   return db.transaction(async (tx) => {
+    if (roleIds.length > 0) {
+      await tx.select({ id: roles.id })
+        .from(roles)
+        .where(inArray(roles.id, roleIds))
+        .orderBy(asc(roles.id))
+        .for('key share')
+    }
+
     await tx.select({ id: users.id })
       .from(users)
       .where(eq(users.id, userId))
