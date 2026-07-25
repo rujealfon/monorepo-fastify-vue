@@ -111,6 +111,21 @@ describe('roles.repository', () => {
     await db.insert(userRoles).values({ userId: onlyRoleUser.id, roleId: standardRoleId })
     expect(await rolesRepository.deleteRoleById(onlyRole.id)).toMatchObject({ id: onlyRole.id })
     expect((await rolesRepository.findUserRoles(onlyRoleUser.id)).map(role => role.id)).toEqual([standardRoleId])
+
+    await db.delete(users).where(eq(users.id, onlyRoleUser.id))
+  })
+
+  it('uses a consistent lock order when deleting and deactivating a role', async () => {
+    const [concurrentRole] = await db.insert(roles).values({ name: 'Concurrent Role', slug: 'concurrent-role' }).returning()
+    await db.insert(userRoles).values({ userId, roleId: concurrentRole.id })
+
+    const results = await Promise.allSettled([
+      rolesRepository.deleteRoleById(concurrentRole.id),
+      rolesRepository.updateRoleById(concurrentRole.id, { isActive: false })
+    ])
+
+    expect(results.map(result => result.status)).toEqual(['fulfilled', 'fulfilled'])
+    expect(await rolesRepository.findRoleById(concurrentRole.id)).toBeUndefined()
   })
 
   it('replaces user roles and bumps the version', async () => {

@@ -99,6 +99,14 @@ export function updateRoleById(id: number, data: PatchRole, audit?: AuditCallbac
 
 export function deleteRoleById(id: number, audit?: AuditCallback) {
   return db.transaction(async (tx) => {
+    const lockedRole = await tx.select({ id: roles.id })
+      .from(roles)
+      .where(eq(roles.id, id))
+      .for('update')
+      .then(rows => rows.at(0))
+    if (!lockedRole)
+      return
+
     const affectedUsers = await tx.select({ id: users.id })
       .from(users)
       .innerJoin(userRoles, eq(userRoles.userId, users.id))
