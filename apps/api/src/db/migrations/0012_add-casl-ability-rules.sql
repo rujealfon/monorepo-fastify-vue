@@ -87,8 +87,10 @@ ON CONFLICT DO NOTHING;--> statement-breakpoint
 INSERT INTO role_ability_rules (role_id, ability_rule_id)
 SELECT r.id, ar.id
 FROM roles r
+JOIN role_permissions rp ON rp.role_id = r.id
+JOIN permissions p ON p.id = rp.permission_id
 CROSS JOIN ability_rules ar
-WHERE r.slug = 'admin' AND ar.key = 'roles.assign_standard'
+WHERE p.key = 'users.assign_roles' AND ar.key = 'roles.assign_standard'
 ON CONFLICT DO NOTHING;--> statement-breakpoint
 
 UPDATE users SET authorization_version = authorization_version + 1;

@@ -1,8 +1,12 @@
+import type { AppAbility } from '#api/modules/authorization'
+
+import { createMongoAbility } from '@casl/ability'
 import { sql } from 'drizzle-orm'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { db } from '#api/db/index.js'
 import * as auditRepository from '#api/modules/audit-logs/audit-logs.repository.js'
+import { subject } from '#api/modules/authorization'
 import { createTestUsers } from '#api/test/user.fixtures.js'
 
 describe('audit.repository', () => {
@@ -81,6 +85,29 @@ describe('audit.repository', () => {
     await expect(db.execute(sql`update audit_logs set action = 'tampered'`))
       .rejects
       .toMatchObject({ cause: expect.objectContaining({ message: expect.stringContaining('immutable') }) })
+  })
+
+  it('preserves CASL field-existence semantics for nullable columns', async () => {
+    await auditRepository.insertAuditLog(db, {
+      actorId: null,
+      action: 'task.deleted',
+      entityType: 'task',
+      entityId: 'exists-semantics'
+    })
+    const missingActorAbility = createMongoAbility<AppAbility>([
+      { action: 'read', subject: 'AuditLog', conditions: { actorId: { $exists: false } } }
+    ])
+    const presentActorAbility = createMongoAbility<AppAbility>([
+      { action: 'read', subject: 'AuditLog', conditions: { actorId: { $exists: true } } }
+    ])
+
+    expect(missingActorAbility.can('read', subject('AuditLog', { actorId: null }))).toBe(false)
+    const missingActorResult = await auditRepository.findAuditLogs({ action: 'task.deleted' }, 1, 10, missingActorAbility)
+    expect(missingActorResult).toMatchObject({ data: [], total: 0 })
+
+    expect(presentActorAbility.can('read', subject('AuditLog', { actorId: null }))).toBe(true)
+    const presentActorResult = await auditRepository.findAuditLogs({ action: 'task.deleted' }, 1, 10, presentActorAbility)
+    expect(presentActorResult).toMatchObject({ data: [{ actorId: null }], total: 1 })
   })
 
   it('keeps logs with a null actor after the user is deleted', async () => {

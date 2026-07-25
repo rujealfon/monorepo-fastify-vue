@@ -2,7 +2,7 @@ import type { SQL } from 'drizzle-orm'
 import type { AppAbility, AppRawRule } from './authorization.ability.js'
 import type { AbilityAction, AbilitySubject } from './authorization.catalog.js'
 
-import { and, eq, getTableColumns, gt, gte, inArray, isNotNull, isNull, lt, lte, ne, not, notInArray, or, sql } from 'drizzle-orm'
+import { and, eq, getTableColumns, gt, gte, inArray, lt, lte, ne, not, notInArray, or, sql } from 'drizzle-orm'
 
 import { auditLogs } from '#api/modules/audit-logs/audit-logs.schema.js'
 import { roles } from '#api/modules/roles/roles.schema.js'
@@ -52,7 +52,8 @@ function compileField(column: Parameters<typeof eq>[0], value: unknown): SQL {
         expressions.push(gte(column, operand))
         break
       case '$exists':
-        expressions.push(operand === true ? isNotNull(column) : isNull(column))
+        // Row-backed subjects always contain schema fields; SQL NULL is still a present CASL property.
+        expressions.push(operand === true ? sql`true` : sql`false`)
         break
       default:
         throw new Error(`Unsupported SQL condition operator ${operator}`)

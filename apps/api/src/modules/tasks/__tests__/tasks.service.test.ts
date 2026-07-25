@@ -72,6 +72,20 @@ describe('tasks.service', () => {
     expect(task).toEqual(sampleTask)
   })
 
+  it('enforces create field restrictions for submitted task fields', async () => {
+    const authorized = caller([
+      { action: 'create', subject: 'Task', fields: ['name'] },
+      { action: 'read', subject: 'Task' }
+    ])
+    vi.mocked(tasksRepository.insertOne).mockResolvedValue(sampleTask)
+
+    await expect(tasksService.createTask(authorized, { name: 'sample', done: true })).rejects.toBeInstanceOf(InsufficientAbilityError)
+    expect(tasksRepository.insertOne).not.toHaveBeenCalled()
+
+    await expect(tasksService.createTask(authorized, { name: 'sample' })).resolves.toMatchObject({ name: 'sample', done: false })
+    expect(tasksRepository.insertOne).toHaveBeenCalledWith(userId, { name: 'sample' })
+  })
+
   it('calculates pagination metadata', async () => {
     vi.mocked(tasksRepository.findMany).mockResolvedValue({ data: [sampleTask], total: 45 })
     await expect(tasksService.listTasks(userId, 2, 20)).resolves.toEqual({

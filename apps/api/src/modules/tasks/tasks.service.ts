@@ -37,8 +37,13 @@ export async function createTask(caller: AuthorizationContext | string, data: in
     return task
   }
   const proposed = { ...data, done: data.done ?? false, userId: caller.user.id }
-  if (!caller.ability.can('create', subject('Task', proposed)))
+  const tagged = subject('Task', proposed)
+  if (
+    !caller.ability.can('create', tagged)
+    || Object.keys(data).some(field => !caller.ability.can('create', tagged, field))
+  ) {
     throw new InsufficientAbilityError()
+  }
   const task = await tasksRepository.insertOne(caller.user.id, data)
   await recordAuditEvent({
     actorId: caller.user.id,
