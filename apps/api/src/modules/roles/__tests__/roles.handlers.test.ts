@@ -224,6 +224,14 @@ describe('roles routes', () => {
     })
     expect(unknownResponse.statusCode).toBe(400)
 
+    const emptyResponse = await app.inject({
+      method: 'PUT',
+      url: `/api/v1/users/${standardUserId}/roles`,
+      headers: superAuth,
+      payload: { roleIds: [] }
+    })
+    expect(emptyResponse.statusCode).toBe(422)
+
     const replaceResponse = await app.inject({
       method: 'PUT',
       url: `/api/v1/users/${standardUserId}/roles`,

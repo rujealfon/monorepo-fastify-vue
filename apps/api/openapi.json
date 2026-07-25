@@ -3592,6 +3592,7 @@
                 "type": "object",
                 "properties": {
                   "roleIds": {
+                    "minItems": 1,
                     "maxItems": 100,
                     "type": "array",
                     "items": {

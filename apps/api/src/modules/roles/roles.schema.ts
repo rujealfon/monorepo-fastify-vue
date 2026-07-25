@@ -77,7 +77,7 @@ export const replaceRolePermissionsSchema = z.object({
 export type ReplaceRolePermissions = z.infer<typeof replaceRolePermissionsSchema>
 
 export const replaceUserRolesSchema = z.object({
-  roleIds: z.array(z.number().int().positive()).max(100)
+  roleIds: z.array(z.number().int().positive()).min(1, 'At least one role is required').max(100)
 }).meta({ examples: [{ roleIds: [2, 3] }] })
 export type ReplaceUserRoles = z.infer<typeof replaceUserRolesSchema>
 
