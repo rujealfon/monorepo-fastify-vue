@@ -10,6 +10,7 @@ import { users } from '#api/modules/users/users.schema.js'
 import { abilityRules, roleAbilityRules } from './authorization.schema.js'
 
 type AuditCallback = (tx: DbExecutor) => Promise<void>
+type ReplaceRoleRulesAuditCallback = (tx: DbExecutor, previousAbilityRuleIds: number[]) => Promise<void>
 
 export function findAuthorizationRows(userId: string) {
   return db.select({
@@ -82,14 +83,17 @@ export function deleteRule(id: number, audit: AuditCallback) {
   })
 }
 
-export function replaceRoleRules(roleId: number, ruleIds: number[], actorId: string, audit: AuditCallback) {
+export function replaceRoleRules(roleId: number, ruleIds: number[], actorId: string, audit: ReplaceRoleRulesAuditCallback) {
   return db.transaction(async (tx) => {
-    await tx.delete(roleAbilityRules).where(eq(roleAbilityRules.roleId, roleId))
+    const previousAbilityRuleIds = await tx.delete(roleAbilityRules)
+      .where(eq(roleAbilityRules.roleId, roleId))
+      .returning({ id: roleAbilityRules.abilityRuleId })
+      .then(rows => rows.map(row => row.id).sort((left, right) => left - right))
     if (ruleIds.length)
       await tx.insert(roleAbilityRules).values(ruleIds.map(abilityRuleId => ({ roleId, abilityRuleId, assignedBy: actorId })))
     await tx.update(users)
       .set({ authorizationVersion: sql`${users.authorizationVersion} + 1` })
       .where(inArray(users.id, db.select({ id: userRoles.userId }).from(userRoles).where(eq(userRoles.roleId, roleId))))
-    await audit(tx)
+    await audit(tx, previousAbilityRuleIds)
   })
 }

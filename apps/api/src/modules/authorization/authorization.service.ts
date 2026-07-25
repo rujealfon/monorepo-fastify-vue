@@ -122,12 +122,12 @@ export async function replaceRoleRules(roleId: number, ids: number[], caller: Au
   const rules = await repository.findRulesByIds(uniqueIds)
   if (rules.length !== uniqueIds.length)
     throw new UnknownAbilityRuleIdsError()
-  await repository.replaceRoleRules(roleId, uniqueIds, caller.user.id, tx => recordAuditEvent({
+  await repository.replaceRoleRules(roleId, uniqueIds, caller.user.id, (tx, previousAbilityRuleIds) => recordAuditEvent({
     actorId: caller.user.id,
     action: 'role.ability_rules_replaced',
     entityType: 'role',
     entityId: roleId,
-    metadata: { abilityRuleIds: uniqueIds }
+    metadata: { previousAbilityRuleIds, abilityRuleIds: uniqueIds }
   }, tx))
   return repository.findRoleRules(roleId)
 }

@@ -1,11 +1,12 @@
 import type { FastifyInstance } from 'fastify'
 
-import { and, eq, sql } from 'drizzle-orm'
+import { and, desc, eq, sql } from 'drizzle-orm'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { buildApp } from '#api/app.js'
 import { db } from '#api/db/index.js'
 import { auditLogs } from '#api/modules/audit-logs/audit-logs.schema.js'
+import { abilityRules, roleAbilityRules } from '#api/modules/authorization'
 import { roles, userRoles } from '#api/modules/roles/roles.schema.js'
 import { users } from '#api/modules/users/users.schema.js'
 
@@ -160,6 +161,7 @@ describe('roles routes', () => {
     const rulesResponse = await app.inject({ method: 'GET', url: '/api/v1/ability-rules', headers: superAuth })
     const allRules = rulesResponse.json() as { id: number, key: string }[]
     const profileRead = allRules.find(rule => rule.key === 'profile.read_own')!
+    const profileUpdate = allRules.find(rule => rule.key === 'profile.update_own')!
 
     const assignResponse = await app.inject({
       method: 'PUT',
@@ -169,6 +171,24 @@ describe('roles routes', () => {
     })
     expect(assignResponse.statusCode).toBe(200)
     expect(assignResponse.json().map((rule: { key: string }) => rule.key)).toEqual(['profile.read_own'])
+
+    const replaceResponse = await app.inject({
+      method: 'PUT',
+      url: `/api/v1/roles/${role.id}/ability-rules`,
+      headers: superAuth,
+      payload: { abilityRuleIds: [profileUpdate.id] }
+    })
+    expect(replaceResponse.statusCode).toBe(200)
+    expect(replaceResponse.json().map((rule: { key: string }) => rule.key)).toEqual(['profile.update_own'])
+
+    const [replacementAudit] = await db.select().from(auditLogs).where(and(
+      eq(auditLogs.action, 'role.ability_rules_replaced'),
+      eq(auditLogs.entityId, String(role.id))
+    )).orderBy(desc(auditLogs.id)).limit(1)
+    expect(replacementAudit.metadata).toEqual({
+      previousAbilityRuleIds: [profileRead.id],
+      abilityRuleIds: [profileUpdate.id]
+    })
 
     const getResponse = await app.inject({ method: 'GET', url: `/api/v1/roles/${role.id}`, headers: superAuth })
     expect(getResponse.statusCode).toBe(200)
@@ -202,6 +222,40 @@ describe('roles routes', () => {
       payload: { abilityRuleIds: [] }
     })
     expect(stripResponse.statusCode).toBe(403)
+  })
+
+  it('requires manage all to delete a custom role carrying manage all', async () => {
+    const [deleteRule] = await db.select().from(abilityRules).where(eq(abilityRules.key, 'roles.delete'))
+    const [manageAllRule] = await db.select().from(abilityRules).where(eq(abilityRules.key, 'system.manage_all'))
+    const [deleterRole] = await db.insert(roles).values({
+      name: 'Role Deleter',
+      slug: 'role-deleter'
+    }).returning()
+    const [protectedCustomRole] = await db.insert(roles).values({
+      name: 'Custom Break Glass',
+      slug: 'custom-break-glass'
+    }).returning()
+    await db.insert(roleAbilityRules).values([
+      { roleId: deleterRole.id, abilityRuleId: deleteRule.id },
+      { roleId: protectedCustomRole.id, abilityRuleId: manageAllRule.id }
+    ])
+    await db.insert(userRoles).values({ userId: standardUserId, roleId: deleterRole.id })
+
+    const forbidden = await app.inject({
+      method: 'DELETE',
+      url: `/api/v1/roles/${protectedCustomRole.id}`,
+      headers: standardAuth
+    })
+    expect(forbidden.statusCode).toBe(403)
+    expect(await db.select().from(roles).where(eq(roles.id, protectedCustomRole.id))).toHaveLength(1)
+
+    const allowed = await app.inject({
+      method: 'DELETE',
+      url: `/api/v1/roles/${protectedCustomRole.id}`,
+      headers: superAuth
+    })
+    expect(allowed.statusCode).toBe(204)
+    expect(await db.select().from(roles).where(eq(roles.id, protectedCustomRole.id))).toHaveLength(0)
   })
 
   it('replaces user roles, bumps the authorization version and blocks escalation', async () => {

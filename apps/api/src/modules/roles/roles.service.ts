@@ -94,6 +94,11 @@ export async function deleteRole(roleId: number, actorId: string, caller?: Autho
     throw new RoleNotFoundError()
   if (role.isSystem)
     throw new SystemRoleProtectedError()
+  const grantsManageAll = (await listRoleRules(roleId)).some(rule =>
+    rule.isActive && rule.effect === 'allow' && rule.action === 'manage' && rule.subject === 'all'
+  )
+  if (grantsManageAll && !caller?.ability.can('manage', 'all'))
+    throw new SystemRoleProtectedError('Only a manage-all caller can delete a role that grants manage all')
   try {
     await repository.deleteRoleById(roleId, tx => recordAuditEvent({
       actorId,
@@ -152,7 +157,11 @@ export async function replaceUserRoles(userId: string, roleIds: number[], caller
     throw new UnknownRoleIdsError()
 
   const currentRoles = await repository.findUserRoles(userId)
-  if (requested.some(role => !caller.ability.can('assign', subject('Role', role))))
+  const requestedIds = new Set(requested.map(role => role.id))
+  const removesUnauthorizedRole = currentRoles.some(role =>
+    !requestedIds.has(role.id) && !caller.ability.can('assign', subject('Role', role))
+  )
+  if (requested.some(role => !caller.ability.can('assign', subject('Role', role))) || removesUnauthorizedRole)
     throw new AbilityEscalationError()
   const currentHasSuperAdmin = currentRoles.some(role => role.slug === SUPER_ADMIN_SLUG)
   const requestedHasSuperAdmin = requested.some(role => role.slug === SUPER_ADMIN_SLUG)

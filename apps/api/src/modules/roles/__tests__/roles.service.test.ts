@@ -3,6 +3,7 @@ import type { AppRawRule, AuthorizationContext } from '#api/modules/authorizatio
 import { createMongoAbility } from '@casl/ability'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+import * as authorization from '#api/modules/authorization'
 import {
   AbilityEscalationError,
   AtLeastOneRoleRequiredError,
@@ -15,6 +16,10 @@ import {
 import * as repository from '#api/modules/roles/roles.repository.js'
 import * as service from '#api/modules/roles/roles.service.js'
 
+vi.mock('#api/modules/authorization', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('#api/modules/authorization')>()
+  return { ...actual, listRoleRules: vi.fn() }
+})
 vi.mock('#api/modules/roles/roles.repository.js')
 vi.mock('#api/modules/audit-logs')
 
@@ -31,6 +36,26 @@ const standardRole = {
   updatedAt: now
 }
 const superAdminRole = { ...standardRole, id: 1, name: 'Super Admin', slug: 'super-admin' }
+const adminRole = { ...standardRole, id: 2, name: 'Admin', slug: 'admin' }
+const protectedRole = { ...standardRole, id: 4, name: 'Protected', slug: 'protected', isSystem: false }
+const manageAllRule = {
+  id: 1,
+  key: 'system.manage_all',
+  description: 'Full system access',
+  effect: 'allow' as const,
+  action: 'manage' as const,
+  subject: 'all' as const,
+  fields: null,
+  actorConditions: null,
+  resourceConditions: null,
+  denialReason: null,
+  priority: 1_000_000,
+  isSystem: true,
+  isActive: true,
+  conditionSchemaVersion: 1,
+  createdAt: now,
+  updatedAt: now
+}
 
 function caller(rules: AppRawRule[]): AuthorizationContext {
   const ability = createMongoAbility<AuthorizationContext['ability']>(rules)
@@ -44,7 +69,10 @@ function caller(rules: AppRawRule[]): AuthorizationContext {
 }
 
 describe('roles service', () => {
-  beforeEach(() => vi.resetAllMocks())
+  beforeEach(() => {
+    vi.resetAllMocks()
+    vi.mocked(authorization.listRoleRules).mockResolvedValue([])
+  })
 
   it('maps duplicate role slugs and protects system roles', async () => {
     vi.mocked(repository.insertRole).mockRejectedValue(new Error('insert failed', { cause: { code: '23505' } }))
@@ -64,6 +92,26 @@ describe('roles service', () => {
     await expect(service.deleteRole(4, 'caller-id')).rejects.toBeInstanceOf(SoleAssignedRoleError)
   })
 
+  it('requires manage all to delete a role carrying manage all', async () => {
+    vi.mocked(repository.findRoleById).mockResolvedValue(protectedRole)
+    vi.mocked(authorization.listRoleRules).mockResolvedValue([manageAllRule])
+
+    await expect(service.deleteRole(protectedRole.id, 'caller-id', caller([
+      { action: 'delete', subject: 'Role' }
+    ]))).rejects.toBeInstanceOf(SystemRoleProtectedError)
+    expect(repository.deleteRoleById).not.toHaveBeenCalled()
+  })
+
+  it('allows a manage-all caller to delete a custom manage-all role', async () => {
+    vi.mocked(repository.findRoleById).mockResolvedValue(protectedRole)
+    vi.mocked(authorization.listRoleRules).mockResolvedValue([manageAllRule])
+
+    await expect(service.deleteRole(protectedRole.id, 'caller-id', caller([
+      { action: 'manage', subject: 'all' }
+    ]))).resolves.toBeUndefined()
+    expect(repository.deleteRoleById).toHaveBeenCalledWith(protectedRole.id, expect.any(Function))
+  })
+
   it('requires update User and assign on every target Role instance', async () => {
     vi.mocked(repository.findUserById).mockResolvedValue(target)
     vi.mocked(repository.findRolesByIds).mockResolvedValue([standardRole])
@@ -76,6 +124,35 @@ describe('roles service', () => {
     await expect(service.replaceUserRoles('target-id', [3], caller([
       { action: 'assign', subject: 'Role' }
     ]))).rejects.toBeInstanceOf(AbilityEscalationError)
+  })
+
+  it('requires assign ability for roles removed by a replacement', async () => {
+    vi.mocked(repository.findUserById).mockResolvedValue(target)
+    vi.mocked(repository.findRolesByIds).mockResolvedValue([standardRole])
+    vi.mocked(repository.findUserRoles)
+      .mockResolvedValueOnce([protectedRole])
+      .mockResolvedValueOnce([standardRole])
+    vi.mocked(repository.replaceUserRoles).mockResolvedValue(true)
+
+    await expect(service.replaceUserRoles('target-id', [standardRole.id], caller([
+      { action: 'update', subject: 'User' },
+      { action: 'assign', subject: 'Role', conditions: { slug: 'standard-user' } }
+    ]))).rejects.toBeInstanceOf(AbilityEscalationError)
+    expect(repository.replaceUserRoles).not.toHaveBeenCalled()
+  })
+
+  it('allows removing a role within the caller assign ability', async () => {
+    vi.mocked(repository.findUserById).mockResolvedValue(target)
+    vi.mocked(repository.findRolesByIds).mockResolvedValue([standardRole])
+    vi.mocked(repository.findUserRoles)
+      .mockResolvedValueOnce([adminRole])
+      .mockResolvedValueOnce([standardRole])
+    vi.mocked(repository.replaceUserRoles).mockResolvedValue(true)
+
+    await expect(service.replaceUserRoles('target-id', [standardRole.id], caller([
+      { action: 'update', subject: 'User' },
+      { action: 'assign', subject: 'Role', conditions: { slug: { $in: ['admin', 'standard-user'] } } }
+    ]))).resolves.toEqual([standardRole])
   })
 
   it('requires at least one role', async () => {
