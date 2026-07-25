@@ -1,5 +1,9 @@
+import type { AppRawRule, AuthorizationContext } from '#api/modules/authorization'
+
+import { createMongoAbility } from '@casl/ability'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { InsufficientAbilityError } from '#api/modules/authorization'
 import { TaskNotFoundError } from '#api/modules/tasks/tasks.errors.js'
 import * as tasksRepository from '#api/modules/tasks/tasks.repository.js'
 import * as tasksService from '#api/modules/tasks/tasks.service.js'
@@ -16,6 +20,17 @@ const sampleTask = {
   done: false,
   createdAt: new Date(),
   updatedAt: new Date()
+}
+
+function caller(rules: AppRawRule[]): AuthorizationContext {
+  const ability = createMongoAbility<AuthorizationContext['ability']>(rules)
+  return {
+    user: { id: userId, email: 'tasks-caller@example.com' },
+    roles: [],
+    rules: rules as AuthorizationContext['rules'],
+    ability: ability as AuthorizationContext['ability'],
+    authorizationVersion: 1
+  }
 }
 
 describe('tasks.service', () => {
@@ -64,5 +79,24 @@ describe('tasks.service', () => {
       pagination: { page: 2, limit: 20, total: 45, totalPages: 3 }
     })
     expect(tasksRepository.findMany).toHaveBeenCalledWith(userId, 2, 20)
+  })
+
+  it('redacts denied fields without blocking other field updates', async () => {
+    const authorized = caller([
+      { action: 'read', subject: 'Task' },
+      { action: 'read', subject: 'Task', fields: ['name'], inverted: true },
+      { action: 'update', subject: 'Task' },
+      { action: 'update', subject: 'Task', fields: ['name'], inverted: true }
+    ])
+    vi.mocked(tasksRepository.findMany).mockResolvedValue({ data: [sampleTask], total: 1 })
+    vi.mocked(tasksRepository.findById).mockResolvedValue(sampleTask)
+    vi.mocked(tasksRepository.updateById).mockResolvedValue({ ...sampleTask, done: true })
+
+    const listed = await tasksService.listTasks(authorized, 1, 20)
+    expect(listed.data[0]).toMatchObject({ id: sampleTask.id, done: false })
+    expect(listed.data[0]).not.toHaveProperty('name')
+
+    await expect(tasksService.updateTask(authorized, sampleTask.id, { done: true })).resolves.toMatchObject({ done: true })
+    await expect(tasksService.updateTask(authorized, sampleTask.id, { name: 'blocked' })).rejects.toBeInstanceOf(InsufficientAbilityError)
   })
 })

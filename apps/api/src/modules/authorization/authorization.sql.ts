@@ -94,7 +94,7 @@ export function rulesToDrizzleWhere(
       continue
     const allow = compileConditions(subject, rule.conditions) ?? sql`true`
     const laterDenies = rules.slice(index + 1)
-      .filter(candidate => candidate.inverted)
+      .filter(candidate => candidate.inverted && candidate.fields === undefined)
       .map(candidate => compileConditions(subject, candidate.conditions) ?? sql`true`)
     allowed.push(laterDenies.length ? and(allow, not(or(...laterDenies)!))! : allow)
   }

@@ -1,9 +1,17 @@
+import type { AppAbility, AppRawRule } from '#api/modules/authorization'
+
+import { createMongoAbility } from '@casl/ability'
 import { sql } from 'drizzle-orm'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { db } from '#api/db/index.js'
+import { subject } from '#api/modules/authorization'
 import * as tasksRepository from '#api/modules/tasks/tasks.repository.js'
 import { createTestUsers } from '#api/test/user.fixtures.js'
+
+function ability(rules: AppRawRule[]) {
+  return createMongoAbility<AppAbility>(rules)
+}
 
 describe('tasks.repository', () => {
   let userId: string
@@ -68,5 +76,38 @@ describe('tasks.repository', () => {
 
     const stillThere = await tasksRepository.findById(userId, inserted.id)
     expect(stillThere?.done).toBe(false)
+  })
+
+  it('keeps rows under field-scoped denies while preserving object-wide denies', async () => {
+    const visible = await tasksRepository.insertOne(userId, { name: 'visible with redaction', done: false })
+    const denied = await tasksRepository.insertOne(userId, { name: 'object denied', done: true })
+    const fieldScopedRead = ability([
+      { action: 'read', subject: 'Task' },
+      { action: 'read', subject: 'Task', fields: ['name'], inverted: true }
+    ])
+
+    const fieldScopedResult = await tasksRepository.findMany(fieldScopedRead, 1, 100)
+    expect(fieldScopedResult.data.map(task => task.id)).toEqual(expect.arrayContaining([visible.id, denied.id]))
+    expect(fieldScopedRead.can('read', subject('Task', visible), 'name')).toBe(false)
+    expect(fieldScopedRead.can('read', subject('Task', visible), 'done')).toBe(true)
+
+    const objectWideRead = ability([
+      { action: 'read', subject: 'Task' },
+      { action: 'read', subject: 'Task', conditions: { done: true }, inverted: true }
+    ])
+    const objectWideResult = await tasksRepository.findMany(objectWideRead, 1, 100)
+    expect(objectWideResult.data.some(task => task.id === visible.id)).toBe(true)
+    expect(objectWideResult.data.some(task => task.id === denied.id)).toBe(false)
+
+    const fieldScopedUpdate = ability([
+      { action: 'update', subject: 'Task' },
+      { action: 'update', subject: 'Task', fields: ['name'], inverted: true }
+    ])
+    expect(fieldScopedUpdate.can('update', subject('Task', visible), 'name')).toBe(false)
+    expect(fieldScopedUpdate.can('update', subject('Task', visible), 'done')).toBe(true)
+    await expect(tasksRepository.updateById(fieldScopedUpdate, visible.id, { done: true })).resolves.toMatchObject({
+      id: visible.id,
+      done: true
+    })
   })
 })

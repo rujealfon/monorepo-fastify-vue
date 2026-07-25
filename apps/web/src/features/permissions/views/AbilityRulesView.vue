@@ -3,12 +3,15 @@ import type { AbilityAction, AbilitySubject, CreateAbilityRule } from '@monorepo
 import { useQuery } from '@pinia/colada'
 import { computed, reactive, ref, watch } from 'vue'
 
+import { useAuthorization } from '@/features/permissions/composables/use-authorization'
 import { useAbilityRuleMutations } from '@/features/permissions/mutations'
 import { abilityRulesQuery, authorizationCatalogQuery } from '@/features/permissions/queries'
 
 const rules = useQuery(abilityRulesQuery)
 const catalog = useQuery(authorizationCatalogQuery)
 const { create, remove } = useAbilityRuleMutations()
+const { can } = useAuthorization()
+const canManage = computed(() => can('manage', 'all'))
 const state = reactive({
   key: '',
   description: '',
@@ -34,6 +37,8 @@ watch([() => state.subject, () => state.action], () => {
 })
 
 async function submit() {
+  if (!canManage.value)
+    return
   formError.value = null
   try {
     const body: CreateAbilityRule = {
@@ -69,7 +74,7 @@ async function submit() {
       </p>
     </div>
     <UAlert v-if="error" color="error" variant="subtle" :title="error.message" />
-    <UForm :state="state" class="grid gap-3 rounded-lg border border-default p-4 md:grid-cols-2" @submit.prevent="submit">
+    <UForm v-if="canManage" :state="state" class="grid gap-3 rounded-lg border border-default p-4 md:grid-cols-2" @submit.prevent="submit">
       <UFormField label="Key">
         <UInput v-model="state.key" required class="w-full" />
       </UFormField>
@@ -114,7 +119,15 @@ async function submit() {
             {{ JSON.stringify(rule.resourceConditions) }}
           </p>
         </div>
-        <UButton v-if="!rule.isSystem" icon="i-lucide-trash-2" color="error" variant="ghost" :disabled="pending" @click="remove.mutate(rule.id)" />
+        <UButton
+          v-if="canManage && !rule.isSystem"
+          icon="i-lucide-trash-2"
+          color="error"
+          variant="ghost"
+          aria-label="Delete rule"
+          :disabled="pending"
+          @click="remove.mutate(rule.id)"
+        />
       </div>
     </div>
   </div>
