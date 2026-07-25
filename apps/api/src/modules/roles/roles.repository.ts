@@ -139,6 +139,11 @@ export function deleteRoleById(id: number, audit?: AuditCallback) {
 
 export function replaceRolePermissions(roleId: number, permissionIds: number[], assignedBy: string, audit?: AuditCallback) {
   return db.transaction(async (tx) => {
+    await tx.select({ id: roles.id })
+      .from(roles)
+      .where(eq(roles.id, roleId))
+      .for('update')
+
     await tx.delete(rolePermissions).where(eq(rolePermissions.roleId, roleId))
     if (permissionIds.length > 0)
       await tx.insert(rolePermissions).values(permissionIds.map(permissionId => ({ roleId, permissionId, assignedBy })))
@@ -204,13 +209,15 @@ export function replaceUserRoles(userId: string, roleIds: number[], assignedBy: 
         .for('key share')
     }
 
+    if (protectWildcardAccess)
+      await tx.execute(sql`select 1 from ${permissions} where ${permissions.key} = ${WILDCARD_PERMISSION} for update`)
+
     await tx.select({ id: users.id })
       .from(users)
       .where(eq(users.id, userId))
       .for('update')
 
     if (protectWildcardAccess) {
-      await tx.execute(sql`select 1 from ${permissions} where ${permissions.key} = ${WILDCARD_PERMISSION} for update`)
       const otherWildcardHolder = await tx.select({ userId: userRoles.userId })
         .from(userRoles)
         .innerJoin(rolePermissions, eq(rolePermissions.roleId, userRoles.roleId))

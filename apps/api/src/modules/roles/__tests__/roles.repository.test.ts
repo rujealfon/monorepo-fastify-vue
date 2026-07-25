@@ -128,6 +128,22 @@ describe('roles.repository', () => {
     expect(await rolesRepository.findRoleById(concurrentRole.id)).toBeUndefined()
   })
 
+  it('does not deadlock when deletion races permission replacement', async () => {
+    const [permissionRole] = await db.insert(roles).values({ name: 'Permission Role', slug: 'permission-role' }).returning()
+    await db.insert(userRoles).values({ userId, roleId: permissionRole.id })
+    await rolesRepository.replaceRolePermissions(permissionRole.id, [profileReadId], userId)
+
+    const results = await Promise.allSettled([
+      rolesRepository.replaceRolePermissions(permissionRole.id, [profileReadId], userId),
+      rolesRepository.deleteRoleById(permissionRole.id)
+    ])
+
+    const rejected = results.filter(result => result.status === 'rejected')
+    expect(rejected).not.toContainEqual(
+      expect.objectContaining({ reason: expect.objectContaining({ cause: expect.objectContaining({ code: '40P01' }) }) })
+    )
+  })
+
   it('does not deadlock when deletion races a retained role assignment', async () => {
     const [retainedRole] = await db.insert(roles).values({ name: 'Retained Role', slug: 'retained-role' }).returning()
     await db.insert(userRoles).values({ userId, roleId: retainedRole.id })
@@ -141,6 +157,25 @@ describe('roles.repository', () => {
     expect(rejected).not.toContainEqual(
       expect.objectContaining({ reason: expect.objectContaining({ cause: expect.objectContaining({ code: '40P01' }) }) })
     )
+  })
+
+  it('locks the wildcard permission before users during concurrent revocation and permission replacement', async () => {
+    const [superAdminRole] = await db.select().from(roles).where(eq(roles.slug, 'super-admin'))
+    const [wildcardPermission] = await db.select().from(permissions).where(eq(permissions.key, '*'))
+    await db.insert(userRoles).values({ userId, roleId: superAdminRole.id })
+    const otherUserId = await db.transaction(async (tx) => {
+      const [otherUser] = await tx.insert(users).values({ email: 'wildcard-lock@example.com', passwordHash: 'hash' }).returning()
+      await tx.insert(userRoles).values({ userId: otherUser.id, roleId: superAdminRole.id })
+      return otherUser.id
+    })
+
+    const results = await Promise.allSettled([
+      rolesRepository.replaceUserRoles(userId, [standardRoleId], userId, true),
+      rolesRepository.replaceRolePermissions(superAdminRole.id, [wildcardPermission.id], userId)
+    ])
+
+    expect(results.map(result => result.status)).toEqual(['fulfilled', 'fulfilled'])
+    await db.delete(users).where(eq(users.id, otherUserId))
   })
 
   it('replaces user roles and bumps the version', async () => {
