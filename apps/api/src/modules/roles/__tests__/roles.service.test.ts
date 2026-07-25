@@ -7,6 +7,7 @@ import {
   LastSuperAdminError,
   PermissionEscalationError,
   RoleNotFoundError,
+  RoleRequiredByUserError,
   RoleSlugTakenError,
   SuperAdminAssignmentError,
   SystemRoleProtectedError,
@@ -128,6 +129,12 @@ describe('roles.service', () => {
       vi.mocked(rolesRepository.deleteRoleById).mockResolvedValue(customRole)
       await rolesService.deleteRole(10, 'caller-id')
       expect(rolesRepository.deleteRoleById).toHaveBeenCalledWith(10, expect.any(Function))
+    })
+
+    it('rejects deleting a user\'s only role', async () => {
+      vi.mocked(rolesRepository.findRoleById).mockResolvedValue(customRole)
+      vi.mocked(rolesRepository.deleteRoleById).mockResolvedValue(false)
+      await expect(rolesService.deleteRole(10, 'caller-id')).rejects.toBeInstanceOf(RoleRequiredByUserError)
     })
 
     it('rejects deleting a role with the wildcard permission', async () => {

@@ -14,6 +14,14 @@ export class RoleSlugTakenError extends Error {
   }
 }
 
+export class RoleRequiredByUserError extends Error {
+  statusCode = 409
+
+  constructor() {
+    super('Role cannot be deleted while it is a user\'s only role')
+  }
+}
+
 export class SystemRoleProtectedError extends Error {
   statusCode = 403
 

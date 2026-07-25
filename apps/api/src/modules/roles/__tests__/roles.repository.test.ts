@@ -15,11 +15,14 @@ describe('roles.repository', () => {
   beforeAll(async () => {
     await db.execute(sql`delete from users`)
 
-    const [user] = await db.insert(users).values({ email: 'roles-repo@example.com', passwordHash: 'hash' }).returning()
-    userId = user.id
-
     const [standardRole] = await db.select().from(roles).where(eq(roles.slug, 'standard-user'))
     standardRoleId = standardRole.id
+
+    userId = await db.transaction(async (tx) => {
+      const [user] = await tx.insert(users).values({ email: 'roles-repo@example.com', passwordHash: 'hash' }).returning()
+      await tx.insert(userRoles).values({ userId: user.id, roleId: standardRoleId })
+      return user.id
+    })
 
     const [profileRead] = await db.select().from(permissions).where(eq(permissions.key, 'profile.read_own'))
     profileReadId = profileRead.id
@@ -92,6 +95,22 @@ describe('roles.repository', () => {
 
     const after = await db.select({ version: users.authorizationVersion }).from(users).where(eq(users.id, userId))
     expect(after[0].version).toBe(before[0].version + 1)
+  })
+
+  it('does not delete a role that is a user\'s only role', async () => {
+    const [onlyRole] = await db.insert(roles).values({ name: 'Only Role', slug: 'only-role' }).returning()
+    const onlyRoleUser = await db.transaction(async (tx) => {
+      const [user] = await tx.insert(users).values({ email: 'only-role@example.com', passwordHash: 'hash' }).returning()
+      await tx.insert(userRoles).values({ userId: user.id, roleId: onlyRole.id })
+      return user
+    })
+
+    expect(await rolesRepository.deleteRoleById(onlyRole.id)).toBe(false)
+    expect(await rolesRepository.findRoleById(onlyRole.id)).toBeDefined()
+
+    await db.insert(userRoles).values({ userId: onlyRoleUser.id, roleId: standardRoleId })
+    expect(await rolesRepository.deleteRoleById(onlyRole.id)).toMatchObject({ id: onlyRole.id })
+    expect((await rolesRepository.findUserRoles(onlyRoleUser.id)).map(role => role.id)).toEqual([standardRoleId])
   })
 
   it('replaces user roles and bumps the version', async () => {

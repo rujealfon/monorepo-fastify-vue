@@ -99,6 +99,28 @@ export function updateRoleById(id: number, data: PatchRole, audit?: AuditCallbac
 
 export function deleteRoleById(id: number, audit?: AuditCallback) {
   return db.transaction(async (tx) => {
+    const affectedUsers = await tx.select({ id: users.id })
+      .from(users)
+      .innerJoin(userRoles, eq(userRoles.userId, users.id))
+      .where(eq(userRoles.roleId, id))
+      .orderBy(asc(users.id))
+      .for('update', { of: users })
+
+    if (affectedUsers.length > 0) {
+      const soleRoleHolder = await tx.select({ userId: userRoles.userId })
+        .from(userRoles)
+        .where(inArray(
+          userRoles.userId,
+          db.select({ userId: userRoles.userId }).from(userRoles).where(eq(userRoles.roleId, id))
+        ))
+        .groupBy(userRoles.userId)
+        .having(sql`count(*) = 1`)
+        .limit(1)
+        .then(rows => rows.at(0))
+      if (soleRoleHolder)
+        return false
+    }
+
     await bumpAuthorizationVersionForRole(tx, id)
     const role = await tx.delete(roles).where(eq(roles.id, id)).returning().then(rows => rows.at(0))
     if (role && audit)
@@ -166,6 +188,11 @@ export function findUserRoles(userId: string) {
 
 export function replaceUserRoles(userId: string, roleIds: number[], assignedBy: string, protectWildcardAccess = false, audit?: AuditCallback) {
   return db.transaction(async (tx) => {
+    await tx.select({ id: users.id })
+      .from(users)
+      .where(eq(users.id, userId))
+      .for('update')
+
     if (protectWildcardAccess) {
       await tx.execute(sql`select 1 from ${permissions} where ${permissions.key} = ${WILDCARD_PERMISSION} for update`)
       const otherWildcardHolder = await tx.select({ userId: userRoles.userId })
