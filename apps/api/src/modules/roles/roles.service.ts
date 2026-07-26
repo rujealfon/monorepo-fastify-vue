@@ -7,6 +7,7 @@ import {
   LastSuperAdminError,
   PermissionEscalationError,
   RoleNotFoundError,
+  RoleRequiredByUserError,
   RoleSlugTakenError,
   SuperAdminAssignmentError,
   SystemRoleProtectedError,
@@ -108,13 +109,17 @@ export async function deleteRole(roleId: number, actorId: string) {
   const role = await requireRole(roleId)
   if (role.isSystem || (await repository.findPermissionKeysByRoleIds([roleId])).includes(WILDCARD_PERMISSION))
     throw new SystemRoleProtectedError()
-  await repository.deleteRoleById(roleId, tx => recordAuditEvent({
+  const deleted = await repository.deleteRoleById(roleId, tx => recordAuditEvent({
     actorId,
     action: 'role.deleted',
     entityType: 'role',
     entityId: roleId,
     metadata: { name: role.name, slug: role.slug }
   }, tx))
+  if (deleted === false)
+    throw new RoleRequiredByUserError()
+  if (!deleted)
+    throw new RoleNotFoundError()
 }
 
 export function validateAssignablePermissions(callerPermissions: ReadonlySet<string>, requestedKeys: readonly string[]) {

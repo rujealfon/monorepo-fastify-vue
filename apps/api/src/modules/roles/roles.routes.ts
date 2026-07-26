@@ -81,7 +81,7 @@ export const rolesRoutes: FastifyPluginAsync = async (fastify) => {
     schema: {
       tags: ['Roles'],
       params: roleParamsSchema,
-      response: { 204: z.void(), ...writeErrors }
+      response: { 204: z.void(), 409: httpErrorSchema, ...writeErrors }
     }
   }, handlers.deleteRole)
 

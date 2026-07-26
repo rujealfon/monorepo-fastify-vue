@@ -1250,6 +1250,15 @@ export interface paths {
                     };
                 };
                 /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HttpError"];
+                    };
+                };
+                /** @description Default Response */
                 422: {
                     headers: {
                         [name: string]: unknown;

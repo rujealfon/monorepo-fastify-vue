@@ -170,6 +170,26 @@ describe('roles routes', () => {
     expect(getResponse.statusCode).toBe(200)
     expect(getResponse.json().permissions).toHaveLength(1)
 
+    const assignAsOnlyRoleResponse = await app.inject({
+      method: 'PUT',
+      url: `/api/v1/users/${standardUserId}/roles`,
+      headers: superAuth,
+      payload: { roleIds: [role.id] }
+    })
+    expect(assignAsOnlyRoleResponse.statusCode).toBe(200)
+
+    const assignedDeleteResponse = await app.inject({ method: 'DELETE', url: `/api/v1/roles/${role.id}`, headers: superAuth })
+    expect(assignedDeleteResponse.statusCode).toBe(409)
+
+    const [standardRole] = await db.select().from(roles).where(eq(roles.slug, 'standard-user'))
+    const restoreRoleResponse = await app.inject({
+      method: 'PUT',
+      url: `/api/v1/users/${standardUserId}/roles`,
+      headers: superAuth,
+      payload: { roleIds: [standardRole.id] }
+    })
+    expect(restoreRoleResponse.statusCode).toBe(200)
+
     const deleteResponse = await app.inject({ method: 'DELETE', url: `/api/v1/roles/${role.id}`, headers: superAuth })
     expect(deleteResponse.statusCode).toBe(204)
 
@@ -223,6 +243,14 @@ describe('roles routes', () => {
       payload: { roleIds: [999999] }
     })
     expect(unknownResponse.statusCode).toBe(400)
+
+    const emptyResponse = await app.inject({
+      method: 'PUT',
+      url: `/api/v1/users/${standardUserId}/roles`,
+      headers: superAuth,
+      payload: { roleIds: [] }
+    })
+    expect(emptyResponse.statusCode).toBe(422)
 
     const replaceResponse = await app.inject({
       method: 'PUT',
