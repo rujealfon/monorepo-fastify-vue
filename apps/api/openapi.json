@@ -2306,6 +2306,16 @@
               }
             }
           },
+          "409": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpError"
+                }
+              }
+            }
+          },
           "422": {
             "description": "Default Response",
             "content": {
@@ -3592,6 +3602,7 @@
                 "type": "object",
                 "properties": {
                   "roleIds": {
+                    "minItems": 1,
                     "maxItems": 100,
                     "type": "array",
                     "items": {

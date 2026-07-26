@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { UserWithRoles } from '@monorepo-fastify-vue/api-client'
 import { useQuery } from '@pinia/colada'
 import { computed, ref, watch } from 'vue'
 
@@ -23,11 +24,22 @@ const roleItems = computed(() => (roles.data.value ?? [])
   .filter(role => role.isActive)
   .map(role => ({ label: role.name, value: role.id })))
 
+function roleItemsFor(userRoles: UserWithRoles['roles']) {
+  const requiredRoleId = userRoles.length === 1 ? userRoles[0]?.id : undefined
+  return roleItems.value.map(item => ({
+    ...item,
+    disabled: item.value === requiredRoleId
+  }))
+}
+
 function isSelf(userId: string) {
   return authorization.value?.user.id === userId
 }
 
 function saveRoles(userId: string, roleIds: number[]) {
+  if (roleIds.length === 0)
+    return
+
   replaceMutation.mutate({ userId, roleIds })
 }
 </script>
@@ -87,10 +99,10 @@ function saveRoles(userId: string, roleIds: number[]) {
         </div>
         <USelectMenu
           :model-value="user.roles.map(role => role.id)"
-          :items="roleItems"
+          :items="roleItemsFor(user.roles)"
           value-key="value"
           multiple
-          :placeholder="canAssign ? 'No roles' : 'No roles assigned'"
+          :placeholder="canAssign ? 'Select a role' : 'No roles assigned'"
           :disabled="!canAssign || pending"
           :aria-label="`Roles for ${user.email}`"
           class="w-full sm:w-64"

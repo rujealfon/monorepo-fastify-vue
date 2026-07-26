@@ -15,11 +15,14 @@ describe('roles.repository', () => {
   beforeAll(async () => {
     await db.execute(sql`delete from users`)
 
-    const [user] = await db.insert(users).values({ email: 'roles-repo@example.com', passwordHash: 'hash' }).returning()
-    userId = user.id
-
     const [standardRole] = await db.select().from(roles).where(eq(roles.slug, 'standard-user'))
     standardRoleId = standardRole.id
+
+    userId = await db.transaction(async (tx) => {
+      const [user] = await tx.insert(users).values({ email: 'roles-repo@example.com', passwordHash: 'hash' }).returning()
+      await tx.insert(userRoles).values({ userId: user.id, roleId: standardRoleId })
+      return user.id
+    })
 
     const [profileRead] = await db.select().from(permissions).where(eq(permissions.key, 'profile.read_own'))
     profileReadId = profileRead.id
@@ -92,6 +95,87 @@ describe('roles.repository', () => {
 
     const after = await db.select({ version: users.authorizationVersion }).from(users).where(eq(users.id, userId))
     expect(after[0].version).toBe(before[0].version + 1)
+  })
+
+  it('does not delete a role that is a user\'s only role', async () => {
+    const [onlyRole] = await db.insert(roles).values({ name: 'Only Role', slug: 'only-role' }).returning()
+    const onlyRoleUser = await db.transaction(async (tx) => {
+      const [user] = await tx.insert(users).values({ email: 'only-role@example.com', passwordHash: 'hash' }).returning()
+      await tx.insert(userRoles).values({ userId: user.id, roleId: onlyRole.id })
+      return user
+    })
+
+    expect(await rolesRepository.deleteRoleById(onlyRole.id)).toBe(false)
+    expect(await rolesRepository.findRoleById(onlyRole.id)).toBeDefined()
+
+    await db.insert(userRoles).values({ userId: onlyRoleUser.id, roleId: standardRoleId })
+    expect(await rolesRepository.deleteRoleById(onlyRole.id)).toMatchObject({ id: onlyRole.id })
+    expect((await rolesRepository.findUserRoles(onlyRoleUser.id)).map(role => role.id)).toEqual([standardRoleId])
+
+    await db.delete(users).where(eq(users.id, onlyRoleUser.id))
+  })
+
+  it('uses a consistent lock order when deleting and deactivating a role', async () => {
+    const [concurrentRole] = await db.insert(roles).values({ name: 'Concurrent Role', slug: 'concurrent-role' }).returning()
+    await db.insert(userRoles).values({ userId, roleId: concurrentRole.id })
+
+    const results = await Promise.allSettled([
+      rolesRepository.deleteRoleById(concurrentRole.id),
+      rolesRepository.updateRoleById(concurrentRole.id, { isActive: false })
+    ])
+
+    expect(results.map(result => result.status)).toEqual(['fulfilled', 'fulfilled'])
+    expect(await rolesRepository.findRoleById(concurrentRole.id)).toBeUndefined()
+  })
+
+  it('does not deadlock when deletion races permission replacement', async () => {
+    const [permissionRole] = await db.insert(roles).values({ name: 'Permission Role', slug: 'permission-role' }).returning()
+    await db.insert(userRoles).values({ userId, roleId: permissionRole.id })
+    await rolesRepository.replaceRolePermissions(permissionRole.id, [profileReadId], userId)
+
+    const results = await Promise.allSettled([
+      rolesRepository.replaceRolePermissions(permissionRole.id, [profileReadId], userId),
+      rolesRepository.deleteRoleById(permissionRole.id)
+    ])
+
+    const rejected = results.filter(result => result.status === 'rejected')
+    expect(rejected).not.toContainEqual(
+      expect.objectContaining({ reason: expect.objectContaining({ cause: expect.objectContaining({ code: '40P01' }) }) })
+    )
+  })
+
+  it('does not deadlock when deletion races a retained role assignment', async () => {
+    const [retainedRole] = await db.insert(roles).values({ name: 'Retained Role', slug: 'retained-role' }).returning()
+    await db.insert(userRoles).values({ userId, roleId: retainedRole.id })
+
+    const results = await Promise.allSettled([
+      rolesRepository.replaceUserRoles(userId, [standardRoleId, retainedRole.id], userId),
+      rolesRepository.deleteRoleById(retainedRole.id)
+    ])
+
+    const rejected = results.filter(result => result.status === 'rejected')
+    expect(rejected).not.toContainEqual(
+      expect.objectContaining({ reason: expect.objectContaining({ cause: expect.objectContaining({ code: '40P01' }) }) })
+    )
+  })
+
+  it('locks the wildcard permission before users during concurrent revocation and permission replacement', async () => {
+    const [superAdminRole] = await db.select().from(roles).where(eq(roles.slug, 'super-admin'))
+    const [wildcardPermission] = await db.select().from(permissions).where(eq(permissions.key, '*'))
+    await db.insert(userRoles).values({ userId, roleId: superAdminRole.id })
+    const otherUserId = await db.transaction(async (tx) => {
+      const [otherUser] = await tx.insert(users).values({ email: 'wildcard-lock@example.com', passwordHash: 'hash' }).returning()
+      await tx.insert(userRoles).values({ userId: otherUser.id, roleId: superAdminRole.id })
+      return otherUser.id
+    })
+
+    const results = await Promise.allSettled([
+      rolesRepository.replaceUserRoles(userId, [standardRoleId], userId, true),
+      rolesRepository.replaceRolePermissions(superAdminRole.id, [wildcardPermission.id], userId)
+    ])
+
+    expect(results.map(result => result.status)).toEqual(['fulfilled', 'fulfilled'])
+    await db.delete(users).where(eq(users.id, otherUserId))
   })
 
   it('replaces user roles and bumps the version', async () => {
