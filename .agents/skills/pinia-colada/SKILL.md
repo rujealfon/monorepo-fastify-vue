@@ -1,162 +1,137 @@
 ---
 name: pinia-colada
-description: Pinia Colada (@pinia/colada) data-fetching layer for Vue 3 — useQuery, useMutation, query keys, cache invalidation, optimistic updates, pagination. Use whenever writing or reviewing async data fetching in Vue components or composables — fetching lists/details from an API, submitting forms that modify server data, cache invalidation after a mutation, loading/error states, pagination, or infinite scroll — even if the user doesn't name Pinia Colada. Also use when the user mentions useQuery, useMutation, defineQuery, query keys, staleTime, or TanStack-Query-style patterns in a Vue app.
-metadata:
-  version: "2026.07"
-  source: Generated from https://pinia-colada.esm.dev
+description: Build, migrate, debug, review, and test typed server-state flows in Vue 3 and Nuxt with Pinia Colada. Use for @pinia/colada setup, useQuery, useInfiniteQuery, useMutation, query-key factories, defineQueryOptions, cache invalidation, optimistic updates, prefetching, SSR/hydration, persistence, plugins, testing, or migrations from Nuxt data composables and TanStack Vue Query.
 ---
 
 # Pinia Colada
 
-> Data-fetching layer built on Pinia. Queries read server data (GET); mutations write it (POST/PUT/PATCH/DELETE). Requires Pinia. Always prefer `useQuery`/`useMutation` over hand-rolled `ref` + `onMounted` fetch state.
+Implement Pinia Colada as the server-state layer while preserving the host
+project's Vue, Nuxt, TypeScript, API-client, and testing conventions.
 
-## Setup
+## Start With the Repository
 
-```ts
-import { createPinia } from 'pinia'
-import { PiniaColada } from '@pinia/colada'
+1. Inspect `package.json`, the lockfile, Nuxt/Vite configuration, Pinia setup,
+   API clients, existing query modules, and tests.
+2. Determine the installed versions of `@pinia/colada`,
+   `@pinia/colada-nuxt`, and any Colada plugins.
+3. Prefer installed package types and local source over this skill when a
+   version-specific API differs. Consult the current official documentation
+   before adding an option or export that is absent locally.
+4. Change only the server-state behavior in scope. Preserve established
+   request, error, auth, and serialization boundaries.
 
-app.use(createPinia())
-app.use(PiniaColada, {
-  queryOptions: { staleTime: 0 }, // global defaults, optional
-  mutationOptions: {},
-  plugins: [],
-})
-```
+## Choose the Primitive
 
-Install: `npm i @pinia/colada` (Pinia must already be installed and registered first).
+- Use `useQuery()` for declarative reads that should be cached, deduplicated,
+  shared, invalidated, or rendered during SSR.
+- Use `useMutation()` for writes and other user-triggered side effects.
+- Use page-in-key `useQuery()` for independently cached numbered pages.
+- Use `useInfiniteQuery()` for load-more or infinite-scroll data whose loaded
+  pages should form one cache entry.
+- Use `defineQueryOptions()` to organize and type reusable query options.
+- Use `defineQuery()` only when the query must share additional reactive state
+  or expose a shared composed interface.
+- Keep Nuxt `useFetch()` or `useAsyncData()` for genuinely simple, page-local,
+  one-off data when Colada's shared cache and mutation features add no value.
 
-## Queries
+Read [queries-and-keys.md](references/queries-and-keys.md) before implementing
+queries, query organization, reusable queries, or key changes.
 
-```ts
-const { state, data, error, status, asyncStatus, refresh, refetch } = useQuery({
-  key: () => ['contacts', route.params.id], // getter fn when key depends on reactive values
-  query: () => api.contacts.get({ params: { id: route.params.id } }),
-})
-```
+## Model Keys Before Fetching
 
-Key options:
+1. Create a domain key factory with hierarchical keys and `as const`.
+2. Include every variable that affects the query result in the key.
+3. Use a getter when a key depends on reactive values.
+4. Define options with `defineQueryOptions()` so keys carry the query data type.
+5. Reuse the same factory and defined options for cache reads, writes,
+   invalidation, prefetching, and tests.
 
-| Option | Meaning |
-|--------|---------|
-| `key` | Cache identity. Array of serializable values. Use a getter `() => [...]` (or computed/ref) whenever it depends on reactive state — plain arrays don't react. |
-| `query` | Promise-returning function. Takes no args — read params from the closure and mirror them in `key`. |
-| `enabled` | Boolean or getter; pause query until true (e.g. `() => !!route.params.id`). |
-| `staleTime` | How long cached data counts as fresh (no auto refetch). |
-| `gcTime` | How long unused entries stay in cache. |
-| `placeholderData` | Shown while pending; `(prev) => prev` keeps previous page during pagination. |
+Do not scatter string-literal keys through production code. When modifying
+existing ad-hoc queries, consolidate their keys unless the requested change is
+strictly isolated and a refactor would be unsafe.
 
-State semantics — two independent axes:
+## Implement the State Lifecycle
 
-- `status` (data state): `'pending' | 'success' | 'error'`. Discriminated union on `state.value` — checking `status === 'error'` narrows `error` type.
-- `asyncStatus` (fetch state): `'idle' | 'loading'`. `loading` is true on refetches even when stale data is displayed.
+- Treat `state.status` as data state: `pending`, `success`, or `error`.
+- Treat `asyncStatus` as request activity: `idle` or `loading`.
+- Prefer the grouped `state` value when TypeScript must narrow `data` and
+  `error`.
+- Use `refresh()` for cache-aware, deduplicated refreshes. Use `refetch()` only
+  when a forced network request is intentional.
+- Guard missing route params, auth state, or client-only dependencies with
+  reactive `enabled`.
+- Make `fetch()` wrappers throw for non-success HTTP responses when failures
+  should enter Colada's error state.
 
-`refresh()` dedupes and respects `staleTime`; `refetch()` always hits the network.
+## Keep Writes and Cache Consistent
 
-**Rule: every reactive variable used inside `query` must appear in `key`.** Otherwise the cache serves stale data for the new params.
+1. Pass mutation inputs as the `mutation` argument so hooks and `variables`
+   receive them.
+2. Invalidate affected key families after writes, usually in `onSettled`.
+3. Await or return invalidation only when the mutation must remain loading until
+   active queries finish refreshing.
+4. Use optimistic updates only when the UX benefit justifies rollback logic:
+   cancel competing requests, snapshot data, write immutably, return context,
+   conditionally roll back on error, and invalidate on settlement.
+5. Use a mutation key when another component must discover its state through
+   the mutation cache.
 
-## Query keys
+Read [mutations-and-cache.md](references/mutations-and-cache.md) before changing
+mutations, invalidation, optimistic updates, or direct cache operations.
 
-- Arrays of strings/numbers/objects: `['products']`, `['products', id]`, `['products', id, { withComments: true }]`.
-- `1` vs `'1'` are different keys. Object property order irrelevant; array order matters.
-- Hierarchical: invalidating `['products', id]` also invalidates `['products', id, {...}]` children.
-- Avoid hard-coded key literals scattered around — use a key factory:
+## Integrate With Nuxt and SSR
 
-```ts
-export const CONTACT_KEYS = {
-  root: ['contacts'] as const,
-  byId: (id: string) => [...CONTACT_KEYS.root, id] as const,
-}
-```
+- Install `@pinia/colada-nuxt` alongside the Pinia Nuxt module.
+- When introducing Pinia Colada, install `@pinia/colada-devtools` as a
+  development dependency and place `PiniaColadaDevtools` at the end of the root
+  component template. Do not enable production devtools unless requested.
+- Put module options in root-level `colada.options.ts`.
+- Do not add `await` merely to make `useQuery()` SSR-compatible; the Nuxt module
+  registers server prefetching and hydrates the cache automatically.
+- Add `await refresh()` only when navigation should block on the client.
+- Keep keys and serialized metadata deterministic and serializable across
+  server and client.
+- Import `useRoute` from `vue-router` inside Nuxt `defineQuery()` definitions.
+- Store extra SSR-dependent `defineQuery()` state in Nuxt `useState()` or a
+  serializable Pinia store.
 
-- `defineQueryOptions` bundles key + query with inferred types for reuse:
+Read [nuxt-and-ssr.md](references/nuxt-and-ssr.md) for installation, migration,
+custom SSR, and hydration details.
 
-```ts
-const contactByIdQuery = defineQueryOptions((id: string) => ({
-  key: CONTACT_KEYS.byId(id),
-  query: () => getContact(id),
-}))
-// in component: useQuery(contactByIdQuery, () => route.params.id as string)
-```
+## Validate Behavior
 
-## Mutations
+1. Run the project's typecheck, lint, and focused tests.
+2. Exercise pending, success, error, refresh, and mutation states relevant to
+   the change.
+3. Test cache effects by behavior: deduplication, invalidation scope, rollback,
+   pagination transitions, or hydration.
+4. Mount with a real `createPinia()` and `PiniaColada`; never use
+   `createTestingPinia()` because stubbed actions break Colada internals.
+5. Prefer network-layer mocking such as MSW and flush pending Vue promises.
 
-```ts
-const queryCache = useQueryCache()
-const { mutate, mutateAsync, state, asyncStatus, reset } = useMutation({
-  mutation: (contact: ContactPatch) => api.contacts.update({ body: contact }),
-  onSettled: () => queryCache.invalidateQueries({ key: CONTACT_KEYS.root }),
-})
-```
+Read [advanced-and-testing.md](references/advanced-and-testing.md) for
+pagination, infinite queries, prefetching, persistence, plugins, migration, and
+test patterns.
 
-- `mutate(vars)` — fire-and-forget, errors caught into `state.error`, never throws.
-- `mutateAsync(vars)` — returns promise, rethrows; wrap in try/catch.
-- Hooks: `onMutate(vars)` → `onSuccess(data, vars, ctx)` / `onError(err, vars, ctx)` → `onSettled(data, err, vars, ctx)`. Object returned from `onMutate` becomes `ctx` in the others.
-- Returning a promise from a hook (e.g. awaiting `invalidateQueries`) keeps `asyncStatus` at `loading` until refetch completes.
-- Global mutation hooks via `mutationOptions` at plugin install (e.g. global error toast).
+## Guardrails
 
-## Invalidation
+- Do not create a long-lived query inside a Pinia store by default. Stores are
+  never disposed, so the query can become immortal; consume the query cache or
+  use defined options instead.
+- Do not omit a reactive input from a key.
+- Do not put the infinite-query page or cursor parameter in its key; include
+  filters, not `pageParam`.
+- Do not mutate cached arrays or objects in place.
+- Do not clear entries without canceling pending requests first.
+- Do not persist sensitive queries by default.
+- Do not place functions or non-serializable values in SSR metadata unless they
+  are omitted on the server or use an explicit serializer.
 
-```ts
-const queryCache = useQueryCache() // valid in setup, Pinia stores, nav guards — not module top-level
-queryCache.invalidateQueries({ key: ['contacts'] })          // + children
-queryCache.invalidateQueries({ key: ['contacts'], exact: true })
-queryCache.invalidateQueries()                                // everything
-```
+## Official Sources
 
-Invalidation marks entries stale; only *active* queries (mounted components) refetch immediately, inactive ones refetch on next use. Pass `'all'` as second arg to force-refetch inactive too. Standard pattern: invalidate in `onSettled` of the mutation that changed the data.
+This skill was derived from the Pinia Colada documentation at repository commit
+`5c9363d64fab2c12481701e66d4491a6b3b18f21` (2026-07-22).
 
-## Reuse: which tool
-
-| Situation | Use |
-|-----------|-----|
-| One component needs the query | `useQuery` inline (or in a plain composable) |
-| Reuse key+query definition, state stays per-component | `defineQueryOptions` |
-| Multiple mounted components must share state (e.g. a search ref driving the key) | `defineQuery(() => { ...useQuery()... })` — setup runs once globally, refs are shared |
-
-```ts
-export const useFilteredContacts = defineQuery(() => {
-  const search = ref('')
-  const query = useQuery({
-    key: () => ['contacts', { search: search.value }],
-    query: () => searchContacts(search.value),
-  })
-  return { ...query, search }
-})
-```
-
-## Pagination
-
-```ts
-const { state, asyncStatus } = useQuery({
-  key: () => ['contacts', { page: Number(route.query.page) || 1 }],
-  query: () => listContacts(Number(route.query.page) || 1),
-  placeholderData: (prev) => prev, // keep previous page visible while next loads
-})
-```
-
-With `placeholderData`, `status` stays `'success'` but `asyncStatus` is `'loading'` — use `asyncStatus` for the spinner. For "load more" that merges pages into one list, use `useInfiniteQuery()` instead.
-
-## Error handling essentials
-
-- Only thrown/rejected values become errors. `fetch` doesn't throw on 4xx/5xx — check `response.ok` and throw a typed error in the query function.
-- On refetch failure, previous `data` is kept — show stale data + error notice, don't blank the UI.
-- Per-query error messages: put `meta: { errorMessage: '...' }` on the query and read it in a global `PiniaColadaQueryHooksPlugin` `onError`.
-- Type errors globally: `declare module '@pinia/colada' { interface TypesConfig { defaultError: ApiError } }`.
-
-Details and global-handler setup: [references/error-handling.md](references/error-handling.md).
-
-## Optimistic updates
-
-Full pattern (setQueryData in `onMutate`, cancelQueries, identity-checked rollback in `onError`, invalidate in `onSettled`): [references/optimistic-updates.md](references/optimistic-updates.md). Read it before writing any optimistic-update code — naive versions lose concurrent updates.
-
-## Review checklist
-
-When reviewing Pinia Colada code, flag:
-
-- Reactive value used in `query` but missing from `key` (stale-cache bug).
-- Plain-array `key` that should be a getter (loses reactivity).
-- Mutation without invalidation or optimistic update — UI won't refresh.
-- `mutateAsync` without try/catch.
-- Manual `ref`/`onMounted` fetch code that should be a `useQuery`.
-- `useQueryCache()` called at module top level (must be inside setup/store/guard).
+- Documentation: https://pinia-colada.esm.dev/
+- Source: https://github.com/posva/pinia-colada/tree/main/docs
+- API: https://pinia-colada.esm.dev/api/
