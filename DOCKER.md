@@ -1,6 +1,6 @@
 # Docker development
 
-Docker Compose runs the Vue web app, Fastify API, PostgreSQL, and Drizzle Studio.
+Docker Compose runs the Vue web app, Fastify API, PostgreSQL, Redis, and Drizzle Studio.
 
 ## Services
 
@@ -9,6 +9,7 @@ Docker Compose runs the Vue web app, Fastify API, PostgreSQL, and Drizzle Studio
 | Web | `http://localhost:5173` |
 | API | `http://localhost:3000` |
 | PostgreSQL | `localhost:5433` |
+| Redis | `localhost:6380` |
 | Drizzle Studio | `http://localhost:4983` |
 
 ## Setup
@@ -19,7 +20,7 @@ docker compose up --build
 pnpm docker:db:migrate
 ```
 
-The Compose API overrides `DATABASE_URL` with `postgresql://root:root@postgres:5432/fastify_vue`. PostgreSQL data is stored in the `postgres_data` volume.
+The Compose API overrides `DATABASE_URL` with `postgresql://root:root@postgres:5432/fastify_vue` and `REDIS_URL` with `redis://redis:6379`. PostgreSQL data is stored in the `postgres_data` volume.
 
 Useful commands:
 

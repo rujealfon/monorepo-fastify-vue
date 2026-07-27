@@ -8,6 +8,7 @@ A health-only pnpm workspace starter with a Fastify API, Vue 3/Vite web app, a g
 - `GET /api/v1/health/ready` for PostgreSQL readiness
 - A single health page at `/` with automatic and manual refresh
 - Fastify compression, Helmet, OpenAPI, static SPA hosting, and generic error handling
+- Distributed API rate limiting backed by Redis in production
 - Vue 3, Nuxt UI, Pinia, and Pinia Colada
 - PostgreSQL, Drizzle Kit migrations, and Drizzle Studio
 
@@ -26,7 +27,7 @@ API domains live under `apps/api/src/modules/<domain>`. Web features live under 
 
 - Node.js 24 (see `.nvmrc`)
 - pnpm 11
-- PostgreSQL 18, or Docker
+- PostgreSQL 18 and Redis 8, or Docker
 
 ## Local development
 

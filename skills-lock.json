@@ -23,7 +23,7 @@
       "source": "ccheney/robust-skills",
       "sourceType": "github",
       "skillPath": "skills/postgres-drizzle/SKILL.md",
-      "computedHash": "60534e1aa880981e26360db836115df77a8e73be219c7a027e635802686b5bd9"
+      "computedHash": "26754316f0d7698c323c5130d89ba04d49fabd1bf960c1a38c23b4d2bbe0424d"
     },
     "vue": {
       "source": "antfu/skills",

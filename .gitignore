@@ -5,6 +5,8 @@ dist/
 .env
 .env.local
 .env.*.local
+.env.test
+.env.production
 
 logs/
 *.log
@@ -43,6 +45,29 @@ temp/
 .eslintcache
 *.timestamp-*-*.mjs
 *.local
+
+# Node.js runtime, caches, and diagnostics
+pids/
+*.pid
+*.seed
+lib-cov/
+.grunt/
+.lock-wscript
+jspm_packages/
+.npm/
+.node_repl_history
+profile-*
+*clinic*
+*flamegraph*
+
+# API-generated runtime files
+/apps/api/**/profile*
+/apps/api/**/.vscode/
+/apps/api/**/*code-workspace
+/apps/api/build/Release/
+/apps/api/public/
+/apps/api/dev.db*
+/apps/api/test.db
 
 # Nuxt UI (Vite) generated declarations
 auto-imports.d.ts

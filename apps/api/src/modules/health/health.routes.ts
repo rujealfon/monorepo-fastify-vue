@@ -21,7 +21,7 @@ export const healthRoutes: FastifyPluginAsync = async (fastify) => {
     schema: {
       tags: ['Health'],
       summary: 'Readiness probe (checks database connectivity)',
-      response: { 200: healthSchema, 503: httpErrorSchema }
+      response: { 200: healthSchema, 429: httpErrorSchema, 503: httpErrorSchema }
     }
   }, async (request, reply) => {
     try {

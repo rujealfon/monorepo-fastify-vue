@@ -13,4 +13,4 @@ Copy `.env.example` to `.env`, then run:
 pnpm --filter @monorepo-fastify-vue/api dev
 ```
 
-Generic infrastructure includes PostgreSQL, Helmet, compression, OpenAPI in development, static SPA hosting, and the shared error handler. Add future domains under `src/modules` and register them explicitly in `src/modules/index.ts`.
+Generic infrastructure includes PostgreSQL, Redis-backed rate limiting, Helmet, compression, OpenAPI in development, static SPA hosting, and the shared error handler. Liveness is exempt from rate limiting; readiness is protected. Add future domains under `src/modules` and register them explicitly in `src/modules/index.ts`.

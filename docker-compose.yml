@@ -16,6 +16,17 @@ services:
       timeout: 5s
       retries: 10
 
+  redis:
+    image: redis:8-alpine
+    restart: unless-stopped
+    ports:
+      - "6380:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   api:
     build:
       context: .
@@ -26,6 +37,7 @@ services:
       - ./apps/api/.env
     environment:
       DATABASE_URL: postgresql://root:root@postgres:5432/fastify_vue
+      REDIS_URL: redis://redis:6379
       PORT: 3000
       NODE_ENV: development
     ports:
@@ -34,6 +46,8 @@ services:
       - ./apps/api/src:/app/apps/api/src
     depends_on:
       postgres:
+        condition: service_healthy
+      redis:
         condition: service_healthy
 
   drizzle-studio:

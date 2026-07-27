@@ -73,4 +73,24 @@ describe('health routes', () => {
     expect(response.statusCode).toBe(404)
     expect(response.json()).toMatchObject({ error: 'Not Found', statusCode: 404 })
   })
+
+  it('rate limits readiness while keeping liveness available', async () => {
+    const execute = vi.spyOn(app.db, 'execute').mockResolvedValue({ rows: [] } as never)
+    execute.mockClear()
+
+    const responses = await Promise.all(
+      Array.from({ length: 101 }, () => app.inject({
+        method: 'GET',
+        url: '/api/v1/health/ready'
+      }))
+    )
+    const limited = responses.find(response => response.statusCode === 429)
+
+    expect(limited).toBeDefined()
+    expect(limited?.headers['retry-after']).toBeDefined()
+    expect(execute.mock.calls.length).toBeLessThan(101)
+
+    const liveness = await app.inject({ method: 'GET', url: '/api/v1/health/live?ts=123' })
+    expect(liveness.statusCode).toBe(200)
+  })
 })

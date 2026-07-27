@@ -6,7 +6,16 @@ const envSchema = z.object({
   HOST: z.string().default('0.0.0.0'),
   DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
   // CORS_ORIGIN is only needed if the API and web app deploy to separate origins.
-  LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal', 'silent']).default('info')
+  LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal', 'silent']).default('info'),
+  REDIS_URL: z.string().min(1, 'REDIS_URL cannot be empty').optional()
+}).superRefine((env, ctx) => {
+  if (env.NODE_ENV === 'production' && !env.REDIS_URL) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['REDIS_URL'],
+      message: 'REDIS_URL is required in production for the shared rate-limit store'
+    })
+  }
 })
 
 // eslint-disable-next-line node/no-process-env
