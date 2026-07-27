@@ -67,25 +67,10 @@ describe('health routes', () => {
     expect(response.headers['content-security-policy']).toBeDefined()
   })
 
-  it('rate limits readiness but not liveness', async () => {
-    for (let request = 0; request < 100; request++) {
-      await app.inject({ method: 'POST', url: '/api/v1/auth/logout' })
-    }
+  it('returns an API 404 for unknown routes', async () => {
+    const response = await app.inject({ method: 'GET', url: '/api/v1/removed' })
 
-    const limited = await app.inject({ method: 'POST', url: '/api/v1/auth/logout' })
-    expect(limited.statusCode).toBe(429)
-    expect(limited.headers['retry-after']).toBeDefined()
-
-    const health = await app.inject({ method: 'GET', url: '/api/v1/health/live' })
-    expect(health.statusCode).toBe(200)
-
-    const healthWithQuery = await app.inject({ method: 'GET', url: '/api/v1/health/live?ts=123' })
-    expect(healthWithQuery.statusCode).toBe(200)
-
-    const execute = vi.spyOn(app.db, 'execute')
-    execute.mockClear()
-    const readiness = await app.inject({ method: 'GET', url: '/api/v1/health/ready' })
-    expect(readiness.statusCode).toBe(429)
-    expect(execute).not.toHaveBeenCalled()
+    expect(response.statusCode).toBe(404)
+    expect(response.json()).toMatchObject({ error: 'Not Found', statusCode: 404 })
   })
 })

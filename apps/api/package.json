@@ -5,29 +5,9 @@
   "private": true,
   "license": "MIT",
   "imports": {
-    "#api/modules/audit-logs": {
-      "development": "./src/modules/audit-logs/index.ts",
-      "default": "./dist/modules/audit-logs/index.js"
-    },
     "#api/modules/health": {
       "development": "./src/modules/health/index.ts",
       "default": "./dist/modules/health/index.js"
-    },
-    "#api/modules/permissions": {
-      "development": "./src/modules/permissions/index.ts",
-      "default": "./dist/modules/permissions/index.js"
-    },
-    "#api/modules/roles": {
-      "development": "./src/modules/roles/index.ts",
-      "default": "./dist/modules/roles/index.js"
-    },
-    "#api/modules/tasks": {
-      "development": "./src/modules/tasks/index.ts",
-      "default": "./dist/modules/tasks/index.js"
-    },
-    "#api/modules/users": {
-      "development": "./src/modules/users/index.ts",
-      "default": "./dist/modules/users/index.js"
     },
     "#api/*": {
       "development": "./src/*",
@@ -52,22 +32,14 @@
   },
   "dependencies": {
     "@fastify/compress": "^9.0.0",
-    "@fastify/cookie": "^10.0.1",
     "@fastify/helmet": "^13.1.0",
-    "@fastify/jwt": "^10.2.0",
-    "@fastify/multipart": "^10.1.0",
-    "@fastify/rate-limit": "^11.1.0",
-    "@fastify/sensible": "^6.0.4",
     "@fastify/static": "^9.3.0",
     "@fastify/swagger": "^9.8.0",
     "@scalar/fastify-api-reference": "^1.62.5",
-    "argon2": "^0.44.0",
     "drizzle-orm": "^0.45.2",
-    "drizzle-zod": "^0.8.3",
     "fastify": "^5.10.0",
     "fastify-plugin": "^5.1.0",
     "fastify-type-provider-zod": "^7.0.0",
-    "ioredis": "^5.11.1",
     "pg": "^8.22.0",
     "zod": "^4.4.3"
   },

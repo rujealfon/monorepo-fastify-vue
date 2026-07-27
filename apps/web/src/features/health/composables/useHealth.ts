@@ -1,3 +1,4 @@
+import { RpcError } from '@monorepo-fastify-vue/api-client'
 import { useQuery } from '@pinia/colada'
 import { computed } from 'vue'
 
@@ -17,7 +18,8 @@ export function useHealth() {
     if (query.status.value !== 'error')
       return ''
 
-    const httpStatus = query.error.value?.status
+    const queryError = query.error.value
+    const httpStatus = queryError instanceof RpcError ? queryError.status : undefined
     return httpStatus ? `Health check failed (HTTP ${httpStatus})` : 'Health check failed'
   })
   const loading = computed(() => query.asyncStatus.value === 'loading')

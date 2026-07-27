@@ -1,44 +1,18 @@
-# API Client
+# API client
 
-Typed Fetch client generated from the Fastify OpenAPI document.
+Typed OpenAPI client shared by the Vue application and future workspace consumers.
 
-## Regenerate
+The public package exports:
 
-After changing API routes or schemas, run from the repository root:
+- `createApiClient` and `ApiClient`
+- `RpcError`
+- generic `ApiErrorSchema`
+- `HealthResponse`
 
-```sh
+Regenerate the OpenAPI document and TypeScript schema from the repository root:
+
+```bash
 pnpm api-client:generate
 ```
 
-This regenerates `apps/api/openapi.json` and `src/schema.d.ts`. Do not edit either generated file by hand.
-
-CI runs `pnpm api-client:check`, regenerates both files, and fails if the committed contract is stale.
-
-## Module types
-
-Keep one generated `schema.d.ts` for the complete API. Each API module may expose short aliases derived from its generated `paths` entries:
-
-```ts
-// src/tasks/types.ts
-import type { paths } from "../schema.js";
-
-type TasksPath = paths["/api/v1/tasks/"];
-
-export type TaskList = TasksPath["get"]["responses"][200]["content"]["application/json"];
-export type CreateTask = TasksPath["post"]["requestBody"]["content"]["application/json"];
-```
-
-Export public aliases from `src/index.ts`, then consume them from the package root:
-
-```ts
-import type { CreateTask, HealthResponse, Task } from "@monorepo-fastify-vue/api-client";
-```
-
-When adding an API module:
-
-1. Regenerate the OpenAPI client.
-2. Add `src/<module>/types.ts` only when shorter public names are useful.
-3. Derive every alias from `paths`; never duplicate object fields manually.
-4. Export the aliases from `src/index.ts`.
-
-Skip aliases for headers, `never`, and unused empty responses.
+The generated contract intentionally contains only the liveness and readiness paths.

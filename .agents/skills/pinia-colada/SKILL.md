@@ -46,22 +46,19 @@ queries, query organization, reusable queries, or key changes.
 5. Reuse the same factory and defined options for cache reads, writes,
    invalidation, prefetching, and tests.
 
-Do not scatter string-literal keys through production code. When modifying
-existing ad-hoc queries, consolidate their keys unless the requested change is
-strictly isolated and a refactor would be unsafe.
+| Option            | Meaning                                                                                                                                                                          |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `key`             | Cache identity. Array of serializable values. Use a getter `() => [...]` (or computed/ref) whenever it depends on reactive state — plain arrays don't react.                     |
+| `query`           | Promise-returning function receiving `{ signal, entry }`. Read reactive params from the closure, mirror them in `key`, and pass `signal` to cancellable requests when supported. |
+| `enabled`         | Boolean or getter; pause query until true (e.g. `() => !!route.params.id`).                                                                                                      |
+| `staleTime`       | How long cached data counts as fresh (no auto refetch).                                                                                                                          |
+| `gcTime`          | How long unused entries stay in cache.                                                                                                                                           |
+| `placeholderData` | Shown while pending; `(prev) => prev` keeps previous page during pagination.                                                                                                     |
 
 ## Implement the State Lifecycle
 
-- Treat `state.status` as data state: `pending`, `success`, or `error`.
-- Treat `asyncStatus` as request activity: `idle` or `loading`.
-- Prefer the grouped `state` value when TypeScript must narrow `data` and
-  `error`.
-- Use `refresh()` for cache-aware, deduplicated refreshes. Use `refetch()` only
-  when a forced network request is intentional.
-- Guard missing route params, auth state, or client-only dependencies with
-  reactive `enabled`.
-- Make `fetch()` wrappers throw for non-success HTTP responses when failures
-  should enter Colada's error state.
+- `status` (data state): `'pending' | 'success' | 'error'`. `state.value` is the discriminated union: checking `state.value.status === 'error'` narrows `state.value.error`. Separate `status` and `error` refs do not cross-narrow.
+- `asyncStatus` (fetch state): `'idle' | 'loading'`. `loading` is true on refetches even when stale data is displayed.
 
 ## Keep Writes and Cache Consistent
 
@@ -98,7 +95,14 @@ mutations, invalidation, optimistic updates, or direct cache operations.
 Read [nuxt-and-ssr.md](references/nuxt-and-ssr.md) for installation, migration,
 custom SSR, and hydration details.
 
-## Validate Behavior
+```ts
+const contactByIdQuery = defineQueryOptions((id: string) => ({
+  key: CONTACT_KEYS.byId(id),
+  query: () => getContact(id),
+}));
+// in component:
+const query = useQuery(() => contactByIdQuery(route.params.id as string));
+```
 
 1. Run the project's typecheck, lint, and focused tests.
 2. Exercise pending, success, error, refresh, and mutation states relevant to
@@ -113,7 +117,11 @@ Read [advanced-and-testing.md](references/advanced-and-testing.md) for
 pagination, infinite queries, prefetching, persistence, plugins, migration, and
 test patterns.
 
-## Guardrails
+- `mutate(vars)` — fire-and-forget, errors caught into `state.error`, never throws.
+- `mutateAsync(vars)` — returns promise, rethrows; wrap in try/catch.
+- Hooks: `onMutate(vars, ctx)` → `onSuccess(data, vars, ctx)` / `onError(err, vars, ctx)` → `onSettled(data, err, vars, ctx)`. Properties returned from `onMutate` are merged into the runtime context, which also includes the mutation entry.
+- Returning a promise from a hook (e.g. awaiting `invalidateQueries`) keeps `asyncStatus` at `loading` until refetch completes.
+- Global mutation hooks via `mutationOptions` at plugin install (e.g. global error toast).
 
 - Do not create a long-lived query inside a Pinia store by default. Stores are
   never disposed, so the query can become immortal; consume the query cache or
@@ -132,6 +140,57 @@ test patterns.
 This skill was derived from the Pinia Colada documentation at repository commit
 `5c9363d64fab2c12481701e66d4491a6b3b18f21` (2026-07-22).
 
-- Documentation: https://pinia-colada.esm.dev/
-- Source: https://github.com/posva/pinia-colada/tree/main/docs
-- API: https://pinia-colada.esm.dev/api/
+## Reuse: which tool
+
+| Situation                                                                        | Use                                                                                   |
+| -------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| One component needs the query                                                    | `useQuery` inline (or in a plain composable)                                          |
+| Reuse key+query definition, state stays per-component                            | `defineQueryOptions`                                                                  |
+| Multiple mounted components must share state (e.g. a search ref driving the key) | `defineQuery(() => { ...useQuery()... })` — setup runs once globally, refs are shared |
+
+```ts
+export const useFilteredContacts = defineQuery(() => {
+  const search = ref('');
+  const query = useQuery({
+    key: () => ['contacts', { search: search.value }],
+    query: () => searchContacts(search.value),
+  });
+  return { ...query, search };
+});
+```
+
+## Pagination
+
+```ts
+const { state, asyncStatus } = useQuery({
+  key: () => ['contacts', { page: Number(route.query.page) || 1 }],
+  query: () => listContacts(Number(route.query.page) || 1),
+  placeholderData: (prev) => prev, // keep previous page visible while next loads
+});
+```
+
+With `placeholderData`, `status` stays `'success'` but `asyncStatus` is `'loading'` — use `asyncStatus` for the spinner. For "load more" that merges pages into one list, use `useInfiniteQuery()` instead.
+
+## Error handling essentials
+
+- Only thrown/rejected values become errors. `fetch` doesn't throw on 4xx/5xx — check `response.ok` and throw a typed error in the query function.
+- On refetch failure, previous `data` is kept — show stale data + error notice, don't blank the UI.
+- Per-query error messages: put `meta: { errorMessage: '...' }` on the query and read it in a global `PiniaColadaQueryHooksPlugin` `onError`.
+- Type errors globally: `declare module '@pinia/colada' { interface TypesConfig { defaultError: ApiError } }`.
+
+Details and global-handler setup: [references/error-handling.md](references/error-handling.md).
+
+## Optimistic updates
+
+Full pattern (setQueryData in `onMutate`, cancelQueries, identity-checked rollback in `onError`, invalidate in `onSettled`): [references/optimistic-updates.md](references/optimistic-updates.md). Read it before writing any optimistic-update code — naive versions lose concurrent updates.
+
+## Review checklist
+
+When reviewing Pinia Colada code, flag:
+
+- Reactive value used in `query` but missing from `key` (stale-cache bug).
+- Plain-array `key` that should be a getter (loses reactivity).
+- Mutation that changes cached server data without invalidation or an optimistic update — affected UI won't refresh.
+- `mutateAsync` without handling rejection at the caller boundary or deliberately propagating it.
+- Manual `ref`/`onMounted` fetch code that should be a `useQuery`.
+- `useQueryCache()` called at module top level (must be inside setup/store/guard).

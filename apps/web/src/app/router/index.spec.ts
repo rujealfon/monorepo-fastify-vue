@@ -1,53 +1,18 @@
-import { PiniaColada, useQueryCache } from '@pinia/colada'
-import { createPinia } from 'pinia'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { createApp } from 'vue'
-
-import { AUTHORIZATION_KEY } from '@/features/permissions'
+import { describe, expect, it } from 'vitest'
 import router from './index'
 
-const api = vi.hoisted(() => ({ GET: vi.fn() }))
-vi.mock('@/shared/api/client', () => ({ api }))
+describe('health router', () => {
+  it('mounts health at the root path', async () => {
+    await router.push('/')
 
-describe('authentication router guard', () => {
-  beforeEach(() => vi.clearAllMocks())
+    expect(router.currentRoute.value.name).toBe('health')
+    expect(router.currentRoute.value.matched).toHaveLength(2)
+  })
 
-  it('checks the session only for protected routes', async () => {
-    api.GET.mockResolvedValue({ response: { ok: false, status: 401 } })
-    const app = createApp({ template: '<div />' })
-    const pinia = createPinia()
-    app.use(pinia)
-    app.use(PiniaColada)
-    app.use(router)
-    await router.isReady()
+  it('redirects unknown client paths to the health page', async () => {
+    await router.push('/unknown/path')
 
-    await router.push('/profile')
-    expect(router.currentRoute.value.fullPath).toBe('/login?redirect=/profile')
-
-    await router.push('/tasks')
-    expect(router.currentRoute.value.fullPath).toBe('/login?redirect=/tasks')
-
-    await router.push('/register')
-    expect(router.currentRoute.value.fullPath).toBe('/register')
-    expect(api.GET).toHaveBeenCalledOnce()
-
-    const cache = useQueryCache(pinia)
-    cache.setQueryData(AUTHORIZATION_KEY, {
-      user: { id: '00000000-0000-0000-0000-000000000001', email: 'person@example.com' },
-      roles: [],
-      permissions: [],
-      authorizationVersion: 1
-    })
-    await router.push('/profile')
-    expect(router.currentRoute.value.fullPath).toBe('/profile')
-
-    await router.push('/tasks')
-    expect(router.currentRoute.value.fullPath).toBe('/tasks')
-
-    await router.push('/register')
-    await cache.invalidateQueries({ key: AUTHORIZATION_KEY })
-    api.GET.mockResolvedValue({ response: { ok: false, status: 503 } })
-    await router.push('/profile')
-    expect(router.currentRoute.value.fullPath).toBe('/login?redirect=/profile')
+    expect(router.currentRoute.value.fullPath).toBe('/')
+    expect(router.currentRoute.value.name).toBe('health')
   })
 })

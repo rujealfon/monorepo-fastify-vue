@@ -1,14 +1,13 @@
-import type { RpcError } from '@monorepo-fastify-vue/api-client'
 import type { PiniaColadaOptions } from '@pinia/colada'
 
 import { PiniaColadaAutoRefetch } from '@pinia/colada-plugin-auto-refetch'
 
-// Every query error comes from the api-client, which throws RpcError on
-// non-2xx responses — type `error` accordingly across all queries.
+// Query functions can reject with API, network, parsing, or runtime errors.
+// Keep the global type honest and narrow errors at their point of use.
 declare module '@pinia/colada' {
   // eslint-disable-next-line ts/consistent-type-definitions -- module augmentation requires interface merging
   interface TypesConfig {
-    defaultError: RpcError
+    defaultError: unknown
   }
 }
 
