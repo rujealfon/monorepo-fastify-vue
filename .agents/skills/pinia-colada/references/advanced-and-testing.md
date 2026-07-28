@@ -3,6 +3,15 @@
 Read this reference for pagination, infinite loading, prefetching, persistence,
 plugins, migration, and test strategy.
 
+## Contents
+
+- [Paginated Versus Infinite Queries](#paginated-versus-infinite-queries)
+- [Prefetching](#prefetching)
+- [Official Plugins](#official-plugins)
+- [Cache Persistence](#cache-persistence)
+- [Testing](#testing)
+- [TanStack and Nuxt Migration](#tanstack-and-nuxt-migration)
+
 ## Paginated Versus Infinite Queries
 
 Use regular `useQuery()` when each numbered page should be an independent cache
@@ -36,7 +45,8 @@ const feed = useInfiniteQuery({
 
 Put stable filters in the key. Do not put `pageParam` in the key. Data contains
 `pages` and `pageParams`; invalidation and refetch affect the whole entry.
-Return `null` from the next/previous page-param getter to stop loading.
+Return `null` or `undefined` from the next/previous page-param getter to stop
+loading. Define `getPreviousPageParam()` before calling `loadPreviousPage()`.
 
 ## Prefetching
 

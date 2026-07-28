@@ -3,6 +3,14 @@
 Read this reference for writes, invalidation, cache operations, error handling,
 and optimistic updates.
 
+## Contents
+
+- [Mutation Execution](#mutation-execution)
+- [Invalidation](#invalidation)
+- [Cache Action Selection](#cache-action-selection)
+- [Optimistic Update Transaction](#optimistic-update-transaction)
+- [Error Handling](#error-handling)
+
 ## Mutation Execution
 
 Pass mutation inputs explicitly:
@@ -160,7 +168,9 @@ operation-specific side effects. Use `PiniaColadaQueryHooksPlugin` plus typed,
 serializable query `meta` for centralized query logging or notifications.
 
 Set the global default error through `TypesConfig.defaultError` when the app has
-a consistent error type; use `unknown` to require explicit narrowing.
+a consistent error type; use `unknown` to require explicit narrowing. Errors
+cannot be typed per query, so narrow special cases with `instanceof` or another
+runtime predicate.
 
 ## Source Pages
 

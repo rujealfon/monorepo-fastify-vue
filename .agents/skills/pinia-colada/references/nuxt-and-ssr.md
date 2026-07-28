@@ -3,6 +3,16 @@
 Read this reference for Nuxt setup, native-composable migration, server
 prefetching, hydration, and custom SSR.
 
+## Contents
+
+- [Choose Nuxt Native or Colada](#choose-nuxt-native-or-colada)
+- [Install the Nuxt Module](#install-the-nuxt-module)
+- [SSR Lifecycle](#ssr-lifecycle)
+- [Migrate Native Composables](#migrate-native-composables)
+- [Nuxt `defineQuery()` Caveats](#nuxt-definequery-caveats)
+- [Client-Only and Errors](#client-only-and-errors)
+- [Custom SSR Without Nuxt](#custom-ssr-without-nuxt)
+
 ## Choose Nuxt Native or Colada
 
 Keep `useFetch()` or `useAsyncData()` for simple page-local, one-off data.

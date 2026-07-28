@@ -3,6 +3,17 @@
 Read this reference for query implementation, key design, query reuse, and
 state rendering.
 
+## Contents
+
+- [Core State Model](#core-state-model)
+- [Query Contract and Cancellation](#query-contract-and-cancellation)
+- [Key Invariants](#key-invariants)
+- [Key Factory and Typed Options](#key-factory-and-typed-options)
+- [Local Overrides](#local-overrides)
+- [`defineQueryOptions()` Versus `defineQuery()`](#definequeryoptions-versus-definequery)
+- [Pausing and Refreshing](#pausing-and-refreshing)
+- [Query Meta and Hooks](#query-meta-and-hooks)
+
 ## Core State Model
 
 `useQuery()` requires a `key` and a promise-returning `query`:
@@ -31,6 +42,30 @@ Prefer `state.status` branches when TypeScript must narrow `state.data` or
 Both `refresh()` and `refetch()` catch errors by default and return the state.
 Pass `true` (for example, `await refetch(true)`) only when the caller intends to
 catch a thrown error.
+
+## Query Contract and Cancellation
+
+Make the query function return a promise. It receives the current entry and an
+`AbortSignal`; pass the signal to clients that support cancellation:
+
+```ts
+useQuery({
+  key: () => documentKeys.detail(documentId.value),
+  query: ({ signal }) =>
+    fetch(`/api/documents/${documentId.value}`, { signal }).then(assertOk),
+})
+```
+
+Colada aborts the signal when a request becomes outdated or is canceled.
+Ignoring the signal still lets Colada discard an obsolete result, but it does
+not stop the underlying network or CPU work. Use `cancelQueries()` to stop
+pending work without marking data stale; use `invalidateQueries()` to mark
+matches stale and refresh active entries.
+
+Use `placeholderData` for temporary presentation data that must not alter the
+cache or SSR payload. Use `initialData` only when seeding successful cache state
+is intentional. Track `isPlaceholderData` when the UI must distinguish the
+placeholder from resolved data.
 
 ## Key Invariants
 
@@ -152,8 +187,22 @@ Prefer `refresh()` for user interfaces and lifecycle refreshes because it
 reuses an in-flight request and respects `staleTime`. Reserve `refetch()` for an
 explicit force-refresh action.
 
+## Query Meta and Hooks
+
+Keep queries declarative. `useQuery()` does not provide local `onSuccess`,
+`onError`, or `onSettled` options. Watch local state for component-specific
+effects, or use `PiniaColadaQueryHooksPlugin` for centralized effects.
+
+Attach serializable `meta` for per-query context and type it through
+`TypesConfig.queryMeta`. Resolved `entry.meta` is computed once when the cache
+entry is created; changing reactive inputs does not recompute metadata for the
+same entry.
+
 ## Source Pages
 
 - https://pinia-colada.esm.dev/guide/queries.md
 - https://pinia-colada.esm.dev/guide/query-keys.md
+- https://pinia-colada.esm.dev/guide/query-meta.md
+- https://pinia-colada.esm.dev/guide/cancelling-queries.md
+- https://pinia-colada.esm.dev/guide/placeholder-data.md
 - https://pinia-colada.esm.dev/advanced/reusable-queries.md
