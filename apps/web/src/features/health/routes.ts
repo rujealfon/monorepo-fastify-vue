@@ -2,7 +2,7 @@ import type { RouteRecordRaw } from 'vue-router'
 
 export const healthRoutes: RouteRecordRaw[] = [
   {
-    path: '/health',
+    path: '',
     name: 'health',
     component: () => import('./views/HealthView.vue')
   }

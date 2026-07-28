@@ -5,14 +5,9 @@ const envSchema = z.object({
   PORT: z.coerce.number().default(3000),
   HOST: z.string().default('0.0.0.0'),
   DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
-  JWT_SECRET: z.string().min(32, 'JWT_SECRET must be at least 32 characters'),
   // CORS_ORIGIN is only needed if the API and web app deploy to separate origins.
   LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal', 'silent']).default('info'),
-  // Backs the rate-limit store through the ioredis client. Required in production
-  // because Vercel runs the API as isolated
-  // serverless instances with no shared memory, so the default in-memory store would
-  // let each instance enforce its own limit instead of one global limit.
-  REDIS_URL: z.string().min(1).optional()
+  REDIS_URL: z.string().min(1, 'REDIS_URL cannot be empty').optional()
 }).superRefine((env, ctx) => {
   if (env.NODE_ENV === 'production' && !env.REDIS_URL) {
     ctx.addIssue({

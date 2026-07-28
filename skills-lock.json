@@ -19,11 +19,17 @@
       "skillPath": "skills/pinia/SKILL.md",
       "computedHash": "897b6b0982956f41f5cc85128ca638b625e1b3c8bc619e303cd1e7661c95b7de"
     },
+    "pinia-colada": {
+      "source": "rujealfon/skills",
+      "sourceType": "github",
+      "skillPath": "skills/pinia-colada/SKILL.md",
+      "computedHash": "cda72fc37b76fb752ffc1b26824469f82db82603110ba131b6e326ca354873ad"
+    },
     "postgres-drizzle": {
       "source": "ccheney/robust-skills",
       "sourceType": "github",
       "skillPath": "skills/postgres-drizzle/SKILL.md",
-      "computedHash": "60534e1aa880981e26360db836115df77a8e73be219c7a027e635802686b5bd9"
+      "computedHash": "26754316f0d7698c323c5130d89ba04d49fabd1bf960c1a38c23b4d2bbe0424d"
     },
     "vue": {
       "source": "antfu/skills",

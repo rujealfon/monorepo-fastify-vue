@@ -1,3 +1,3 @@
 # Schema composition
 
-`index.ts` collects module-owned Drizzle tables for Drizzle Kit. This is the sole permitted cross-module deep-import point.
+`index.ts` is the empty Drizzle Kit composition point. Export future module-owned tables there; it is the sole permitted cross-module deep-import point.

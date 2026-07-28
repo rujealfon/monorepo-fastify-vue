@@ -76,4 +76,16 @@ describe('healthView', () => {
     expect(wrapper.text()).toContain('unavailable')
     expect(wrapper.text()).toContain('Health check failed')
   })
+
+  it('runs the health check again when manually refreshed', async () => {
+    get.mockResolvedValue({ data: { status: 'ok' }, response: { ok: true } })
+
+    const wrapper = mountHealthView()
+    await flushPromises()
+
+    await wrapper.find('button').trigger('click')
+    await flushPromises()
+
+    expect(get).toHaveBeenCalledTimes(2)
+  })
 })

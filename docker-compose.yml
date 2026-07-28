@@ -16,13 +16,13 @@ services:
       timeout: 5s
       retries: 10
 
-  valkey:
-    image: valkey/valkey:9.1-alpine
+  redis:
+    image: redis:8-alpine
     restart: unless-stopped
     ports:
       - "6380:6379"
     healthcheck:
-      test: ["CMD", "valkey-cli", "ping"]
+      test: ["CMD", "redis-cli", "ping"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -37,7 +37,7 @@ services:
       - ./apps/api/.env
     environment:
       DATABASE_URL: postgresql://root:root@postgres:5432/fastify_vue
-      REDIS_URL: redis://valkey:6379
+      REDIS_URL: redis://redis:6379
       PORT: 3000
       NODE_ENV: development
     ports:
@@ -47,7 +47,7 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      valkey:
+      redis:
         condition: service_healthy
 
   drizzle-studio:

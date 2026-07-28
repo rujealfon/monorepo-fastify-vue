@@ -1,7 +1,6 @@
 import type { components } from './schema.js'
 
 type HttpError = components['schemas']['HttpError']
-type ValidationError = components['schemas']['ValidationError']
 
 export class RpcError extends Error {
   constructor(public status: number, public body?: ApiErrorSchema) {
@@ -9,4 +8,4 @@ export class RpcError extends Error {
   }
 }
 
-export type ApiErrorSchema = HttpError & { details?: ValidationError['details'] }
+export type ApiErrorSchema = HttpError & { details?: unknown[] }

@@ -5,15 +5,11 @@ import { serializerCompiler, validatorCompiler } from 'fastify-type-provider-zod
 
 import { config } from './config/index.js'
 import { modules } from './modules/index.js'
-import auditContextPlugin from './plugins/audit-logs-context.js'
-import authPlugin from './plugins/auth.js'
 import compressPlugin from './plugins/compress.js'
 import dbPlugin from './plugins/db.js'
 import errorHandlerPlugin from './plugins/error-handler.js'
-import multipartPlugin from './plugins/multipart.js'
 import openapiPlugin from './plugins/openapi.js'
 import securityPlugin from './plugins/security.js'
-import sensiblePlugin from './plugins/sensible.js'
 import staticPlugin from './plugins/static.js'
 
 export function buildApp(): FastifyInstance {
@@ -29,11 +25,7 @@ export function buildApp(): FastifyInstance {
   app.setSerializerCompiler(serializerCompiler)
 
   app.register(compressPlugin)
-  app.register(multipartPlugin)
-  app.register(sensiblePlugin)
   app.register(dbPlugin)
-  app.register(auditContextPlugin)
-  app.register(authPlugin)
   app.register(staticPlugin)
   // CORS is intentionally disabled for the one-project same-origin deploy.
   // If API and web are split later, uncomment the import above and this:

@@ -23,23 +23,30 @@ export default fp(async (fastify) => {
   // Backing it with Redis when configured makes the limit (including the health/ready
   // DB probe) hold across instances.
   const redis = config.REDIS_URL
-    ? new Redis(config.REDIS_URL, { connectTimeout: 500, maxRetriesPerRequest: 1 })
+    ? new Redis(config.REDIS_URL, {
+        connectTimeout: 500,
+        lazyConnect: true,
+        maxRetriesPerRequest: 1
+      })
     : undefined
 
   if (redis) {
-    // ioredis emits 'error' on connection failures and failed reconnects; per Node's
-    // EventEmitter contract, an 'error' event with no listener throws and crashes the
-    // process. Listening here just logs it instead.
-    redis.on('error', (err) => {
-      fastify.log.error({ err }, 'Redis connection error')
+    // An unhandled ioredis error event terminates the process.
+    redis.on('error', (error) => {
+      fastify.log.error({ err: error }, 'Redis connection error')
     })
 
     fastify.addHook('onClose', async () => {
-      await redis.quit()
+      if (redis.status === 'ready')
+        await redis.quit()
+      else
+        redis.disconnect()
     })
   }
 
   await fastify.register(rateLimit, {
+    // Liveness must remain usable by the orchestrator during dependency
+    // incidents. Readiness performs a database query and is rate limited.
     allowList: (request) => {
       const path = request.url.split('?', 1)[0]
       return !path.startsWith('/api/v1/') || path === '/api/v1/health/live'
@@ -47,10 +54,8 @@ export default fp(async (fastify) => {
     max: 100,
     timeWindow: '1 minute',
     redis,
-    // Fail open: rate limiting is defense-in-depth here (auth already relies on
-    // sameSite cookies + sec-fetch-site checks, see plugins/auth.ts), not the only
-    // control. Without this, a Redis outage would 500 every /api/v1/* request,
-    // including the health/ready probe, instead of just losing the rate-limit guard.
+    // Rate limiting is defense in depth. Keep health endpoints observable if
+    // the shared store is temporarily unavailable.
     skipOnError: true
   })
 })
