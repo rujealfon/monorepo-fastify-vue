@@ -1,6 +1,6 @@
 # Docker
 
-This project runs entirely in Docker for local development. The setup includes the API, web frontend, PostgreSQL database, Valkey, and Drizzle Studio.
+This project runs entirely in Docker for local development. The setup includes the API, web frontend, PostgreSQL database, Redis, and Drizzle Studio.
 
 ## Services
 
@@ -10,7 +10,7 @@ This project runs entirely in Docker for local development. The setup includes t
 | Web (Vue 3)    | http://localhost:5173 | Frontend with Vite dev server     |
 | Drizzle Studio | http://localhost:4983 | Visual database browser           |
 | PostgreSQL     | localhost:5433        | Database                          |
-| Valkey         | localhost:6380        | Redis-compatible rate-limit store |
+| Redis          | localhost:6380        | Rate-limit store                  |
 
 ## Prerequisites
 
@@ -71,12 +71,12 @@ Run pgAdmin outside Docker, then register the Docker PostgreSQL server:
 
 Open http://localhost:4983 to browse and edit your database visually. It connects automatically using the `DATABASE_URL` environment variable.
 
-## Valkey
+## Redis
 
 Open the built-in CLI:
 
 ```bash
-docker compose exec valkey valkey-cli
+docker compose exec redis redis-cli
 ```
 
 Useful commands:
@@ -87,7 +87,7 @@ SCAN 0
 GET key_name
 ```
 
-External clients such as RedisInsight can connect to `localhost:6380`. Docker services connect to `valkey:6379`.
+External clients such as RedisInsight can connect to `localhost:6380`. Docker services connect to `redis:6379`.
 
 ## Environment Variables
 
@@ -98,7 +98,7 @@ Compose declares only Docker-specific overrides under `environment`:
 | Variable       | Value                                              | Description                  |
 | -------------- | -------------------------------------------------- | ---------------------------- |
 | `DATABASE_URL` | `postgresql://root:root@postgres:5432/fastify_vue` | PostgreSQL connection string (container-network address) |
-| `REDIS_URL`    | `redis://valkey:6379`                              | Valkey connection string (container-network address) |
+| `REDIS_URL`    | `redis://redis:6379`                               | Redis connection string (container-network address) |
 
 Values under `environment` take precedence over matching values from `env_file`. This lets the same `.env` use host addresses when the API runs directly while Compose replaces them with container-network addresses. See the [Docker Compose `environment` documentation](https://docs.docker.com/reference/compose-file/services/#environment).
 
