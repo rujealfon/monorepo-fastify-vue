@@ -30,7 +30,7 @@ src/
 │   └── images/                 # Static images (logo.svg, …)
 │
 ├── features/                   # ⭐ One folder per domain feature
-│   └── <feature>/              # e.g. health/ or tasks/
+│   └── <feature>/              # e.g. health/ or profile/
 │       ├── index.ts            # Public feature API
 │       ├── routes.ts           # Exports RouteRecordRaw[]
 │       ├── views/              # Route-level pages (lazy-loaded from routes.ts)

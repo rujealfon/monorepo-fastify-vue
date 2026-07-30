@@ -23,14 +23,16 @@
     "api-client:check": "pnpm api-client:generate && git diff --exit-code -- apps/api/openapi.json packages/api-client/src/schema.d.ts",
     "db:generate": "pnpm --filter @monorepo-fastify-vue/api db:generate",
     "db:migrate": "pnpm --filter @monorepo-fastify-vue/api db:migrate",
+    "db:migrate:test": "pnpm --filter @monorepo-fastify-vue/api db:migrate:test",
     "db:studio": "pnpm --filter @monorepo-fastify-vue/api db:studio",
     "docker:start": "docker compose start",
     "docker:stop": "docker compose stop",
     "docker:restart": "docker compose restart",
     "docker:rebuild": "docker compose up --build -d web api",
     "docker:rebuild:all": "docker compose up --build -d",
-    "docker:reset": "docker compose down -v && pnpm docker:rebuild:all && pnpm docker:db:migrate",
-    "docker:db:migrate": "docker compose exec api pnpm --filter @monorepo-fastify-vue/api db:migrate"
+    "docker:reset": "docker compose down -v && pnpm docker:rebuild:all && pnpm docker:db:migrate && pnpm docker:db:migrate:test",
+    "docker:db:migrate": "docker compose exec api pnpm --filter @monorepo-fastify-vue/api db:migrate",
+    "docker:db:migrate:test": "docker compose exec -e DATABASE_URL=postgresql://root:root@postgres:5432/fastify_vue_test api pnpm --filter @monorepo-fastify-vue/api db:migrate:test"
   },
   "devDependencies": {
     "husky": "^9.1.7",

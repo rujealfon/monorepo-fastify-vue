@@ -19,19 +19,19 @@ CI runs `pnpm api-client:check`, regenerates both files, and fails if the commit
 Keep one generated `schema.d.ts` for the complete API. Each API module may expose short aliases derived from its generated `paths` entries:
 
 ```ts
-// src/tasks/types.ts
+// src/users/types.ts
 import type { paths } from "../schema.js";
 
-type TasksPath = paths["/api/v1/tasks/"];
+type ProfilePath = paths["/api/v1/profile/"];
 
-export type TaskList = TasksPath["get"]["responses"][200]["content"]["application/json"];
-export type CreateTask = TasksPath["post"]["requestBody"]["content"]["application/json"];
+export type User = ProfilePath["get"]["responses"][200]["content"]["application/json"];
+export type UpdateProfile = ProfilePath["patch"]["requestBody"]["content"]["application/json"];
 ```
 
 Export public aliases from `src/index.ts`, then consume them from the package root:
 
 ```ts
-import type { CreateTask, HealthResponse, Task } from "@monorepo-fastify-vue/api-client";
+import type { HealthResponse, UpdateProfile, User } from "@monorepo-fastify-vue/api-client";
 ```
 
 When adding an API module:

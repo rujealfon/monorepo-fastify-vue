@@ -15,6 +15,7 @@ A monorepo setup using pnpm workspaces with a Fastify API and Vue / Vite client 
 ## Tech Stack
 
 **api**
+
 - [Fastify](https://fastify.dev/) on Node.js
 - `fastify-type-provider-zod` + `@fastify/swagger` + Scalar
 - Drizzle ORM + drizzle-zod
@@ -22,12 +23,14 @@ A monorepo setup using pnpm workspaces with a Fastify API and Vue / Vite client 
 - `@fastify/sensible`
 
 **web**
+
 - Vue 3
 - Vite
 - Vue Router
 - Pinia + Pinia Colada
 
 **dev tooling**
+
 - TypeScript
 - ESLint with `@antfu/eslint-config`
 - Vitest
@@ -87,10 +90,10 @@ Edit `apps/api/.env` with your dev database credentials, and `apps/api/.env.test
 
 ```env
 # .env
-DATABASE_URL=postgresql://root:root@localhost:5432/fastify_vue
+DATABASE_URL=postgresql://root:root@localhost:5433/fastify_vue
 
 # .env.test
-DATABASE_URL=postgresql://root:root@localhost:5432/fastify_vue_test
+DATABASE_URL=postgresql://root:root@localhost:5433/fastify_vue_test
 ```
 
 Both files also require:
@@ -110,7 +113,7 @@ pnpm db:generate
 pnpm db:migrate
 
 # Test database (run once after creating it)
-DATABASE_URL=postgresql://root:root@localhost:5432/fastify_vue_test pnpm db:migrate
+pnpm db:migrate:test
 ```
 
 ### 4. Start apps
@@ -127,11 +130,12 @@ In development, Scalar is available at [http://localhost:3000](http://localhost:
 
 ## Database
 
-| Command | Description |
-| --- | --- |
-| `pnpm db:generate` | Generate migrations from schema changes |
-| `pnpm db:migrate` | Apply pending migrations |
-| `pnpm db:studio` | Open Drizzle Studio |
+| Command                | Description                                   |
+| ---------------------- | --------------------------------------------- |
+| `pnpm db:generate`     | Generate migrations from schema changes       |
+| `pnpm db:migrate`      | Apply pending migrations to the dev database  |
+| `pnpm db:migrate:test` | Apply pending migrations to the test database |
+| `pnpm db:studio`       | Open Drizzle Studio                           |
 
 ## Tasks
 
@@ -181,7 +185,7 @@ If Vercel does not accept `.` as the root directory, clear the Root Directory fi
 Required environment variables:
 
 ```env
-DATABASE_URL=postgresql://USER:PASSWORD@HOST:5432/DATABASE?sslmode=require
+DATABASE_URL=postgresql://USER:PASSWORD@HOST:5433/DATABASE?sslmode=require
 JWT_SECRET=replace-with-a-random-secret-of-at-least-32-characters
 NODE_ENV=production
 REDIS_URL=rediss://default:PASSWORD@HOST:6379
@@ -207,10 +211,10 @@ How routing works:
 No `VITE_API_BASE_URL` or CORS setting is needed because browser requests use the same origin:
 
 ```text
-/              -> Vue app
-/login         -> Vue app
-/api/v1/tasks  -> Fastify API
-/              -> Scalar API reference in development; Vue app in production
+/                -> Vue app
+/login           -> Vue app
+/api/v1/profile  -> Fastify API
+/                -> Scalar API reference in development; Vue app in production
 ```
 
 ### Option 2: separate API and web projects
@@ -237,7 +241,7 @@ The current Vercel function entry is at the repository root for Option 1. Before
 API environment variables:
 
 ```env
-DATABASE_URL=postgresql://USER:PASSWORD@HOST:5432/DATABASE?sslmode=require
+DATABASE_URL=postgresql://USER:PASSWORD@HOST:5433/DATABASE?sslmode=require
 JWT_SECRET=replace-with-a-random-secret-of-at-least-32-characters
 NODE_ENV=production
 ```

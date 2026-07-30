@@ -15,7 +15,8 @@ Run from this directory, or via `pnpm --filter @monorepo-fastify-vue/api <script
 | `pnpm lint` / `pnpm lint:fix` | Lint (and fix) |
 | `pnpm test` | Run Vitest against `.env.test`'s database |
 | `pnpm db:generate` | Generate a Drizzle migration from schema changes |
-| `pnpm db:migrate` | Apply pending migrations |
+| `pnpm db:migrate` | Apply pending migrations to the dev database |
+| `pnpm db:migrate:test` | Apply pending migrations to the test database |
 | `pnpm db:studio` | Open Drizzle Studio |
 
 In development, Scalar is served at `/` and its OpenAPI document at `/openapi.json`. Documentation routes are not registered in test or production.
@@ -34,24 +35,30 @@ src/
 │   ├── migrations/                # Generated migrations
 │   └── schema/index.ts            # Drizzle Kit composition barrel
 ├── plugins/
+│   ├── auth.ts                    # Session cookie auth: authenticate, sameOrigin, setSession
+│   ├── compress.ts
 │   ├── db.ts
 │   ├── error-handler.ts
+│   ├── multipart.ts
+│   ├── openapi.ts
 │   ├── security.ts
-│   └── sensible.ts
+│   ├── sensible.ts
+│   └── static.ts
 ├── modules/
 │   ├── index.ts                   # Explicit route registry
 │   ├── health/
 │   │   ├── index.ts               # Public module API
 │   │   ├── health.routes.ts
 │   │   └── __tests__/
-│   └── tasks/
+│   └── users/
 │       ├── index.ts               # Public module API
-│       ├── tasks.routes.ts
-│       ├── tasks.handlers.ts
-│       ├── tasks.service.ts
-│       ├── tasks.repository.ts
-│       ├── tasks.schema.ts
-│       ├── tasks.errors.ts
+│       ├── users.routes.ts        # /auth/* (register, login, logout) and /profile
+│       ├── users.handlers.ts
+│       ├── users.service.ts
+│       ├── users.repository.ts
+│       ├── users.schema.ts        # users + profiles tables
+│       ├── users.errors.ts
+│       ├── users.password.ts
 │       └── __tests__/
 ├── events/                        # Shared in-process event infrastructure
 ├── jobs/                          # Shared job infrastructure
@@ -75,72 +82,23 @@ Domains live in `src/modules/<domain>` and expose their public API from `index.t
 
 Add a module by keeping its code local, exporting routes from its `index.ts`, adding its public import mapping to `package.json`, and registering it in `src/modules/index.ts`. Keep code local until it has at least two real consumers.
 
-## Adding permissions for a feature
+## Authentication
 
-Permissions are database rows, so adding a resource does not require changes to the RBAC implementation. For example, to add product permissions:
+This starter template ships session-cookie authentication with no role or permission system. `plugins/auth.ts` registers `@fastify/jwt` and exposes:
 
-1. Create a custom migration from the repository root:
+- `app.authenticate` — verifies the session cookie, throws `UnauthorizedError` otherwise. Use as an `onRequest` hook on any route that requires a signed-in user.
+- `app.sameOrigin` — rejects cross-site state-changing requests. Use as a `preHandler` on mutating routes.
+- `app.setSession(reply, userId)` — signs and sets the `session` cookie after register/login.
 
-   ```sh
-   pnpm db:generate --custom --name=seed-products-permissions
-   ```
+Protect a new route by requiring a session:
 
-   Add the permission rows to the generated SQL file:
+```ts
+app.get('/', {
+  onRequest: [app.authenticate]
+}, handlers.list)
+```
 
-   ```sql
-   INSERT INTO "permissions" ("key", "resource", "action", "description")
-   VALUES
-       ('products.read', 'products', 'read', 'View products'),
-       ('products.create', 'products', 'create', 'Create products'),
-       ('products.update', 'products', 'update', 'Update products'),
-       ('products.delete', 'products', 'delete', 'Delete products')
-   ON CONFLICT ("key") DO NOTHING;
-   ```
-
-   Permission keys conventionally use `resource.action`; the database requires lowercase dotted segments and allows snake case within each segment. The Super Admin role already has the `*` permission, which covers every new key automatically.
-
-   Prefer assigning the new permissions at `/admin/roles/:id`. The page groups permissions by `resource`, so the `products` group appears automatically. It also prevents privilege escalation: callers can only grant permissions they possess. If a default role must receive a permission at deployment time, add this to the same migration:
-
-   ```sql
-   INSERT INTO "role_permissions" ("role_id", "permission_id")
-   SELECT roles.id, permissions.id
-   FROM roles
-   JOIN permissions ON permissions.key IN ('products.read')
-   WHERE roles.slug = 'standard-user'
-   ON CONFLICT DO NOTHING;
-   ```
-
-2. Protect every product API route:
-
-   ```ts
-   app.get('/', {
-     onRequest: [app.authenticate, app.authorize(['products.read'])]
-   }, handlers.list)
-   ```
-
-   Use the matching `create`, `update`, or `delete` permission on write routes. Authorization is enforced by the API; web guards only control navigation and presentation.
-
-3. Add web guards where needed:
-
-   ```ts
-   meta: { requiresAuth: true, permissions: ['products.read'] }
-   ```
-
-   ```vue
-   <script setup lang="ts">
-   import { Can } from '@/features/permissions'
-   </script>
-
-   <template>
-     <Can permission="products.create">
-       <UButton label="Add product" />
-     </Can>
-   </template>
-   ```
-
-New permission rows do not require API client regeneration because `PermissionKey` is runtime-backed `string`; regenerate the client only when API routes or schemas change.
-
-Direct SQL changes to `role_permissions` do not bump affected users' `authorization_version`. Authorization currently loads from the database per request, but any future versioned authorization cache must either bump those users' versions in the migration or assign permissions through `PUT /api/v1/roles/:roleId/permissions`, which already performs the bump.
+There is no `app.authorize(...)` or permission-key system in this template. If a future feature needs per-user access control beyond "is signed in," reintroduce a roles/permissions module and extend `plugins/auth.ts` accordingly.
 
 ## Environment files
 

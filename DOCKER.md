@@ -4,13 +4,13 @@ This project runs entirely in Docker for local development. The setup includes t
 
 ## Services
 
-| Service | URL | Description |
-|---|---|---|
-| API (Fastify) | http://localhost:3000 | Backend API with hot-reload |
-| Web (Vue 3) | http://localhost:5173 | Frontend with Vite dev server |
-| Drizzle Studio | http://localhost:4983 | Visual database browser |
-| PostgreSQL | localhost:5433 | Database |
-| Valkey | localhost:6380 | Redis-compatible rate-limit store |
+| Service        | URL                   | Description                       |
+| -------------- | --------------------- | --------------------------------- |
+| API (Fastify)  | http://localhost:3000 | Backend API with hot-reload       |
+| Web (Vue 3)    | http://localhost:5173 | Frontend with Vite dev server     |
+| Drizzle Studio | http://localhost:4983 | Visual database browser           |
+| PostgreSQL     | localhost:5433        | Database                          |
+| Valkey         | localhost:6380        | Redis-compatible rate-limit store |
 
 ## Prerequisites
 
@@ -38,6 +38,12 @@ Once the `api` service is running, apply migrations in a new terminal:
 pnpm docker:db:migrate
 ```
 
+The Postgres container also auto-creates a `fastify_vue_test` database on first boot (via `docker/postgres-init`, mounted at `/docker-entrypoint-initdb.d`). Apply migrations to it separately before running tests:
+
+```bash
+pnpm docker:db:migrate:test
+```
+
 ### 3. Access the services
 
 - **API docs (Scalar, development only):** http://localhost:3000
@@ -51,13 +57,13 @@ Run pgAdmin outside Docker, then register the Docker PostgreSQL server:
 2. **General** tab — Name: `monorepo-fastify-vue` (or anything)
 3. **Connection** tab:
 
-| Field | Value |
-|---|---|
-| Host | localhost |
-| Port | 5433 |
+| Field    | Value       |
+| -------- | ----------- |
+| Host     | localhost   |
+| Port     | 5433        |
 | Database | fastify_vue |
-| Username | root |
-| Password | root |
+| Username | root        |
+| Password | root        |
 
 ## Drizzle Studio
 
@@ -85,12 +91,12 @@ External clients such as RedisInsight can connect to `localhost:6380`. Docker se
 
 The API service uses these environment variables (set in `docker-compose.yml`):
 
-| Variable | Value | Description |
-|---|---|---|
-| `DATABASE_URL` | `postgresql://root:root@postgres:5432/fastify_vue` | PostgreSQL connection string |
-| `REDIS_URL` | `redis://valkey:6379` | Valkey connection string |
-| `PORT` | `3000` | API server port |
-| `NODE_ENV` | `development` | Runtime environment |
+| Variable       | Value                                              | Description                  |
+| -------------- | -------------------------------------------------- | ---------------------------- |
+| `DATABASE_URL` | `postgresql://root:root@postgres:5433/fastify_vue` | PostgreSQL connection string |
+| `REDIS_URL`    | `redis://valkey:6379`                              | Valkey connection string     |
+| `PORT`         | `3000`                                             | API server port              |
+| `NODE_ENV`     | `development`                                      | Runtime environment          |
 
 > For production, override these with real secrets and never commit them to version control.
 
@@ -137,6 +143,7 @@ docker compose exec api pnpm --filter @monorepo-fastify-vue/api db:generate
 
 # Apply migrations
 pnpm docker:db:migrate
+pnpm docker:db:migrate:test
 ```
 
 ### Logs
@@ -164,18 +171,18 @@ docker compose up api
 
 One named volume persists data between container restarts:
 
-| Volume | Used by | Contains |
-|---|---|---|
+| Volume          | Used by    | Contains          |
+| --------------- | ---------- | ----------------- |
 | `postgres_data` | `postgres` | All database data |
 
 Source code is mounted directly from the host, so edits to `apps/api/src` and `apps/web/src` are reflected immediately without rebuilding.
 
 ## Hot Reload
 
-| Service | Mechanism |
-|---|---|
-| API | `tsx watch` — restarts on any `.ts` file change under `apps/api/src` |
-| Web | Vite HMR — updates the browser instantly on save |
+| Service | Mechanism                                                            |
+| ------- | -------------------------------------------------------------------- |
+| API     | `tsx watch` — restarts on any `.ts` file change under `apps/api/src` |
+| Web     | Vite HMR — updates the browser instantly on save                     |
 
 ## Production Build
 
@@ -196,18 +203,21 @@ Another process is using one of the required ports. Find and stop it, or change 
 
 **API fails to start with database errors**
 The `api` service waits for the `postgres` healthcheck to pass before starting. If it still fails, check postgres logs:
+
 ```bash
 docker compose logs postgres
 ```
 
 **Drizzle Studio shows no tables**
 Migrations have not been applied yet. Run:
+
 ```bash
 pnpm docker:db:migrate
 ```
 
 **Changes to `package.json` or `pnpm-lock.yaml` not picked up**
 These are baked into the image at build time. Rebuild the affected service:
+
 ```bash
 docker compose build api
 ```
