@@ -35,7 +35,7 @@
     "@fastify/compress": "^9.0.0",
     "@fastify/helmet": "^13.1.0",
     "@fastify/rate-limit": "^11.1.0",
-    "@fastify/static": "^9.3.0",
+    "@fastify/static": "^10.1.2",
     "@fastify/swagger": "^9.8.0",
     "@scalar/fastify-api-reference": "^1.62.5",
     "drizzle-orm": "^0.45.2",
