@@ -18,6 +18,8 @@ Follow existing API layering: handlers handle HTTP concerns, services hold busin
 
 Use `#api/modules/<domain>` and `@/features/<feature>` for cross-domain imports. Deep imports are private and rejected by ESLint; `apps/api/src/db/schema/index.ts` is the sole exception for composing module-owned Drizzle tables.
 
+Generate and review migrations from schema changes with `pnpm db:generate`, and apply them with `pnpm db:migrate` (Docker: `pnpm docker:db:migrate`). Never use schema push in production.
+
 ## Testing Guidelines
 
 API tests use Vitest and live beside modules in `__tests__` folders. Name tests by layer, such as `users.service.test.ts`, `users.handlers.test.ts`, or `users.repository.test.ts`. Use service tests for business logic, handler tests for HTTP behavior, and repository tests for database integration. Configure `apps/api/.env.test` with a separate test database before running `pnpm test`. When developing locally with Docker, apply migrations to that database with `pnpm docker:db:migrate:test`; use `pnpm db:migrate:test` only when the test database is reachable directly from the host.

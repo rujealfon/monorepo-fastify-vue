@@ -185,7 +185,7 @@ If Vercel does not accept `.` as the root directory, clear the Root Directory fi
 Required environment variables:
 
 ```env
-DATABASE_URL=postgresql://USER:PASSWORD@HOST:5433/DATABASE?sslmode=require
+DATABASE_URL=postgresql://USER:PASSWORD@HOST:5432/DATABASE?sslmode=require
 JWT_SECRET=replace-with-a-random-secret-of-at-least-32-characters
 NODE_ENV=production
 REDIS_URL=rediss://default:PASSWORD@HOST:6379
@@ -241,7 +241,7 @@ The current Vercel function entry is at the repository root for Option 1. Before
 API environment variables:
 
 ```env
-DATABASE_URL=postgresql://USER:PASSWORD@HOST:5433/DATABASE?sslmode=require
+DATABASE_URL=postgresql://USER:PASSWORD@HOST:5432/DATABASE?sslmode=require
 JWT_SECRET=replace-with-a-random-secret-of-at-least-32-characters
 NODE_ENV=production
 ```

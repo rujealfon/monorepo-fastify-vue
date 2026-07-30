@@ -44,6 +44,8 @@ The Postgres container also auto-creates a `fastify_vue_test` database on first 
 pnpm docker:db:migrate:test
 ```
 
+See [Database migrations](#database-migrations) below for when to use these Docker-specific commands versus the plain `pnpm db:migrate` / `pnpm db:migrate:test`.
+
 ### 3. Access the services
 
 - **API docs (Scalar, development only):** http://localhost:3000
@@ -89,16 +91,20 @@ External clients such as RedisInsight can connect to `localhost:6380`. Docker se
 
 ## Environment Variables
 
-The API service uses these environment variables (set in `docker-compose.yml`):
+The API service loads shared application configuration and local secrets from the uncommitted `apps/api/.env` file through Compose `env_file`. This includes settings such as `JWT_SECRET`, `LOG_LEVEL`, `CORS_ORIGIN`, `PORT`, and `NODE_ENV`.
+
+Compose declares only Docker-specific overrides under `environment`:
 
 | Variable       | Value                                              | Description                  |
 | -------------- | -------------------------------------------------- | ---------------------------- |
-| `DATABASE_URL` | `postgresql://root:root@postgres:5433/fastify_vue` | PostgreSQL connection string |
-| `REDIS_URL`    | `redis://valkey:6379`                              | Valkey connection string     |
-| `PORT`         | `3000`                                             | API server port              |
-| `NODE_ENV`     | `development`                                      | Runtime environment          |
+| `DATABASE_URL` | `postgresql://root:root@postgres:5432/fastify_vue` | PostgreSQL connection string (container-network address) |
+| `REDIS_URL`    | `redis://valkey:6379`                              | Valkey connection string (container-network address) |
 
-> For production, override these with real secrets and never commit them to version control.
+Values under `environment` take precedence over matching values from `env_file`. This lets the same `.env` use host addresses when the API runs directly while Compose replaces them with container-network addresses. See the [Docker Compose `environment` documentation](https://docs.docker.com/reference/compose-file/services/#environment).
+
+Drizzle Studio receives only its Docker-specific `DATABASE_URL`; it does not load the API's `.env` or application secrets.
+
+Keep `apps/api/.env` and `apps/api/.env.test` uncommitted. Maintain non-secret development defaults in their checked-in example files, and use the deployment platform's secret management for production.
 
 ## Common Commands
 
@@ -166,6 +172,12 @@ docker compose up postgres
 # Start only the API and its dependencies
 docker compose up api
 ```
+
+## Database migrations
+
+Always use `pnpm docker:db:migrate` for the development database when developing locally with Docker. Use `pnpm docker:db:migrate:test` for the Docker-hosted `fastify_vue_test` database before running tests after migrations change. The non-Docker `pnpm db:migrate` and `pnpm db:migrate:test` commands are for environments whose database URLs are available directly from the host.
+
+`pnpm docker:reset` removes the PostgreSQL volume, rebuilds every service, and migrates both the development and test databases. Use it only when discarding local database data is intended.
 
 ## Volumes
 
