@@ -19,12 +19,10 @@ describe('user routes', () => {
   beforeAll(async () => {
     app = buildApp()
     await app.ready()
-    await db.execute(sql`delete from audit_logs`)
     await db.execute(sql`delete from users`)
   })
 
   afterAll(async () => {
-    await db.execute(sql`delete from audit_logs`)
     await app.close()
   })
 

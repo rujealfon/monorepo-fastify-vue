@@ -31,7 +31,7 @@ async function submit() {
           Create an account
         </h1>
         <p class="mt-1 text-sm text-muted">
-          Start tracking your tasks
+          Set up your account
         </p>
       </div>
     </template>

@@ -7,13 +7,11 @@ import * as usersService from '#api/modules/users/users.service.js'
 
 vi.mock('#api/modules/users/users.repository.js')
 vi.mock('#api/modules/users/users.password.js')
-vi.mock('#api/modules/audit-logs')
 
 const sampleUser = {
   id: '1',
   email: 'person@example.com',
   passwordHash: 'hash',
-  authorizationVersion: 1,
   createdAt: new Date(),
   updatedAt: new Date()
 }

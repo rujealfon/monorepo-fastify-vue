@@ -1,23 +1,25 @@
 <script setup lang="ts">
-import { useAuthorization } from '@/features/permissions'
+import { useQuery } from '@pinia/colada'
 
-const { authorization } = useAuthorization()
+import { profileQuery } from '@/features/profile'
+
+const profile = useQuery(profileQuery)
 </script>
 
 <template>
   <UPageHero
-    title="Track and manage your tasks in one place"
-    description="A simple, fast task manager built with Fastify, Vue, and Nuxt UI."
+    title="A minimal starting point for your account"
+    description="A simple, fast Fastify + Vue starter template with registration, login, and a user profile."
     orientation="vertical"
     :ui="{ container: 'py-12 sm:py-16 lg:py-20' }"
   >
     <template #links>
       <UButton
-        v-if="authorization"
-        to="/tasks"
+        v-if="profile.data.value"
+        to="/profile"
         size="lg"
-        icon="i-lucide-list-checks"
-        label="Go to Tasks"
+        icon="i-lucide-user"
+        label="Go to Profile"
       />
       <template v-else>
         <UButton to="/register" size="lg" icon="i-lucide-user-plus" label="Get started" />
@@ -28,14 +30,14 @@ const { authorization } = useAuthorization()
 
   <UPageGrid class="pb-16">
     <UPageCard
-      icon="i-lucide-list-checks"
-      title="Stay organized"
-      description="Create, complete, and track tasks with a clean, focused list view."
+      icon="i-lucide-user"
+      title="User accounts"
+      description="Registration and login backed by session cookies and a Postgres database."
     />
     <UPageCard
       icon="i-lucide-shield-check"
       title="Secure by default"
-      description="Session-based authentication keeps your tasks private to your account."
+      description="Session-based authentication keeps your account private."
     />
     <UPageCard
       icon="i-lucide-activity"

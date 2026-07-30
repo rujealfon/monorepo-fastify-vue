@@ -1,32 +1,23 @@
 <script setup lang="ts">
 import type { NavigationMenuItem } from '@nuxt/ui'
 import { useToast } from '@nuxt/ui/composables'
+import { useQuery } from '@pinia/colada'
 import { computed } from 'vue'
 import { RouterLink, RouterView, useRouter } from 'vue-router'
 
 import { useAuthMutations } from '@/features/auth'
-import { useAuthorization } from '@/features/permissions'
+import { profileQuery } from '@/features/profile'
 
 const router = useRouter()
 const { logout } = useAuthMutations()
-const { authorization, can } = useAuthorization()
+const profile = useQuery(profileQuery)
 const toast = useToast()
 
-const links = computed<NavigationMenuItem[]>(() => [
+const links: NavigationMenuItem[] = [
   { label: 'Home', to: '/', icon: 'i-lucide-house' },
-  { label: 'Tasks', to: '/tasks', icon: 'i-lucide-list-checks' },
   { label: 'Health', to: '/health', icon: 'i-lucide-activity' },
-  { label: 'About', to: '/about', icon: 'i-lucide-info' },
-  ...can('roles.read')
-    ? [{ label: 'Roles', to: '/admin/roles', icon: 'i-lucide-shield' } satisfies NavigationMenuItem]
-    : [],
-  ...can('users.read')
-    ? [{ label: 'Users', to: '/admin/users', icon: 'i-lucide-users' } satisfies NavigationMenuItem]
-    : [],
-  ...can('audit.read')
-    ? [{ label: 'Audit Logs', to: '/admin/audit-logs', icon: 'i-lucide-scroll-text' } satisfies NavigationMenuItem]
-    : []
-])
+  { label: 'About', to: '/about', icon: 'i-lucide-info' }
+]
 
 async function signOut() {
   try {
@@ -43,7 +34,7 @@ async function signOut() {
 }
 
 const userMenu = computed(() => [[
-  { label: authorization.value?.user.email ?? '', type: 'label' as const },
+  { label: profile.data.value?.email ?? '', type: 'label' as const },
   { label: 'Profile', icon: 'i-lucide-user', to: '/profile' }
 ], [
   { label: 'Logout', icon: 'i-lucide-log-out', onSelect: signOut }
@@ -56,7 +47,7 @@ const userMenu = computed(() => [[
       <template #title>
         <RouterLink to="/" class="flex items-center gap-2 font-semibold text-highlighted">
           <UIcon name="i-lucide-check-check" class="size-6 text-primary" />
-          Task Manager
+          Starter Template
         </RouterLink>
       </template>
 
@@ -64,13 +55,13 @@ const userMenu = computed(() => [[
 
       <template #right>
         <UColorModeButton />
-        <template v-if="authorization">
+        <template v-if="profile.data.value">
           <UDropdownMenu :items="userMenu">
             <UButton
               color="neutral"
               variant="ghost"
               icon="i-lucide-user-circle"
-              :label="authorization.user.email"
+              :label="profile.data.value.email"
               class="max-w-48"
               :ui="{ label: 'truncate' }"
             />

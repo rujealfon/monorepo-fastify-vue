@@ -2,7 +2,6 @@ import type { ApiErrorSchema, LoginUser, RegisterUser, User } from '@monorepo-fa
 import { RpcError } from '@monorepo-fastify-vue/api-client'
 import { useMutation, useQueryCache } from '@pinia/colada'
 
-import { AUTHORIZATION_KEY } from '@/features/permissions'
 import { PROFILE_KEY } from '@/features/profile'
 import { api } from '@/shared/api/client'
 
@@ -14,10 +13,7 @@ async function result(response: Response, data?: User, error?: ApiErrorSchema) {
 
 export function useAuthMutations() {
   const cache = useQueryCache()
-  const signedIn = (user: User) => {
-    cache.setQueryData(PROFILE_KEY, user)
-    return cache.invalidateQueries({ key: AUTHORIZATION_KEY })
-  }
+  const signedIn = (user: User) => cache.setQueryData(PROFILE_KEY, user)
 
   return {
     register: useMutation({
@@ -40,10 +36,7 @@ export function useAuthMutations() {
         if (!response.ok)
           throw new RpcError(response.status, error)
       },
-      onSuccess: () => {
-        cache.setQueryData(PROFILE_KEY, null)
-        cache.setQueryData(AUTHORIZATION_KEY, null)
-      }
+      onSuccess: () => cache.setQueryData(PROFILE_KEY, null)
     })
   }
 }

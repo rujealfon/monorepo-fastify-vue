@@ -1,4 +1,4 @@
-import { date, integer, pgEnum, pgTable, text, timestamp, uuid, varchar } from 'drizzle-orm/pg-core'
+import { date, pgEnum, pgTable, text, timestamp, uuid, varchar } from 'drizzle-orm/pg-core'
 import { createSelectSchema } from 'drizzle-zod'
 import { z } from 'zod'
 
@@ -6,7 +6,6 @@ export const users = pgTable('users', {
   id: uuid('id').primaryKey().defaultRandom(),
   email: varchar('email', { length: 254 }).notNull().unique(),
   passwordHash: varchar('password_hash', { length: 255 }).notNull(),
-  authorizationVersion: integer('authorization_version').notNull().default(1),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date())
 })
@@ -66,6 +65,6 @@ export const publicProfileSchema = createSelectSchema(profiles, {
 }).omit({ userId: true })
 
 export const publicUserSchema = createSelectSchema(users)
-  .omit({ passwordHash: true, authorizationVersion: true })
+  .omit({ passwordHash: true })
   .extend({ profile: publicProfileSchema })
 export type PublicUser = z.infer<typeof publicUserSchema>

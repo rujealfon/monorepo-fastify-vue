@@ -27,7 +27,7 @@ async function mountAt(component: Component, path: string) {
       { path: '/login', component: LoginView },
       { path: '/register', component: RegisterView },
       { path: '/profile', component: { template: '<p>Profile</p>' } },
-      { path: '/tasks', component: { template: '<p>Tasks</p>' } }
+      { path: '/health', component: { template: '<p>Health</p>' } }
     ]
   })
   await router.push(path)
@@ -41,12 +41,12 @@ describe('authentication views', () => {
 
   it('logs in and honors only internal redirects', async () => {
     api.POST.mockResolvedValue({ data: user, response: { ok: true, status: 200 } })
-    const { pinia, router, wrapper } = await mountAt(LoginView, '/login?redirect=/tasks')
+    const { pinia, router, wrapper } = await mountAt(LoginView, '/login?redirect=/health')
     await wrapper.get('input[name="email"]').setValue(user.email)
     await wrapper.get('input[name="password"]').setValue('correct horse battery staple')
     await wrapper.get('form').trigger('submit')
     await flushPromises()
-    expect(router.currentRoute.value.fullPath).toBe('/tasks')
+    expect(router.currentRoute.value.fullPath).toBe('/health')
     expect(useQueryCache(pinia).getQueryData(PROFILE_KEY)).toEqual(user)
 
     const unsafe = await mountAt(LoginView, '/login?redirect=//evil.example')

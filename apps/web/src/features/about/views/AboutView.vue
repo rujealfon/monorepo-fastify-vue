@@ -4,8 +4,8 @@
       About
     </h1>
     <p class="text-muted">
-      Task Manager is a small full-stack app built with Fastify, Vue, and Nuxt UI —
-      a scaffold for tracking personal tasks with authenticated accounts.
+      Starter Template is a small full-stack scaffold built with Fastify, Vue, and Nuxt UI —
+      account registration, login, and a user profile, ready to extend.
     </p>
   </div>
 </template>
