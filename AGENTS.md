@@ -22,13 +22,13 @@ API handlers own HTTP concerns, services own business rules, repositories own Dr
 
 API tests use Vitest and live beside modules in `__tests__`. Name tests by layer, such as `health.routes.test.ts`. Use service tests for business logic, handler tests for HTTP behavior, and repository tests for database integration.
 
-Configure `apps/api/.env.test` with a separate test database before running `pnpm test`. Run `pnpm db:migrate:test` to apply migrations to test database. Do not commit `.env` or `.env.test`; start from the checked-in example files.
+Configure `apps/api/.env.test` with a separate test database before running `pnpm test`. When developing locally with Docker, always run `pnpm docker:db:migrate:test` to apply migrations to the test database. Use `pnpm db:migrate:test` only when the test database is available directly from the host. Do not commit `.env` or `.env.test`; start from the checked-in example files.
 
 Run `pnpm lint`, `pnpm build`, `pnpm test`, and `pnpm api-client:check` before handing off a repository-wide change.
 
 ## Database and generated contracts
 
-Module-owned Drizzle tables are composed in `apps/api/src/db/schema/index.ts`. Generate and review migrations with `pnpm db:generate`, and apply them with `pnpm db:migrate` (test database: `pnpm db:migrate:test`). Never use schema push in production.
+Module-owned Drizzle tables are composed in `apps/api/src/db/schema/index.ts`. Generate and review migrations with `pnpm db:generate`. When developing locally with Docker, always apply them with `pnpm docker:db:migrate` (test database: `pnpm docker:db:migrate:test`). Use `pnpm db:migrate` and `pnpm db:migrate:test` only for databases available directly from the host. Never use schema push in production.
 
 Regenerate `apps/api/openapi.json` and `packages/api-client/src/schema.d.ts` with `pnpm api-client:generate` after public route or schema changes.
 
