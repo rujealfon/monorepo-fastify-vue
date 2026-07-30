@@ -49,12 +49,11 @@ pnpm test
 pnpm api-client:generate
 pnpm api-client:check
 pnpm db:generate
-pnpm db:migrate
 pnpm db:studio
 ```
 
 `pnpm api-client:generate` writes `apps/api/openapi.json` and `packages/api-client/src/schema.d.ts`. Commit both generated files when the public API changes.
 
-The migration directory intentionally starts empty. Adding future module-owned tables and running `pnpm db:generate` creates the first starter migration; it does not remove tables left behind in an existing database.
+When developing locally with Docker, apply migrations with `pnpm docker:db:migrate` and apply test migrations with `pnpm docker:db:migrate:test`. See [DOCKER.md](DOCKER.md) for the full container workflow. Use `pnpm db:migrate` and `pnpm db:migrate:test` only when the corresponding databases are available directly from the host.
 
-See [DOCKER.md](DOCKER.md) for the container workflow.
+The migration directory intentionally starts empty. Adding future module-owned tables and running `pnpm db:generate` creates the first starter migration; it does not remove tables left behind in an existing database.
