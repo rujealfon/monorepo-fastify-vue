@@ -2,7 +2,7 @@
 
 ## Project Structure & Module Organization
 
-This is a pnpm workspace monorepo. The API lives in `apps/api`, the Vue/Vite client lives in `apps/web` (UI components from `@nuxt/ui`, not the Nuxt framework), and shared packages live in `packages`.
+This is a pnpm workspace monorepo. The API lives in `apps/api`, the Vue/Vite client lives in `apps/web` (UI components from `@nuxt/ui`, not the Nuxt framework; composition utilities from `@vueuse/core`), and shared packages live in `packages`.
 
 API code uses a feature-first layout under `apps/api/src/modules/<domain>/`. Keep each domain's schema, routes, handlers, service, repository, errors, and tests together, and expose cross-domain contracts through the module's `index.ts`. `modules/index.ts` is the explicit route registry. Shared API infrastructure is in `apps/api/src/lib`, `plugins`, `db`, `events`, `jobs`, and `test`.
 
