@@ -28,6 +28,7 @@ A monorepo setup using pnpm workspaces with a Fastify API and Vue / Vite client 
 - Vite
 - Vue Router
 - Pinia + Pinia Colada
+- `@nuxt/ui` (component library, not the Nuxt framework)
 
 **dev tooling**
 
