@@ -1,127 +1,52 @@
 ---
 name: zod
-description: Zod schema validation best practices for type safety, parsing, and error handling. This skill should be used when defining z.object schemas, using z.string validations, safeParse, or z.infer. This skill does NOT cover React Hook Form integration patterns (use react-hook-form skill) or OpenAPI client generation (use orval skill).
+description: Define, validate, and parse data with Zod (v4) in TypeScript/JavaScript — request bodies, form inputs, environment variables, API responses, config files, CLI args, and any other untrusted or external data. Use whenever the user is writing a `z.object`/`z.string`/`z.array`/etc. schema, calling `.parse()`/`.safeParse()`, inferring types with `z.infer<>`, adding refinements/transforms/coercion, building discriminated unions or records, customizing or formatting Zod error messages, converting schemas to JSON Schema (OpenAPI specs, LLM structured outputs), setting up bidirectional codecs (`z.codec()`), or migrating a codebase from Zod 3 to Zod 4 — even if they just say "validate this input," "make this env config type-safe," or "parse this form" without naming Zod explicitly. Also covers Zod Mini and Zod Core for bundle-size-sensitive or library-author contexts.
 ---
 
-# Zod Best Practices
+# Zod
 
-Comprehensive schema validation guide for Zod in TypeScript applications. Contains 43 rules across 8 categories, prioritized by impact to guide automated refactoring and code generation.
+Zod's API changed substantially between major versions — v4 replaced many chained string methods (`.email()`, `.uuid()`) with top-level functions (`z.email()`, `z.uuid()`), changed error customization and formatting APIs, and altered how `.default()` interacts with transforms. Treat the target project's installed `zod` version as the source of truth for which API surface is valid; use the references below as a curated starting point, not a substitute for checking what's actually installed.
 
-## When to Apply
+## Start from the project
 
-Reference these guidelines when:
-- Writing new Zod schemas
-- Choosing between parse() and safeParse()
-- Implementing type inference with z.infer
-- Handling validation errors for user feedback
-- Composing complex object schemas
-- Using refinements and transforms
-- Optimizing bundle size and validation performance
-- Reviewing Zod code for best practices
+1. Check `package.json`/lockfile for the installed `zod` version. Zod 3 is functionally end-of-life (security/bug fixes only); new code should target Zod 4 unless the project is deliberately pinned to v3.
+2. If the version is ambiguous, check for `zod/v4` or `zod/v3` subpath imports, or look for tell-tale v3 patterns (`z.string().email()`, `z.nativeEnum()`, `.merge()`, `errorMap`) versus v4 patterns (`z.email()`, spread-based extension, `error` param).
+3. Read existing schema files to match the project's conventions — where schemas live, whether they're colocated with types, how errors get formatted for the client, and whether `zod/mini` is in use for a bundle-size-sensitive package.
+4. Preserve the project's organization unless the task explicitly asks for a refactor.
 
-## Rule Categories by Priority
+## Read the relevant reference
 
-| Priority | Category | Impact | Prefix |
-|----------|----------|--------|--------|
-| 1 | Schema Definition | CRITICAL | `schema-` |
-| 2 | Parsing & Validation | CRITICAL | `parse-` |
-| 3 | Type Inference | HIGH | `type-` |
-| 4 | Error Handling | HIGH | `error-` |
-| 5 | Object Schemas | MEDIUM-HIGH | `object-` |
-| 6 | Schema Composition | MEDIUM | `compose-` |
-| 7 | Refinements & Transforms | MEDIUM | `refine-` |
-| 8 | Performance & Bundle | LOW-MEDIUM | `perf-` |
+- [references/schema-types.md](references/schema-types.md) — primitives, string formats (email/URL/UUID/ISO dates/etc.), numbers, objects and their modifiers, arrays/tuples, unions/discriminated unions/intersections, records, maps/sets, files, recursive schemas, template literals.
+- [references/refinements-transforms.md](references/refinements-transforms.md) — `.refine()`/`.superRefine()`/`.check()`, transforms and pipes, `.preprocess()`, defaults/prefaults/catch, branded types, readonly, `z.function()`, `z.custom()`.
+- [references/errors.md](references/errors.md) — customizing error messages (schema-level, per-parse, global, i18n locales) and formatting `ZodError` (`treeifyError`, `prettifyError`, `flattenError`).
+- [references/codecs.md](references/codecs.md) — bidirectional transforms with `z.codec()`, `.encode()`/`.decode()`, and copy-paste implementations for common codecs (string↔number, ISO string↔Date, base64↔bytes, etc.).
+- [references/json-schema.md](references/json-schema.md) — `z.toJSONSchema()` / `z.fromJSONSchema()`, target versions, handling unrepresentable types, registries for multi-schema output.
+- [references/metadata-registries.md](references/metadata-registries.md) — `.meta()`, `.describe()`, `z.globalRegistry`, custom registries.
+- [references/migration-v3-to-v4.md](references/migration-v3-to-v4.md) — the highest-impact Zod 3 → Zod 4 breaking changes with before/after code, plus when Zod Mini or `zod/v4/core` are the right call.
 
-## Quick Reference
+These are condensed and curated, not full copies of the upstream docs. For behavior not covered here or that looks version-sensitive, check the installed package's type declarations or the [official Zod docs](https://zod.dev/) and note which version you followed.
 
-### 1. Schema Definition (CRITICAL)
+## Implement deliberately
 
-- `schema-use-primitives-correctly` - Use correct primitive schemas for each type
-- `schema-use-unknown-not-any` - Use z.unknown() instead of z.any() for type safety
-- `schema-avoid-optional-abuse` - Avoid overusing optional fields
-- `schema-string-validations` - Apply string validations at schema definition
-- `schema-use-enums` - Use enums for fixed string values
-- `schema-coercion-for-form-data` - Use coercion for form and query data
+- Reach for `.safeParse()`/`.safeParseAsync()` at trust boundaries (API handlers, form submissions, third-party responses) where an invalid input is an expected, recoverable case — the discriminated `{ success, data }` / `{ success, error }` result avoids a `try/catch`. Reach for `.parse()`/`.parseAsync()` when an invalid input represents a programmer error or a truly exceptional case you want to fail loudly and let bubble up.
+- `z.object()` strips unknown keys by default — the right default for most APIs. Use `z.strictObject()` when unrecognized keys should be rejected outright (catching client typos), and `z.looseObject()` when you need passthrough (proxying to another service, preserving unknown fields).
+- Prefer spread syntax (`z.object({ ...Base.shape, extra: z.string() })`) over repeated `.extend()` chains on large or frequently-extended schemas — it's equivalent, works identically in Zod and Zod Mini, and avoids the quadratic `tsc` cost `.extend()` chains can incur. Use `.safeExtend()` instead of `.extend()` on any schema that already carries a `.refine()` — plain `.extend()` throws on those.
+- A single `.refine()` produces one `"custom"` issue; reach for `.superRefine()` (or the lower-level `.check()`) when a validation needs to report multiple issues, use a specific issue `code`, or target a nested `path`.
+- `.transform()` is one-directional — encoding through it throws. If the same schema needs to serialize data back (a network boundary, a form that round-trips, anything using `z.encode()`), model it as `z.codec()` instead; see [references/codecs.md](references/codecs.md).
+- `.default()` short-circuits parsing and its value must be assignable to the schema's *output* type. When you instead want a fallback value that itself gets parsed/transformed (matching Zod 3's `.default()` behavior), use `.prefault()`.
+- `z.coerce.*` is for genuinely coercible sources — `URLSearchParams`, env vars, form-encoded values — not a substitute for sending correctly-typed data from a client you control.
+- Use `z.infer<typeof schema>` for the common case. Reach for `z.input<>`/`z.output<>` independently whenever the schema contains a `.transform()`, `.default()`, `.coerce`, or a codec, since input and output types diverge — this matters in particular for libraries (e.g. `react-hook-form`) that key off the input type.
+- Don't introduce Zod 4-only syntax into a project still pinned to Zod 3, and don't add newly-deprecated v3 patterns (`.merge()`, `.nativeEnum()`, `z.string().email()`) to a v4 project just because they still work — check [references/migration-v3-to-v4.md](references/migration-v3-to-v4.md) when unsure which side of the line an API is on.
+- Only reach for `zod/mini` when bundle size is a demonstrated, hard constraint (typically front-end code shipped to bandwidth-constrained users) — on the backend, in serverless functions, and in most front-end apps the size difference is not worth the more verbose, less discoverable functional API. See [references/migration-v3-to-v4.md](references/migration-v3-to-v4.md) for the tradeoff in more detail.
+- Treat the schema as the single source of truth for the shape: derive types with `z.infer<>`/`z.input<>`/`z.output<>` rather than hand-writing a parallel `interface`/`type` that has to be kept in sync by hand.
+- Validate environment variables once, at process startup, against a schema — fail fast with a clear error before the app starts serving traffic, rather than discovering a missing/malformed env var deep in a request handler. Export the parsed, typed result and import that everywhere instead of touching `process.env` directly elsewhere in the codebase.
+- Extract and reuse sub-schemas for fields or shapes that repeat across multiple schemas (an `Email`, an `Id`, a `Pagination` object) instead of redefining the same chain of checks in each place — keeps validation rules consistent and gives you one place to change them.
+- Zod's validation cost is real but small; don't reach for micro-optimizations (skipping `safeParse`, hand-rolling checks) on ordinary request-sized payloads. Do avoid re-parsing the same already-validated data repeatedly in a hot loop, and avoid `z.custom()` without a validation function (see [references/refinements-transforms.md](references/refinements-transforms.md)) — it silently performs no validation at all.
 
-### 2. Parsing & Validation (CRITICAL)
+## Verify the result
 
-- `parse-use-safeparse` - Use safeParse() for user input
-- `parse-async-for-async-refinements` - Use parseAsync for async refinements
-- `parse-handle-all-issues` - Handle all validation issues not just first
-- `parse-validate-early` - Validate at system boundaries
-- `parse-avoid-double-validation` - Avoid validating same data twice
-- `parse-never-trust-json` - Never trust JSON.parse output
-
-### 3. Type Inference (HIGH)
-
-- `type-use-z-infer` - Use z.infer instead of manual types
-- `type-input-vs-output` - Distinguish z.input from z.infer for transforms
-- `type-export-schemas-and-types` - Export both schemas and inferred types
-- `type-branded-types` - Use branded types for domain safety
-- `type-enable-strict-mode` - Enable TypeScript strict mode
-
-### 4. Error Handling (HIGH)
-
-- `error-custom-messages` - Provide custom error messages
-- `error-use-flatten` - Use flatten() for form error display
-- `error-path-for-nested` - Use issue.path for nested error location
-- `error-i18n` - Implement internationalized error messages
-- `error-avoid-throwing-in-refine` - Return false instead of throwing in refine
-
-### 5. Object Schemas (MEDIUM-HIGH)
-
-- `object-strict-vs-strip` - Choose strict() vs strip() for unknown keys
-- `object-partial-for-updates` - Use partial() for update schemas
-- `object-pick-omit` - Use pick() and omit() for schema variants
-- `object-extend-for-composition` - Use extend() for adding fields
-- `object-optional-vs-nullable` - Distinguish optional() from nullable()
-- `object-discriminated-unions` - Use discriminated unions for type narrowing
-
-### 6. Schema Composition (MEDIUM)
-
-- `compose-shared-schemas` - Extract shared schemas into reusable modules
-- `compose-intersection` - Use intersection() for type combinations
-- `compose-lazy-recursive` - Use z.lazy() for recursive schemas
-- `compose-preprocess` - Use preprocess() for data normalization
-- `compose-pipe` - Use pipe() for multi-stage validation
-
-### 7. Refinements & Transforms (MEDIUM)
-
-- `refine-vs-superrefine` - Choose refine() vs superRefine() correctly
-- `refine-transform-coerce` - Distinguish transform() from refine() and coerce()
-- `refine-add-path` - Add path to refinement errors
-- `refine-defaults` - Use default() for optional fields with defaults
-- `refine-catch` - Use catch() for fault-tolerant parsing
-
-### 8. Performance & Bundle (LOW-MEDIUM)
-
-- `perf-cache-schemas` - Cache schema instances
-- `perf-zod-mini` - Use Zod Mini for bundle-sensitive applications
-- `perf-avoid-dynamic-creation` - Avoid dynamic schema creation in hot paths
-- `perf-lazy-loading` - Lazy load large schemas
-- `perf-arrays` - Optimize large array validation
-
-## How to Use
-
-Read individual reference files for detailed explanations and code examples:
-
-- [Section definitions](references/_sections.md) - Category structure and impact levels
-- [Rule template](assets/templates/_template.md) - Template for adding new rules
-- Individual rules: `references/{prefix}-{slug}.md`
-
-## Full Compiled Document
-
-For the complete guide with all rules expanded: `AGENTS.md`
-
-## Related Skills
-
-- For React Hook Form integration, see `react-hook-form` skill
-- For API client generation, see `orval` skill
-
-## Sources
-
-- [Zod Official Documentation](https://zod.dev/)
-- [Zod v4 Release Notes](https://zod.dev/v4)
-- [Zod GitHub Repository](https://github.com/colinhacks/zod)
-- [Zod Mini](https://zod.dev/packages/mini)
-- [Total TypeScript Zod Tutorial](https://www.totaltypescript.com/tutorials/zod)
+- Run the project's typecheck — a mismatched `.refine()`/`.transform()` return type or an incorrect `z.input`/`z.output` usage at a call site usually surfaces there rather than at runtime.
+- Exercise both the success and failure paths with representative fixtures, including the edge cases the schema exists to catch (boundary numbers, empty arrays/strings, malformed formats, extra/missing keys).
+- If a schema contains an async `.refine()`, `.transform()`, or codec, confirm the code path uses `.parseAsync()`/`.safeParseAsync()` — the sync variants throw when they encounter an async check.
+- When user-facing error copy matters, inspect the actual `result.error.issues` (or `z.prettifyError()`/`z.flattenError()` output), not just the `success` boolean — message wording and `path` targeting are easy to get subtly wrong.
+- If the project or its tests were written against Zod 3, check whether they rely on removed/changed APIs (`.format()`, `.flatten()`, `errorMap`, `ZodInvalidEnumValueIssue`) before assuming a failure is unrelated to your change.
