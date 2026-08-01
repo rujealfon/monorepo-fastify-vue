@@ -1,79 +1,52 @@
-# Zod Best Practices Skill
+# Zod Skill
 
-A comprehensive guide for using Zod effectively in TypeScript applications. This skill provides 42 rules across 8 categories, organized by impact to help AI agents and developers write better validation code.
+Define, validate, and parse data with Zod (v4) — request bodies, form inputs,
+environment variables, API responses, and any other untrusted or external
+data in TypeScript/JavaScript.
 
-## Overview
+## Installation
 
-Zod is a TypeScript-first schema declaration and validation library. This skill covers best practices for:
+Install the skill with:
 
-- **Schema Definition**: Choosing correct types, avoiding `z.any()`, proper string validations
-- **Parsing & Validation**: Using `safeParse()`, async validation, error handling
-- **Type Inference**: Leveraging `z.infer`, distinguishing input/output types
-- **Error Handling**: Custom messages, internationalization, form error display
-- **Object Schemas**: strict/strip modes, partial updates, discriminated unions
-- **Schema Composition**: Reusable schemas, intersections, recursive types
-- **Refinements & Transforms**: Custom validation, data transformation
-- **Performance**: Caching, Zod Mini, lazy loading, batch validation
-
-## Usage
-
-### For Claude Code / AI Agents
-
-The skill is automatically loaded when working with Zod code. Reference specific rules:
-
-```
-See rules/parse-use-safeparse.md for safeParse best practices
+```bash
+npx skills add rujealfon/skills --skill zod
 ```
 
-### For Developers
+Then ask your agent:
 
-Read `SKILL.md` for a quick reference, or `AGENTS.md` for the full compiled guide.
-
-## File Structure
-
-```
-zod/
-├── SKILL.md          # Quick reference with rule index
-├── AGENTS.md         # Full compiled guide (all rules)
-├── metadata.json     # Version, categories, references
-├── README.md         # This file
-└── rules/
-    ├── _sections.md  # Category definitions
-    ├── _template.md  # Rule template
-    ├── schema-*.md   # Schema definition rules
-    ├── parse-*.md    # Parsing rules
-    ├── type-*.md     # Type inference rules
-    ├── error-*.md    # Error handling rules
-    ├── object-*.md   # Object schema rules
-    ├── compose-*.md  # Composition rules
-    ├── refine-*.md   # Refinement rules
-    └── perf-*.md     # Performance rules
+```text
+Use $zod to validate this API request body and infer its TypeScript type.
 ```
 
-## Rule Categories
+## Coverage
 
-| Priority | Category | Rules | Impact |
-|----------|----------|-------|--------|
-| 1 | Schema Definition | 6 | CRITICAL |
-| 2 | Parsing & Validation | 6 | CRITICAL |
-| 3 | Type Inference | 5 | HIGH |
-| 4 | Error Handling | 5 | HIGH |
-| 5 | Object Schemas | 6 | MEDIUM-HIGH |
-| 6 | Schema Composition | 5 | MEDIUM |
-| 7 | Refinements & Transforms | 5 | MEDIUM |
-| 8 | Performance & Bundle | 5 | LOW-MEDIUM |
+The skill provides focused guidance for:
 
-## Key Principles
+- Schema types: primitives, string formats (email/URL/UUID/ISO dates/IP/JWT/hashes/etc.), numbers, objects and their modifiers, arrays/tuples, unions/discriminated unions/XOR/intersections, records, maps/sets, files, recursive schemas, template literals
+- Refinements and transforms: `.refine()`/`.superRefine()`/`.check()`, pipes, `.transform()`/`.preprocess()`, defaults/prefaults/catch, branded types, readonly, `z.function()`, `z.custom()`
+- Error handling: customizing messages (schema-level, per-parse, global, i18n locales) and formatting `ZodError` with `treeifyError`/`prettifyError`/`flattenError`
+- Codecs: bidirectional transforms with `z.codec()`, `.encode()`/`.decode()`, and ready-to-use implementations for common conversions
+- JSON Schema: `z.toJSONSchema()`/`z.fromJSONSchema()` for OpenAPI specs and LLM structured outputs
+- Metadata and registries: `.meta()`, `.describe()`, `z.globalRegistry`, custom registries
+- Migrating a codebase from Zod 3 to Zod 4, and choosing between regular Zod, Zod Mini, and `zod/v4/core`
 
-1. **Type Safety First**: Always use `z.infer`, never duplicate types manually
-2. **Validate at Boundaries**: Parse external data immediately at entry points
-3. **User-Friendly Errors**: Provide custom messages, collect all issues
-4. **Single Source of Truth**: Schema defines validation AND TypeScript types
-5. **Composition Over Duplication**: Use extend, pick, omit, partial
+The target project's installed `zod` version is the authority for which API
+surface is valid — the skill directs agents to check what's actually
+installed before relying on a reference, since the string-format methods,
+error-customization API, and `.default()` semantics all changed meaningfully
+between Zod 3 and Zod 4.
 
-## References
+## Contents
 
-- [Zod Official Documentation](https://zod.dev/)
-- [Zod v4 Release Notes](https://zod.dev/v4)
-- [Zod GitHub](https://github.com/colinhacks/zod)
-- [Zod Mini](https://zod.dev/packages/mini)
+- [SKILL.md](SKILL.md) contains the core agent workflow.
+- [references/schema-types.md](references/schema-types.md) covers every schema type and its modifiers.
+- [references/refinements-transforms.md](references/refinements-transforms.md) covers refinements, transforms, pipes, and value modifiers.
+- [references/errors.md](references/errors.md) covers error customization and formatting.
+- [references/codecs.md](references/codecs.md) covers bidirectional transforms.
+- [references/json-schema.md](references/json-schema.md) covers JSON Schema conversion.
+- [references/metadata-registries.md](references/metadata-registries.md) covers metadata and registries.
+- [references/migration-v3-to-v4.md](references/migration-v3-to-v4.md) covers the Zod 3 → 4 migration and package variant selection.
+
+## License
+
+Repository content is available under the root [MIT License](../../LICENSE).
