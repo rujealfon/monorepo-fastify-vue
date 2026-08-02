@@ -17,6 +17,9 @@
     "lint": "pnpm run -r --parallel lint",
     "lint:fix": "pnpm run -r --parallel lint:fix",
     "prepare": "husky",
+    "clean:deps": "rm -rf node_modules apps/web/node_modules apps/api/node_modules apps/site/node_modules",
+    "clean:dist": "rm -rf dist apps/api/dist apps/site/.output",
+    "clean": "pnpm run clean:deps && pnpm run clean:dist",
     "openapi:generate": "pnpm --filter @monorepo-fastify-vue/api openapi:generate",
     "types:generate": "pnpm --filter @monorepo-fastify-vue/api-client types:generate",
     "api-client:generate": "pnpm openapi:generate && pnpm types:generate",
@@ -31,7 +34,7 @@
     "docker:rebuild": "docker compose up --build -d web api",
     "docker:rebuild:all": "docker compose up --build -d",
     "docker:db:migrate": "docker compose exec api pnpm --filter @monorepo-fastify-vue/api db:migrate",
-    "docker:db:migrate:test": "docker compose exec -e TEST_DATABASE_URL=postgresql://root:root@postgres:5432/fastify_vue_test api pnpm --filter @monorepo-fastify-vue/api db:migrate:test",
+    "docker:db:migrate:test": "docker compose exec -e TEST_DATABASE_URL=postgresql://root:root@postgres:5432/monorepo_fastify_vue_test api pnpm --filter @monorepo-fastify-vue/api db:migrate:test",
     "docker:reset": "docker compose down -v && pnpm docker:rebuild:all && pnpm docker:db:migrate && pnpm docker:db:migrate:test"
   },
   "devDependencies": {
@@ -42,6 +45,7 @@
     "api/**/*.{js,mjs,ts,json}": "pnpm --filter @monorepo-fastify-vue/api exec eslint --fix",
     "apps/api/**/*.{js,mjs,ts,json}": "pnpm --filter @monorepo-fastify-vue/api exec eslint --fix",
     "apps/web/**/*.{js,mjs,ts,vue,json,css,html}": "pnpm --filter @monorepo-fastify-vue/web exec eslint --fix",
+    "apps/site/**/*.{js,mjs,ts,vue,json}": "pnpm --filter @monorepo-fastify-vue/site exec eslint --fix",
     "packages/api-client/**/*.{js,mjs,ts,json}": "pnpm --filter @monorepo-fastify-vue/api-client exec eslint --fix",
     "packages/eslint-config/**/*.{js,mjs,ts,json}": "pnpm --filter @monorepo-fastify-vue/eslint-config exec eslint --fix",
     "eslint.config.mjs": "pnpm --filter @monorepo-fastify-vue/api exec eslint --fix"

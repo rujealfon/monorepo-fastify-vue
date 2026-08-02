@@ -1,16 +1,17 @@
 # Docker
 
-This project runs entirely in Docker for local development. The setup includes the API, web frontend, PostgreSQL database, Redis, and Drizzle Studio.
+This project runs entirely in Docker for local development. The setup includes the API, Vue application, Nuxt site, PostgreSQL database, Redis, and Drizzle Studio.
 
 ## Services
 
-| Service        | URL                   | Description                       |
-| -------------- | --------------------- | --------------------------------- |
-| API (Fastify)  | http://localhost:3000 | Backend API with hot-reload       |
-| Web (Vue 3)    | http://localhost:5173 | Frontend with Vite dev server     |
-| Drizzle Studio | http://localhost:4983 | Visual database browser           |
-| PostgreSQL     | localhost:5433        | Database                          |
-| Redis          | localhost:6380        | Rate-limit store                  |
+| Service        | URL                   | Description                        |
+| -------------- | --------------------- | ---------------------------------- |
+| API (Fastify)  | http://localhost:3000 | Backend API with hot reload        |
+| Web (Vue 3)    | http://localhost:5173 | Application with Vite HMR          |
+| Site (Nuxt 4)  | http://localhost:8080 | Public site with Nuxt hot reload   |
+| Drizzle Studio | http://localhost:4983 | Visual database browser            |
+| PostgreSQL     | localhost:5433        | Database                           |
+| Redis          | localhost:6380        | Rate-limit store                   |
 
 ## Prerequisites
 
@@ -38,7 +39,7 @@ Once the `api` service is running, apply migrations in a new terminal:
 pnpm docker:db:migrate
 ```
 
-The Postgres container also auto-creates a `fastify_vue_test` database on first boot (via `docker/postgres-init`, mounted at `/docker-entrypoint-initdb.d`). Apply migrations to it separately before running tests:
+The Postgres container also auto-creates a `monorepo_fastify_vue_test` database on first boot (via `docker/postgres-init`, mounted at `/docker-entrypoint-initdb.d`). Apply migrations to it separately before running tests:
 
 ```bash
 pnpm docker:db:migrate:test
@@ -49,6 +50,8 @@ See [Database migrations](#database-migrations) below for when to use these Dock
 ### 3. Access the services
 
 - **API docs (Scalar, development only):** http://localhost:3000
+- **Vue application:** http://localhost:5173
+- **Nuxt site:** http://localhost:8080
 - **Drizzle Studio:** http://localhost:4983
 
 ## pgAdmin 4
@@ -59,13 +62,13 @@ Run pgAdmin outside Docker, then register the Docker PostgreSQL server:
 2. **General** tab — Name: `monorepo-fastify-vue` (or anything)
 3. **Connection** tab:
 
-| Field    | Value       |
-| -------- | ----------- |
-| Host     | localhost   |
-| Port     | 5433        |
-| Database | fastify_vue |
-| Username | root        |
-| Password | root        |
+| Field    | Value                |
+| -------- | -------------------- |
+| Host     | localhost            |
+| Port     | 5433                 |
+| Database | monorepo_fastify_vue |
+| Username | root                 |
+| Password | root                 |
 
 ## Drizzle Studio
 
@@ -95,14 +98,16 @@ The API service loads shared application configuration and local secrets from th
 
 Compose declares only Docker-specific overrides under `environment`:
 
-| Variable       | Value                                              | Description                  |
-| -------------- | -------------------------------------------------- | ---------------------------- |
-| `DATABASE_URL` | `postgresql://root:root@postgres:5432/fastify_vue` | PostgreSQL connection string (container-network address) |
-| `REDIS_URL`    | `redis://redis:6379`                               | Redis connection string (container-network address) |
+| Variable       | Value                                                       | Description                                              |
+| -------------- | ----------------------------------------------------------- | -------------------------------------------------------- |
+| `DATABASE_URL` | `postgresql://root:root@postgres:5432/monorepo_fastify_vue` | PostgreSQL connection string (container-network address) |
+| `REDIS_URL`    | `redis://redis:6379`                                        | Redis connection string (container-network address)      |
 
 Values under `environment` take precedence over matching values from `env_file`. This lets the same `.env` use host addresses when the API runs directly while Compose replaces them with container-network addresses. See the [Docker Compose `environment` documentation](https://docs.docker.com/reference/compose-file/services/#environment).
 
 Drizzle Studio receives only its Docker-specific `DATABASE_URL`; it does not load the API's `.env` or application secrets.
+
+The Nuxt development service sets `NITRO_PORT=8080` so it does not conflict with the API on port 3000. The site currently requires no application secrets.
 
 Keep `apps/api/.env` and `apps/api/.env.test` uncommitted. Maintain non-secret development defaults in their checked-in example files, and use the deployment platform's secret management for production.
 
@@ -133,6 +138,7 @@ docker compose up --build
 # Rebuild a single service
 docker compose build api
 docker compose build web
+docker compose build site
 ```
 
 ### Running commands inside a container
@@ -160,6 +166,7 @@ docker compose logs -f
 
 # Follow logs for a specific service
 docker compose logs -f api
+docker compose logs -f site
 docker compose logs -f postgres
 ```
 
@@ -171,11 +178,14 @@ docker compose up postgres
 
 # Start only the API and its dependencies
 docker compose up api
+
+# Start only the Nuxt site
+docker compose up site
 ```
 
 ## Database migrations
 
-Always use `pnpm docker:db:migrate` for the development database when developing locally with Docker. Use `pnpm docker:db:migrate:test` for the Docker-hosted `fastify_vue_test` database before running tests after migrations change. The non-Docker `pnpm db:migrate` and `pnpm db:migrate:test` commands are for environments whose database URLs are available directly from the host.
+Always use `pnpm docker:db:migrate` for the development database when developing locally with Docker. Use `pnpm docker:db:migrate:test` for the Docker-hosted `monorepo_fastify_vue_test` database before running tests after migrations change. The non-Docker `pnpm db:migrate` and `pnpm db:migrate:test` commands are for environments whose database URLs are available directly from the host.
 
 `pnpm docker:reset` removes the PostgreSQL volume, rebuilds every service, and migrates both the development and test databases. Use it only when discarding local database data is intended.
 
@@ -187,7 +197,7 @@ One named volume persists data between container restarts:
 | --------------- | ---------- | ----------------- |
 | `postgres_data` | `postgres` | All database data |
 
-Source code is mounted directly from the host, so edits to `apps/api/src` and `apps/web/src` are reflected immediately without rebuilding.
+Source code is mounted directly from the host, so edits to `apps/api/src`, `apps/web/src`, and `apps/site/app` are reflected immediately without rebuilding.
 
 ## Hot Reload
 
@@ -195,6 +205,7 @@ Source code is mounted directly from the host, so edits to `apps/api/src` and `a
 | ------- | -------------------------------------------------------------------- |
 | API     | `tsx watch` — restarts on any `.ts` file change under `apps/api/src` |
 | Web     | Vite HMR — updates the browser instantly on save                     |
+| Site    | Nuxt HMR — updates the browser for changes under `apps/site/app`     |
 
 ## Production Build
 
@@ -206,6 +217,9 @@ docker build -f apps/api/Dockerfile --target production -t monorepo-fastify-vue-
 
 # Web production image (outputs static files served by nginx)
 docker build -f apps/web/Dockerfile --target production -t monorepo-fastify-vue-web .
+
+# Nuxt site production image (outputs static files served by nginx)
+docker build -f apps/site/Dockerfile --target production -t monorepo-fastify-vue-site .
 ```
 
 ## Troubleshooting
@@ -232,4 +246,6 @@ These are baked into the image at build time. Rebuild the affected service:
 
 ```bash
 docker compose build api
+docker compose build web
+docker compose build site
 ```

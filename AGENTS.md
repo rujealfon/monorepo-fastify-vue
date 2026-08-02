@@ -2,11 +2,13 @@
 
 ## Project Structure & Module Organization
 
-This is a pnpm workspace monorepo. The API lives in `apps/api`, the Vue/Vite client lives in `apps/web` (UI components from `@nuxt/ui`, not the Nuxt framework; composition utilities from `@vueuse/core`), and shared packages live in `packages`.
+This is a pnpm workspace monorepo. The API lives in `apps/api`, the Vue/Vite application lives in `apps/web` (UI components from `@nuxt/ui`, not the Nuxt framework; composition utilities from `@vueuse/core`), the separate Nuxt site lives in `apps/site`, and shared packages live in `packages`.
 
 API code uses a feature-first layout under `apps/api/src/modules/<domain>/`. Keep each domain's schema, routes, handlers, service, repository, errors, and tests together, and expose cross-domain contracts through the module's `index.ts`. `modules/index.ts` is the explicit route registry. Shared API infrastructure is in `apps/api/src/lib`, `plugins`, `db`, `events`, `jobs`, and `test`.
 
 Web code lives under `apps/web/src/features/<feature>/`; each feature exposes routes and cross-feature contracts through `index.ts`. App composition belongs in `src/app`, while code with at least two feature consumers belongs in `src/shared`. Dependency direction is app/features → shared, never shared → features. Server data stays in Pinia Colada queries and mutations; Pinia stores hold client-only state.
+
+Site code follows Nuxt conventions under `apps/site/app`. Use Nuxt file-based routing and auto-imports there, and keep site-only components, composables, layouts, and pages inside that workspace. The site builds with `nuxt generate` and publishes static output from `apps/site/.output/public`.
 
 Keep constants, utilities, and types beside their owning module or feature, using names such as `users.constants.ts`, `users.utils.ts`, or `users.types.ts`. Do not create global `constants`, `utils`, or `types` folders preemptively. Promote code only after it has at least two real consumers: API technical helpers go to `apps/api/src/lib`, web helpers go to `apps/web/src/shared`, and API contract types go to `packages/api-client`. Prefer types inferred from Zod, Drizzle, OpenAPI, and function signatures over duplicate handwritten types. When a field already has a type in `packages/api-client` (e.g. an enum from the OpenAPI schema), web code must reference that type instead of a hand-rolled duplicate — even for runtime value lists (dropdown options, etc.) where no runtime array is exported, type the list against the schema-derived union so an API schema change breaks the web typecheck instead of drifting silently.
 

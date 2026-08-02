@@ -1,11 +1,12 @@
-# Fastify + Vue / Vite + PostgreSQL + pnpm workspaces monorepo
+# Fastify + Vue / Vite + Nuxt + PostgreSQL monorepo
 
-A monorepo setup using pnpm workspaces with a Fastify API and Vue / Vite client backed by a local PostgreSQL database.
+A pnpm workspace with a Fastify API backed by PostgreSQL and Redis, a Vue / Vite application, and a separate Nuxt site.
 
 ## Features
 
 - Run tasks in parallel across apps / packages with pnpm
 - Fastify API [proxied with Vite](./apps/web/vite.config.ts) during development
+- Separate Nuxt 4 site generated as static files with Nuxt UI
 - Single-project Vercel deployment: Vue is built to `dist/`, and `/api/*` is handled by Fastify through a Vercel function
 - OpenAPI spec generated from the same Zod schemas via `fastify-type-provider-zod`, with Scalar at `/` in development
 - Module-owned Zod validators with drizzle-zod
@@ -30,6 +31,13 @@ A monorepo setup using pnpm workspaces with a Fastify API and Vue / Vite client 
 - Pinia + Pinia Colada
 - `@nuxt/ui` (component library, not the Nuxt framework)
 
+**site**
+
+- Nuxt 4
+- Vue 3
+- `@nuxt/ui`
+- Static generation with `nuxt generate`
+
 **dev tooling**
 
 - TypeScript
@@ -43,7 +51,8 @@ A monorepo setup using pnpm workspaces with a Fastify API and Vue / Vite client 
 ├── api/             # Vercel serverless entry for the one-project deploy
 ├── apps/
 │   ├── api/          # Fastify REST API (Node.js)
-│   └── web/          # Vue / Vite frontend
+│   ├── site/         # Nuxt public site (statically generated)
+│   └── web/          # Vue / Vite application
 └── packages/
     ├── api-client/   # Typed API client generated from the OpenAPI spec (openapi-fetch)
     └── eslint-config/ # Shared ESLint config
@@ -52,6 +61,7 @@ A monorepo setup using pnpm workspaces with a Fastify API and Vue / Vite client 
 Detailed structure and dependency rules live with each workspace:
 
 - [Fastify API](./apps/api/README.md)
+- [Nuxt site](./apps/site/README.md)
 - [Vue web app](./apps/web/README.md)
 - [Generated API client](./packages/api-client/README.md)
 - [Shared ESLint config](./packages/eslint-config/README.md)
@@ -91,10 +101,10 @@ Edit `apps/api/.env` with your dev database credentials, and `apps/api/.env.test
 
 ```env
 # .env
-DATABASE_URL=postgresql://root:root@localhost:5433/fastify_vue
+DATABASE_URL=postgresql://root:root@localhost:5433/monorepo_fastify_vue
 
 # .env.test
-DATABASE_URL=postgresql://root:root@localhost:5433/fastify_vue_test
+DATABASE_URL=postgresql://root:root@localhost:5433/monorepo_fastify_vue_test
 ```
 
 Both files also require:
@@ -117,13 +127,23 @@ pnpm db:migrate
 pnpm db:migrate:test
 ```
 
-### 4. Start apps
+### 4. Start the workspaces
 
 ```sh
-pnpm dev
+NITRO_PORT=8080 pnpm dev
 ```
 
-Visit [http://localhost:5173](http://localhost:5173)
+The root command starts the API, Vue app, and Nuxt site in parallel. `NITRO_PORT` keeps Nuxt from conflicting with the API's default port.
+
+- Vue application: [http://localhost:5173](http://localhost:5173)
+- Nuxt site: [http://localhost:8080](http://localhost:8080)
+- Fastify API and Scalar: [http://localhost:3000](http://localhost:3000)
+
+To run the Nuxt site by itself on a fixed port:
+
+```sh
+pnpm --filter @monorepo-fastify-vue/site dev -- --port 8080
+```
 
 All requests to `/api` are proxied to the Fastify server running on [http://localhost:3000](http://localhost:3000).
 
@@ -146,7 +166,7 @@ In development, Scalar is available at [http://localhost:3000](http://localhost:
 pnpm lint
 ```
 
-`pnpm install` enables the Husky pre-commit hook. It runs lint-staged and applies existing ESLint fixes only to staged API, web, and package files.
+`pnpm install` enables the Husky pre-commit hook. It runs lint-staged and applies existing ESLint fixes only to staged API, web, site, and package files.
 
 ### Test
 
@@ -162,7 +182,13 @@ Tests run against a real PostgreSQL database — make sure `DATABASE_URL` in `ap
 pnpm build
 ```
 
+This builds the API and Vue application and generates the Nuxt site in `apps/site/.output/public`.
+
 ## Vercel Deployment
+
+The Nuxt site is an independent static deployment. Create a Vercel project with `apps/site` as its Root Directory; its checked-in `vercel.json` runs `pnpm build` and publishes `.output/public`.
+
+The deployment options below describe the Vue application and Fastify API:
 
 There are two valid deployment shapes:
 
