@@ -25,6 +25,10 @@ export default createConfig({
     }]
   }
 }, ...modules.flatMap((module) => {
+  // Flat config doesn't merge rule options across matching configs — for a given
+  // file, the last matching config wins the whole 'no-restricted-imports' option,
+  // it doesn't concatenate 'patterns'. So every block below (base + each layer)
+  // repeats boundaryPattern and parentRelativePattern to keep them enforced.
   const boundaryPattern = {
     group: ['#api/modules/*/*', `!#api/modules/${module}/**`],
     message: 'Import another module through its public #api/modules/<domain> entry point.'
