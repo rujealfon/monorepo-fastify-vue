@@ -247,9 +247,7 @@ Install Command: pnpm install
 
 Enable "Include files outside the Root Directory in the Build Step" — the web app depends on the pnpm workspace root (lockfile, hoisted `node_modules`, `packages/api-client`).
 
-```env
-VITE_API_BASE_URL=https://api.example.com
-```
+No `VITE_API_BASE_URL` (or any API URL env var) is needed. `apps/web/vercel.json` rewrites `/api/*` to the API project's URL, so the browser always calls the web app's own origin — matching what `vite.config.ts`'s dev server proxy already does locally. This keeps every request same-origin regardless of whether web and API end up on unrelated domains, so update the `destination` in `apps/web/vercel.json` if the API project's URL changes.
 
 ### Site project
 
@@ -257,4 +255,6 @@ Create a Vercel project with `apps/site` as its Root Directory; its checked-in `
 
 ### Direct requests between unrelated domains
 
-The setup above assumes web and API share a registrable domain (subdomains of the same site), so `SameSite=Strict` keeps working. If the API and web instead live on genuinely unrelated domains (e.g. `app.example.com` calling `api.example.net`), the session cookie needs `SameSite=None; Secure` instead of `Strict`, and Safari/other browsers may still block it as a third-party cookie by default even with CORS configured correctly. See [MDN's credentialed CORS guidance](https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/CORS#credentialed_requests_and_wildcards) and [WebKit's tracking-prevention policy](https://webkit.org/tracking-prevention/). Prefer subdomains of one registrable domain unless unrelated domains are a firm requirement.
+The setup above assumes web and API share a registrable domain (subdomains of the same site), so `SameSite=Strict` keeps working. If the API and web instead live on genuinely unrelated domains (e.g. `app.example.com` calling `api.example.net`), the session cookie needs `SameSite=None; Secure` instead of `Strict` — and Safari/Chrome may still block it as a third-party cookie by default even with CORS configured correctly, since third-party cookie blocking is enforced independently of `SameSite`. See [MDN's credentialed CORS guidance](https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/CORS#credentialed_requests_and_wildcards) and [WebKit's tracking-prevention policy](https://webkit.org/tracking-prevention/).
+
+Bare `*.vercel.app` project URLs fall into this same bucket even though they look like subdomains of one site: `vercel.app` is on the [Public Suffix List](https://publicsuffix.org/), so browsers treat each `<project>.vercel.app` as its own registrable domain (`sec-fetch-site: cross-site`, not `same-site`). Don't reach for `SameSite=None` there — it depends on third-party cookies being allowed, which is exactly the setting Chrome and Safari are phasing out. Use the same-origin rewrite proxy described above (`apps/web/vercel.json`) instead; it works regardless of custom domains and needs no cookie relaxation at all. Reserve `SameSite=None` for cases where a rewrite proxy genuinely isn't an option.
