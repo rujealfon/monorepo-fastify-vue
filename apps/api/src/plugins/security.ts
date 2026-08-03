@@ -53,4 +53,4 @@ export default fp(async (fastify) => {
     // including the health/ready probe, instead of just losing the rate-limit guard.
     skipOnError: true
   })
-})
+}, { name: 'security-plugin' })

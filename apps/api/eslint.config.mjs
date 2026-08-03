@@ -38,6 +38,47 @@ export default createConfig({
     }]
   }
 })), {
+  // Preserve route -> handler -> service -> repository dependency direction within a module
+  files: ['src/modules/*/*.routes.ts'],
+  rules: {
+    'no-restricted-imports': ['error', {
+      patterns: [{
+        group: ['./*.service.js', './*.repository.js'],
+        message: 'Routes must not import service or repository directly; call through handlers.'
+      }]
+    }]
+  }
+}, {
+  files: ['src/modules/*/*.handlers.ts'],
+  rules: {
+    'no-restricted-imports': ['error', {
+      patterns: [{
+        group: ['./*.routes.js', './*.repository.js'],
+        message: 'Handlers must not import routes, or repository directly; call through the module service.'
+      }]
+    }]
+  }
+}, {
+  files: ['src/modules/*/*.service.ts'],
+  rules: {
+    'no-restricted-imports': ['error', {
+      patterns: [{
+        group: ['./*.routes.js', './*.handlers.js'],
+        message: 'Service must not import routes or handlers; keep dependency direction route -> handler -> service -> repository.'
+      }]
+    }]
+  }
+}, {
+  files: ['src/modules/*/*.repository.ts'],
+  rules: {
+    'no-restricted-imports': ['error', {
+      patterns: [{
+        group: ['./*.routes.js', './*.handlers.js', './*.service.js'],
+        message: 'Repository must not import routes, handlers, or service; keep dependency direction route -> handler -> service -> repository.'
+      }]
+    }]
+  }
+}, {
   files: ['src/app.ts', 'src/plugins/**', 'src/lib/**', 'src/events/**', 'src/jobs/**'],
   rules: {
     'no-restricted-imports': ['error', {

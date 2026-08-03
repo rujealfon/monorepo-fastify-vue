@@ -16,7 +16,7 @@ Keep constants, utilities, and types beside their owning module or feature, usin
 
 Avoid `process.env` outside the validated config layer in `apps/api/src/config`.
 
-Follow existing API layering: handlers handle HTTP concerns, services hold business rules, repositories hold Drizzle queries, and schemas define tables plus Zod validators.
+Follow existing API layering: handlers handle HTTP concerns, services hold business rules, repositories hold Drizzle queries, and schemas define tables plus Zod validators. Dependency direction is route → handler → service → repository; ESLint rejects reverse or skip-level imports (e.g. a handler importing a repository, or a service importing a route) within `apps/api/src/modules/<domain>/`.
 
 Use `#api/modules/<domain>` and `@/features/<feature>` for cross-domain imports. Deep imports are private and rejected by ESLint; `apps/api/src/db/schema/index.ts` is the sole exception for composing module-owned Drizzle tables.
 

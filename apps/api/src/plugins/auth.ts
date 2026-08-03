@@ -56,7 +56,7 @@ export default fp(async (fastify) => {
       secure: config.NODE_ENV === 'production'
     })
   })
-})
+}, { name: 'auth-plugin', dependencies: ['sensible-plugin'] })
 
 declare module 'fastify' {
   // eslint-disable-next-line ts/consistent-type-definitions -- interface required for declaration merging
