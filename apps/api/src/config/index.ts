@@ -6,7 +6,9 @@ const envSchema = z.object({
   HOST: z.string().default('0.0.0.0'),
   DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
   JWT_SECRET: z.string().min(32, 'JWT_SECRET must be at least 32 characters'),
-  // CORS_ORIGIN is only needed if the API and web app deploy to separate origins.
+  // The web app's origin (e.g. https://app.mysite.com). API, web, and site deploy as
+  // separate Vercel projects/origins, so the API needs an explicit CORS allowlist.
+  CORS_ORIGIN: z.string().min(1).optional(),
   LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal', 'silent']).default('info'),
   // Backs the rate-limit store through the ioredis client. Required in production
   // because Vercel runs the API as isolated
@@ -19,6 +21,14 @@ const envSchema = z.object({
       code: 'custom',
       path: ['REDIS_URL'],
       message: 'REDIS_URL is required in production for the shared rate-limit store'
+    })
+  }
+
+  if (env.NODE_ENV === 'production' && !env.CORS_ORIGIN) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['CORS_ORIGIN'],
+      message: 'CORS_ORIGIN is required in production since web and API deploy to separate origins'
     })
   }
 })

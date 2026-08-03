@@ -42,29 +42,20 @@ describe('health routes', () => {
     expect(app.hasRoute({ method: 'GET', url: '/openapi.json' })).toBe(false)
   })
 
-  it('serves the web app only for unknown GET routes', async () => {
-    const [webRoute, apiRoute, webMutation] = await Promise.all([
+  it('returns JSON 404 for unknown routes (API deploys separately from web/site)', async () => {
+    const [unknownGet, apiRoute, unknownPost] = await Promise.all([
       app.inject({ method: 'GET', url: '/frontend-route' }),
       app.inject({ method: 'GET', url: '/api/missing' }),
       app.inject({ method: 'POST', url: '/frontend-route' })
     ])
 
-    expect(webRoute.statusCode).toBe(200)
-    expect(webRoute.headers['content-type']).toContain('text/html')
-    expect(webRoute.headers['x-content-type-options']).toBe('nosniff')
-    expect(webRoute.headers['content-security-policy']).toBeDefined()
+    expect(unknownGet.statusCode).toBe(404)
+    expect(unknownGet.json()).toMatchObject({ error: 'Not Found', statusCode: 404 })
+    expect(unknownGet.headers['x-content-type-options']).toBe('nosniff')
+    expect(unknownGet.headers['content-security-policy']).toBeDefined()
     expect(apiRoute.statusCode).toBe(404)
     expect(apiRoute.json()).toMatchObject({ error: 'Not Found', statusCode: 404 })
-    expect(webMutation.statusCode).toBe(404)
-  })
-
-  it('applies security headers to static assets served directly by @fastify/static', async () => {
-    const response = await app.inject({ method: 'GET', url: '/favicon.ico' })
-
-    expect(response.statusCode).toBe(200)
-    expect(response.headers['content-type']).not.toContain('text/html')
-    expect(response.headers['x-content-type-options']).toBe('nosniff')
-    expect(response.headers['content-security-policy']).toBeDefined()
+    expect(unknownPost.statusCode).toBe(404)
   })
 
   it('rate limits readiness but not liveness', async () => {

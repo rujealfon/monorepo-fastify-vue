@@ -11,7 +11,7 @@
   "scripts": {
     "dev": "pnpm run -r --parallel --aggregate-output dev",
     "build": "pnpm run -r build",
-    "build:vercel": "pnpm build && pnpm db:migrate",
+    "build:vercel": "pnpm --filter @monorepo-fastify-vue/api build && pnpm db:migrate",
     "start": "pnpm --filter @monorepo-fastify-vue/api start",
     "test": "pnpm run -r --parallel test",
     "lint": "pnpm run -r --parallel lint",

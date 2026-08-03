@@ -31,8 +31,12 @@ export default fp(async (fastify) => {
     if (request.headers['sec-fetch-site'] === 'cross-site')
       throw fastify.httpErrors.forbidden('Cross-site request rejected')
 
+    // app.mysite.com and api.mysite.com are separate origins but the same registrable
+    // domain, so browsers report sec-fetch-site as 'same-site' (not 'cross-site') for
+    // requests between them — check the origin against the configured web app instead
+    // of an exact host match, which would reject those legitimate requests.
     const origin = request.headers.origin
-    if (origin && origin !== `${request.protocol}://${request.host}`)
+    if (origin && origin !== `${request.protocol}://${request.host}` && origin !== config.CORS_ORIGIN)
       throw fastify.httpErrors.forbidden('Cross-site request rejected')
   })
 

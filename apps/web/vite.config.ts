@@ -6,7 +6,7 @@ import { defineConfig } from 'vite'
 // https://vite.dev/config/
 export default defineConfig({
   build: {
-    outDir: '../../dist',
+    outDir: 'dist',
     emptyOutDir: true
   },
   resolve: {
