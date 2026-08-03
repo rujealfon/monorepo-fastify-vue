@@ -19,6 +19,10 @@ export function buildApp(): FastifyInstance {
   const app = Fastify({
     logger: {
       level: config.LOG_LEVEL,
+      // Defense-in-depth: Fastify's default req/res serializers don't emit headers
+      // or body, so these paths redact nothing today. They guard against future
+      // logging code (custom serializers, explicit request.headers/body logging)
+      // accidentally leaking these fields.
       redact: {
         paths: ['req.headers.cookie', 'req.headers.authorization', 'res.headers["set-cookie"]', 'req.body.password'],
         censor: '[REDACTED]'
