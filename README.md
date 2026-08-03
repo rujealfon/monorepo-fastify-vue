@@ -242,6 +242,8 @@ DATABASE_URL_UNPOOLED=postgresql://USER:PASSWORD@HOST:5432/DATABASE?sslmode=veri
 
 `CORS_ORIGIN` is required in production (validated in `apps/api/src/config`) — it's both the `@fastify/cors` allowlist and the extra origin the `sameOrigin` decorator (`apps/api/src/plugins/auth.ts`) accepts alongside same-host requests.
 
+Use `rediss://` (TLS), not `redis://`, with Upstash — its endpoints enforce TLS ("TLS/SSL: Enabled" in the Upstash console), and `redis://` will fail to connect.
+
 Upstash Redis (and similar providers) issue both a read/write **Token** and a **Readonly Token**. `REDIS_URL` must use the read/write Token — the only Redis consumer today is the `@fastify/rate-limit` store (`apps/api/src/plugins/security.ts`), which increments a counter on every request, so a readonly token would break it. Reach for the readonly token only if a second, read-only Redis consumer gets added later, e.g. a dashboard displaying rate-limit counters, a debug/inspection `redis-cli` session where accidental writes should fail, or a separate service reading data this API writes. No such consumer exists yet.
 
 Fastify's built-in Pino logger writes structured logs to Vercel Runtime Logs. It defaults to `info`; set `LOG_LEVEL=warn` if routine request logs become noisy, and keep `silent` in `.env.test`. Do not log request bodies, cookies, authorization headers, passwords, or tokens. Add a Vercel Drain only when the dashboard's retention is insufficient or external alerting is required.
