@@ -113,14 +113,16 @@ Use separate development and test databases. Configuration is validated in `src/
 
 ## Vercel
 
-Default deployment uses one Vercel project from the repository root. Do not set this package as the Vercel root directory for the default setup.
+Deploys as its own Vercel project with **Root Directory set to the repository root**, not `apps/api` — the Vercel function entry (`api/index.ts`) and `vercel.json` both live at the repo root, outside this package.
 
-Root-level `api/index.ts` forwards Vercel requests to this Fastify app, and `vercel.json` routes `/api/*` through it.
+Root-level `api/index.ts` forwards Vercel requests to this Fastify app, and `vercel.json` routes every request to it.
 
 Required environment variables:
 
 - `DATABASE_URL`
+- `JWT_SECRET`
 - `NODE_ENV=production`
 - `REDIS_URL`
+- `CORS_ORIGIN` — the web app's origin; required in production since web and site deploy as separate Vercel projects/origins
 
-Separate API deployment is possible with Root Directory set to `apps/api`, but it needs its own Vercel function entry and CORS if the web app is hosted on another origin. See the root README before switching to that mode.
+See the root README's Vercel Deployment section for the full three-project (API, web, site) setup.
