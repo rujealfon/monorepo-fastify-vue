@@ -28,15 +28,20 @@ export default fp(async (fastify) => {
   })
 
   fastify.decorate('sameOrigin', async (request: FastifyRequest) => {
-    if (request.headers['sec-fetch-site'] === 'cross-site')
-      throw fastify.httpErrors.forbidden('Cross-site request rejected')
-
     // app.mysite.com and api.mysite.com are separate origins but the same registrable
     // domain, so browsers report sec-fetch-site as 'same-site' (not 'cross-site') for
-    // requests between them — check the origin against the configured web app instead
-    // of an exact host match, which would reject those legitimate requests.
+    // requests between them. On *.vercel.app deployments (on the public suffix list),
+    // every subdomain is its own registrable domain, so the web app calling the API
+    // always reports 'cross-site' even though it's the legitimate frontend — check the
+    // origin against the configured web app allowlist instead of trusting sec-fetch-site
+    // alone, which would reject those legitimate requests.
     const origin = request.headers.origin
-    if (origin && origin !== `${request.protocol}://${request.host}` && origin !== config.CORS_ORIGIN)
+    const isAllowedOrigin = origin === `${request.protocol}://${request.host}` || origin === config.CORS_ORIGIN
+
+    if (request.headers['sec-fetch-site'] === 'cross-site' && !isAllowedOrigin)
+      throw fastify.httpErrors.forbidden('Cross-site request rejected')
+
+    if (origin && !isAllowedOrigin)
       throw fastify.httpErrors.forbidden('Cross-site request rejected')
   })
 

@@ -23,7 +23,7 @@ export default fp(async (fastify) => {
   // Backing it with Redis when configured makes the limit (including the health/ready
   // DB probe) hold across instances.
   const redis = config.REDIS_URL
-    ? new Redis(config.REDIS_URL, { connectTimeout: 500, maxRetriesPerRequest: 1 })
+    ? new Redis(config.REDIS_URL, { connectTimeout: 2000, maxRetriesPerRequest: 1 })
     : undefined
 
   if (redis) {
