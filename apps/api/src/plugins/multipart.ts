@@ -10,4 +10,4 @@ export default fp(async (fastify) => {
       fieldSize: 1024 * 1024 // 1 MB per non-file field
     }
   })
-})
+}, { name: 'multipart-plugin' })

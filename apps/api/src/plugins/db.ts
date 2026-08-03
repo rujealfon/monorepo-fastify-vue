@@ -8,7 +8,7 @@ export default fp(async (fastify) => {
   fastify.addHook('onClose', async () => {
     await db.$client.end()
   })
-})
+}, { name: 'db-plugin' })
 
 declare module 'fastify' {
   // eslint-disable-next-line ts/consistent-type-definitions -- interface required for declaration merging

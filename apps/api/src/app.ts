@@ -17,7 +17,17 @@ import sensiblePlugin from './plugins/sensible.js'
 
 export function buildApp(): FastifyInstance {
   const app = Fastify({
-    logger: { level: config.LOG_LEVEL },
+    logger: {
+      level: config.LOG_LEVEL,
+      // Defense-in-depth: Fastify's default req/res serializers don't emit headers
+      // or body, so these paths redact nothing today. They guard against future
+      // logging code (custom serializers, explicit request.headers/body logging)
+      // accidentally leaking these fields.
+      redact: {
+        paths: ['req.headers.cookie', 'req.headers.authorization', 'res.headers["set-cookie"]', 'req.body.password'],
+        censor: '[REDACTED]'
+      }
+    },
     // Vercel's edge is the only reverse proxy in front of the API in production,
     // so trust exactly one hop. Other environments (e.g. docker-compose) expose
     // the API directly, so X-Forwarded-* headers must not be trusted there.
@@ -42,6 +52,14 @@ export function buildApp(): FastifyInstance {
   app.register(securityPlugin)
   app.register(errorHandlerPlugin)
   app.register(modules)
+
+  app.setNotFoundHandler((request, reply) => {
+    reply.code(404).send({
+      statusCode: 404,
+      error: 'Not Found',
+      message: `Route ${request.method}:${request.url} not found`
+    })
+  })
 
   return app
 }

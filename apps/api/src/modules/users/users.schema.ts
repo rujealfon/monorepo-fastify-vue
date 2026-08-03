@@ -23,7 +23,7 @@ export const profiles = pgTable('profiles', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date())
 })
 
-const emailSchema = z.string().trim().toLowerCase().max(254).email()
+const emailSchema = z.string().trim().toLowerCase().max(254).check(z.email())
 const nameSchema = z.string().trim().min(1).max(100).nullable()
 const birthDateSchema = z.iso.date().nullable()
 

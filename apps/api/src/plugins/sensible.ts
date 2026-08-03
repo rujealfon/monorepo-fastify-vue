@@ -3,4 +3,4 @@ import fp from 'fastify-plugin'
 
 export default fp(async (fastify) => {
   await fastify.register(sensible)
-})
+}, { name: 'sensible-plugin' })

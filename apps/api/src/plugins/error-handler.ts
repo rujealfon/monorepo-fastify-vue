@@ -32,4 +32,4 @@ const errorHandler: FastifyPluginAsync = async (app) => {
   })
 }
 
-export default fp(errorHandler)
+export default fp(errorHandler, { name: 'error-handler-plugin' })

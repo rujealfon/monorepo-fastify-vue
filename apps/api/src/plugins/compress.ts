@@ -9,4 +9,4 @@ export default fp(async (fastify) => {
   // If a future endpoint echoes a secret into JSON next to user-controlled input, exclude
   // that route from compression rather than relying on this being globally true.
   await fastify.register(compress)
-})
+}, { name: 'compress-plugin' })

@@ -16,4 +16,4 @@ export default fp(async (fastify) => {
 
   if (config.NODE_ENV === 'development')
     await fastify.register(scalar, { routePrefix: '/' })
-})
+}, { name: 'openapi-plugin' })
