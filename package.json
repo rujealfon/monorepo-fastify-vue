@@ -18,7 +18,7 @@
     "lint:fix": "pnpm run -r --parallel lint:fix",
     "prepare": "husky",
     "clean:deps": "rm -rf node_modules apps/web/node_modules apps/api/node_modules apps/site/node_modules",
-    "clean:dist": "rm -rf dist apps/api/dist apps/site/.output",
+    "clean:dist": "rm -rf apps/web/dist apps/api/dist apps/site/.output",
     "clean": "pnpm run clean:deps && pnpm run clean:dist",
     "openapi:generate": "pnpm --filter @monorepo-fastify-vue/api openapi:generate",
     "types:generate": "pnpm --filter @monorepo-fastify-vue/api-client types:generate",

@@ -7,7 +7,7 @@ A pnpm workspace with a Fastify API backed by PostgreSQL and Redis, a Vue / Vite
 - Run tasks in parallel across apps / packages with pnpm
 - Fastify API [proxied with Vite](./apps/web/vite.config.ts) during development
 - Separate Nuxt 4 site generated as static files with Nuxt UI
-- Single-project Vercel deployment: Vue is built to `dist/`, and `/api/*` is handled by Fastify through a Vercel function
+- Three independent Vercel projects (API, web, site), each on its own subdomain, communicating cross-origin
 - OpenAPI spec generated from the same Zod schemas via `fastify-type-provider-zod`, with Scalar at `/` in development
 - Module-owned Zod validators with drizzle-zod
 - Shared ESLint config
@@ -48,7 +48,7 @@ A pnpm workspace with a Fastify API backed by PostgreSQL and Redis, a Vue / Vite
 
 ```
 .
-├── api/             # Vercel serverless entry for the one-project deploy
+├── api/             # Vercel serverless entry for the API project
 ├── apps/
 │   ├── api/          # Fastify REST API (Node.js)
 │   ├── site/         # Nuxt public site (statically generated)
@@ -186,28 +186,41 @@ This builds the API and Vue application and generates the Nuxt site in `apps/sit
 
 ## Vercel Deployment
 
-The Nuxt site is an independent static deployment. Create a Vercel project with `apps/site` as its Root Directory; its checked-in `vercel.json` runs `pnpm build` and publishes `.output/public`.
+Each app deploys as its own Vercel project, typically on subdomains of one registrable domain, e.g.:
 
-The deployment options below describe the Vue application and Fastify API:
+```text
+https://app.example.com   -> web  (apps/web)
+https://api.example.com   -> api  (repository root)
+https://example.com       -> site (apps/site)
+```
 
-There are two valid deployment shapes:
+Because `app.example.com` and `api.example.com` share the registrable domain `example.com`, browsers treat them as **same-site** (not cross-site) even though they're different origins — the session cookie's `SameSite=Strict` still gets sent between them. Cross-origin (different-origin) browser requests still need explicit CORS.
 
-- **One Vercel project**: current repo default. Vue and Fastify share one origin.
-- **Two Vercel projects**: optional. Vue and Fastify deploy separately and communicate cross-origin.
-
-### Option 1: one Vercel project
-
-Project settings:
+### API project
 
 ```text
 Framework Preset: Other
-Root Directory: .
+Root Directory: . (repository root)
 Build Command: pnpm build:vercel
-Output Directory: dist
+Output Directory: public
 Install Command: pnpm install
 ```
 
-If Vercel does not accept `.` as the root directory, clear the Root Directory field.
+If Vercel does not accept `.` as the Root Directory, clear the field instead — both mean repository root.
+
+The API has no static frontend, so `Output Directory` points at the checked-in empty `public/` directory purely to satisfy Vercel's build-output check; it plays no role in routing. Routing works like this:
+
+- Root `vercel.json` rewrites every request to `/api?path=$1`
+- Root `api/index.ts` is the single Vercel function; it reconstructs the original path from the `path` query param and hands it to Fastify's `buildApp()`
+- Fastify handles `/api/v1/*` routes and returns its own JSON 404 for anything else
+
+`pnpm build:vercel` runs:
+
+```sh
+pnpm --filter @monorepo-fastify-vue/api build && pnpm db:migrate
+```
+
+Generate migration files locally with `pnpm db:generate`, commit them, and let Vercel apply them during deployment with its dashboard `DATABASE_URL`.
 
 Required environment variables:
 
@@ -216,94 +229,32 @@ DATABASE_URL=postgresql://USER:PASSWORD@HOST:5432/DATABASE?sslmode=require
 JWT_SECRET=replace-with-a-random-secret-of-at-least-32-characters
 NODE_ENV=production
 REDIS_URL=rediss://default:PASSWORD@HOST:6379
+CORS_ORIGIN=https://app.example.com
 ```
 
-`pnpm build:vercel` runs:
-
-```sh
-pnpm build && pnpm db:migrate
-```
-
-Generate migration files locally with `pnpm db:generate`, commit them, and let Vercel apply them during deployment with its dashboard `DATABASE_URL`.
+`CORS_ORIGIN` is required in production (validated in `apps/api/src/config`) — it's both the `@fastify/cors` allowlist and the extra origin the `sameOrigin` decorator (`apps/api/src/plugins/auth.ts`) accepts alongside same-host requests.
 
 Fastify's built-in Pino logger writes structured logs to Vercel Runtime Logs. It defaults to `info`; set `LOG_LEVEL=warn` if routine request logs become noisy, and keep `silent` in `.env.test`. Do not log request bodies, cookies, authorization headers, passwords, or tokens. Add a Vercel Drain only when the dashboard's retention is insufficient or external alerting is required.
 
-How routing works:
-
-- `apps/web` builds the Vue app to root `dist/`
-- root `vercel.json` sends all requests to `api/index.ts`
-- `api/index.ts` forwards the request to Fastify
-- Fastify serves `dist/index.html` for frontend routes and handles `/api/*`
-
-No `VITE_API_BASE_URL` or CORS setting is needed because browser requests use the same origin:
-
-```text
-/                -> Vue app
-/login           -> Vue app
-/api/v1/profile  -> Fastify API
-/                -> Scalar API reference in development; Vue app in production
-```
-
-### Option 2: separate API and web projects
-
-Use this only if you want independent deployments, domains, or scaling for API and web.
-
-Separate projects do not have to mean cross-origin browser requests. The recommended setup keeps `/api/*` on the web origin and proxies those requests to the separately deployed API:
-
-```text
-Browser -> https://app.example.com/api/* -> https://api-provider.example/*
-```
-
-Configure the web host with a rewrite or reverse proxy for `/api/*` and leave `VITE_API_BASE_URL` unset. The browser continues to use the existing HTTP-only, `SameSite=Strict` session cookie, while web and API remain independently deployable. Confirm that the proxy forwards `Cookie`, `Set-Cookie`, `Origin`, and the original host/protocol headers.
-
-API project settings:
-
-```text
-Root Directory: apps/api
-Build Command: pnpm build
-```
-
-The current Vercel function entry is at the repository root for Option 1. Before using `apps/api` as an independent Vercel root, add an API-local function handler that creates the Fastify app with `buildApp()`, and route `/api/*` to it. Run committed Drizzle migrations as a separate deployment step against the API project's database.
-
-API environment variables:
-
-```env
-DATABASE_URL=postgresql://USER:PASSWORD@HOST:5432/DATABASE?sslmode=require
-JWT_SECRET=replace-with-a-random-secret-of-at-least-32-characters
-NODE_ENV=production
-```
-
-Web project settings:
+### Web project
 
 ```text
 Root Directory: apps/web
 Build Command: pnpm build
 Output Directory: dist
+Install Command: pnpm install
 ```
 
-No web environment variable is needed when `/api/*` is proxied through the web origin.
-
-#### Direct requests between unrelated domains
-
-If the browser must call the API domain directly, for example from `https://app.example.com` to `https://api.example.net`, set:
+Enable "Include files outside the Root Directory in the Build Step" — the web app depends on the pnpm workspace root (lockfile, hoisted `node_modules`, `packages/api-client`).
 
 ```env
-# Web project
-VITE_API_BASE_URL=https://your-api-project.vercel.app
-
-# API project
-CORS_ORIGIN=https://your-web-project.vercel.app
+VITE_API_BASE_URL=https://api.example.com
 ```
 
-This mode is not enabled by the current code. It requires all of these changes:
+### Site project
 
-- Register `@fastify/cors` with the exact `CORS_ORIGIN` and `credentials: true`; never use `*` with credentials.
-- Create the API client with `credentials: 'include'`, otherwise cross-origin requests neither send cookies nor accept `Set-Cookie`.
-- Change the session cookie to `HttpOnly; Secure; SameSite=None; Path=/`. Do not set `Domain`; the cookie belongs to the API host.
-- Change the unsafe-request check to accept only the configured web `Origin`. A legitimate request is cross-site in this setup, so it cannot reject every `Sec-Fetch-Site: cross-site` request.
-- Serve both projects over HTTPS.
-- Build the web app to `apps/web/dist` instead of the root `dist`.
+Create a Vercel project with `apps/site` as its Root Directory; its checked-in `vercel.json` runs `pnpm build` and publishes `.output/public`. No environment variables required.
 
-Credentialed CORS only permits the request; it does not override browser privacy rules. Safari blocks third-party cookies by default, and other browsers or user settings may do the same. A cross-site HTTP-only cookie can therefore fail even when CORS and `SameSite=None` are configured correctly. See [MDN's credentialed CORS guidance](https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/CORS#credentialed_requests_and_wildcards) and [WebKit's tracking-prevention policy](https://webkit.org/tracking-prevention/).
+### Direct requests between unrelated domains
 
-Prefer the same-origin proxy above unless direct cross-domain browser access is a firm requirement. If third-party cookies must work reliably across unrelated domains, add a backend-for-frontend on the web origin or move to an OAuth authorization-code flow instead of storing tokens in browser storage.
+The setup above assumes web and API share a registrable domain (subdomains of the same site), so `SameSite=Strict` keeps working. If the API and web instead live on genuinely unrelated domains (e.g. `app.example.com` calling `api.example.net`), the session cookie needs `SameSite=None; Secure` instead of `Strict`, and Safari/other browsers may still block it as a third-party cookie by default even with CORS configured correctly. See [MDN's credentialed CORS guidance](https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/CORS#credentialed_requests_and_wildcards) and [WebKit's tracking-prevention policy](https://webkit.org/tracking-prevention/). Prefer subdomains of one registrable domain unless unrelated domains are a firm requirement.
