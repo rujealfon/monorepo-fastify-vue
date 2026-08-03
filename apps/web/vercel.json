@@ -1,4 +1,10 @@
 {
   "buildCommand": "pnpm --filter @monorepo-fastify-vue/api-client build && pnpm build",
-  "outputDirectory": "dist"
+  "outputDirectory": "dist",
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "https://monorepo-fastify-vue-api.vercel.app/api/$1"
+    }
+  ]
 }
