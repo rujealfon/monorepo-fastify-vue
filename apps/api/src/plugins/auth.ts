@@ -52,7 +52,10 @@ export default fp(async (fastify) => {
       httpOnly: true,
       maxAge: SESSION_SECONDS,
       path: '/',
-      sameSite: 'strict',
+      // web app and API deploy to separate *.vercel.app subdomains, which the public
+      // suffix list treats as cross-site — SameSite=Strict/Lax would silently drop the
+      // cookie on every fetch, so cross-site cookies require SameSite=None (+ Secure).
+      sameSite: config.NODE_ENV === 'production' ? 'none' : 'strict',
       secure: config.NODE_ENV === 'production'
     })
   })
