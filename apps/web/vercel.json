@@ -1,5 +1,5 @@
 {
-  "buildCommand": "pnpm --filter @monorepo-fastify-vue/api-client build && pnpm build",
+  "buildCommand": "pnpm build",
   "outputDirectory": "dist",
   "rewrites": [
     {

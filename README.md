@@ -220,19 +220,31 @@ The API has no static frontend, so `Output Directory` points at the checked-in e
 pnpm --filter @monorepo-fastify-vue/api build && pnpm db:migrate
 ```
 
-Generate migration files locally with `pnpm db:generate`, commit them, and let Vercel apply them during deployment with its dashboard `DATABASE_URL`.
+Generate migration files locally with `pnpm db:generate`, commit them, and let Vercel apply them during deployment.
 
 Required environment variables:
 
 ```env
-DATABASE_URL=postgresql://USER:PASSWORD@HOST:5432/DATABASE?sslmode=require
+DATABASE_URL=postgresql://USER:PASSWORD@HOST:5432/DATABASE?sslmode=verify-full
 JWT_SECRET=replace-with-a-random-secret-of-at-least-32-characters
 NODE_ENV=production
 REDIS_URL=rediss://default:PASSWORD@HOST:6379
 CORS_ORIGIN=https://app.example.com
 ```
 
+If `DATABASE_URL` is a pooled (PgBouncer) endpoint — e.g. Neon's default pooled connection string — also set:
+
+```env
+DATABASE_URL_UNPOOLED=postgresql://USER:PASSWORD@HOST:5432/DATABASE?sslmode=verify-full
+```
+
+`pnpm db:migrate` (part of `build:vercel`) takes a session-scoped Postgres advisory lock, which transaction-mode PgBouncer doesn't support — `apps/api/drizzle.config.ts` uses `DATABASE_URL_UNPOOLED` for migrations when it's set, falling back to `DATABASE_URL` otherwise. Runtime queries always use `DATABASE_URL` (pooled is preferred there — Vercel's serverless functions open many short-lived concurrent connections, which a direct Postgres connection limit can't absorb). Get both connection strings from Neon's connection dialog by toggling "Connection pooling" on/off.
+
 `CORS_ORIGIN` is required in production (validated in `apps/api/src/config`) — it's both the `@fastify/cors` allowlist and the extra origin the `sameOrigin` decorator (`apps/api/src/plugins/auth.ts`) accepts alongside same-host requests.
+
+Use `rediss://` (TLS), not `redis://`, with Upstash — its endpoints enforce TLS ("TLS/SSL: Enabled" in the Upstash console), and `redis://` will fail to connect.
+
+Upstash Redis (and similar providers) issue both a read/write **Token** and a **Readonly Token**. `REDIS_URL` must use the read/write Token — the only Redis consumer today is the `@fastify/rate-limit` store (`apps/api/src/plugins/security.ts`), which increments a counter on every request, so a readonly token would break it. Reach for the readonly token only if a second, read-only Redis consumer gets added later, e.g. a dashboard displaying rate-limit counters, a debug/inspection `redis-cli` session where accidental writes should fail, or a separate service reading data this API writes. No such consumer exists yet.
 
 Fastify's built-in Pino logger writes structured logs to Vercel Runtime Logs. It defaults to `info`; set `LOG_LEVEL=warn` if routine request logs become noisy, and keep `silent` in `.env.test`. Do not log request bodies, cookies, authorization headers, passwords, or tokens. Add a Vercel Drain only when the dashboard's retention is insufficient or external alerting is required.
 
@@ -247,9 +259,7 @@ Install Command: pnpm install
 
 Enable "Include files outside the Root Directory in the Build Step" — the web app depends on the pnpm workspace root (lockfile, hoisted `node_modules`, `packages/api-client`).
 
-```env
-VITE_API_BASE_URL=https://api.example.com
-```
+No `VITE_API_BASE_URL` (or any API URL env var) is needed. `apps/web/vercel.json` rewrites `/api/*` to the API project's URL, so the browser always calls the web app's own origin — matching what `vite.config.ts`'s dev server proxy already does locally. This keeps every request same-origin regardless of whether web and API end up on unrelated domains, so update the `destination` in `apps/web/vercel.json` if the API project's URL changes.
 
 ### Site project
 
@@ -257,4 +267,6 @@ Create a Vercel project with `apps/site` as its Root Directory; its checked-in `
 
 ### Direct requests between unrelated domains
 
-The setup above assumes web and API share a registrable domain (subdomains of the same site), so `SameSite=Strict` keeps working. If the API and web instead live on genuinely unrelated domains (e.g. `app.example.com` calling `api.example.net`), the session cookie needs `SameSite=None; Secure` instead of `Strict`, and Safari/other browsers may still block it as a third-party cookie by default even with CORS configured correctly. See [MDN's credentialed CORS guidance](https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/CORS#credentialed_requests_and_wildcards) and [WebKit's tracking-prevention policy](https://webkit.org/tracking-prevention/). Prefer subdomains of one registrable domain unless unrelated domains are a firm requirement.
+The setup above assumes web and API share a registrable domain (subdomains of the same site), so `SameSite=Strict` keeps working. If the API and web instead live on genuinely unrelated domains (e.g. `app.example.com` calling `api.example.net`), the session cookie needs `SameSite=None; Secure` instead of `Strict` — and Safari/Chrome may still block it as a third-party cookie by default even with CORS configured correctly, since third-party cookie blocking is enforced independently of `SameSite`. See [MDN's credentialed CORS guidance](https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/CORS#credentialed_requests_and_wildcards) and [WebKit's tracking-prevention policy](https://webkit.org/tracking-prevention/).
+
+Bare `*.vercel.app` project URLs fall into this same bucket even though they look like subdomains of one site: `vercel.app` is on the [Public Suffix List](https://publicsuffix.org/), so browsers treat each `<project>.vercel.app` as its own registrable domain (`sec-fetch-site: cross-site`, not `same-site`). Don't reach for `SameSite=None` there — it depends on third-party cookies being allowed, which is exactly the setting Chrome and Safari are phasing out. Use the same-origin rewrite proxy described above (`apps/web/vercel.json`) instead; it works regardless of custom domains and needs no cookie relaxation at all. Reserve `SameSite=None` for cases where a rewrite proxy genuinely isn't an option.
