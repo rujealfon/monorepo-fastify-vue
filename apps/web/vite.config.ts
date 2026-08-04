@@ -3,22 +3,21 @@ import path from 'node:path'
 import ui from '@nuxt/ui/vite'
 import vue from '@vitejs/plugin-vue'
 import { defineConfig } from 'vite'
-import mkcert from 'vite-plugin-mkcert'
 
-// vite-plugin-mkcert always folds every locally-detected network IP into its
-// host list, and a container's bridge IP changes on every restart, so calling
-// it unconditionally forces a `mkcert -install` regenerate on every container
-// start (which also fails on Alpine without ca-certificates, and only trusts
-// the CA inside that ephemeral container anyway). Reuse the cert directly once
-// it exists -- shared with site (apps/site/nuxt.config.ts) and api
-// (apps/api/src/app.ts) via the repo-root .certs/ dir (gitignored: it holds a
-// private key, and it's a bind-mount target, so it can't live under $HOME --
-// that env var isn't portable to native Windows) -- and only fall back to the
-// plugin to provision it the first time.
-const mkcertDir = path.resolve(import.meta.dirname, '../../.certs')
-const mkcertKey = path.join(mkcertDir, 'dev.pem')
-const mkcertCert = path.join(mkcertDir, 'cert.pem')
-const hasMkcert = existsSync(mkcertKey) && existsSync(mkcertCert)
+// Only ever *reads* the leaf cert; minting is `pnpm generate:certificates`
+// (apps/web/scripts/generate-certs.mjs), which keeps the CA root out of this
+// dir. Nothing here may provision a cert on the fly: vite-plugin-mkcert folds
+// every locally-detected network IP into its host list, so in a container --
+// whose bridge IP changes on every restart -- it would regenerate on each
+// start, and the CA it installs is only trusted inside that ephemeral
+// container anyway. The leaf pair is shared with site (apps/site/nuxt.config.ts)
+// and api (apps/api/src/app.ts) through the repo-root .certs/ dir (gitignored:
+// it holds a private key; repo-relative because docker-compose bind-mounts it,
+// and compose does not expand "~"). Falls back to HTTP until the cert exists.
+const certDir = path.resolve(import.meta.dirname, '../../.certs')
+const certKey = path.join(certDir, 'dev.pem')
+const certFile = path.join(certDir, 'cert.pem')
+const hasCert = existsSync(certKey) && existsSync(certFile)
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -37,21 +36,20 @@ export default defineConfig({
   },
   plugins: [
     vue(),
-    ui(),
-    ...(hasMkcert ? [] : [mkcert({ savePath: mkcertDir })])
+    ui()
   ],
   server: {
-    https: hasMkcert
-      ? { key: readFileSync(mkcertKey), cert: readFileSync(mkcertCert) }
+    https: hasCert
+      ? { key: readFileSync(certKey), cert: readFileSync(certFile) }
       : undefined,
     proxy: {
       // Development stays same-origin; Vite forwards API calls to the API container.
       // The api dev server serves HTTPS-only once .certs/ exists (mirrors this
-      // server's own hasMkcert check), and its cert doesn't cover docker's
+      // server's own hasCert check), and its cert doesn't cover docker's
       // internal 'api' hostname (only localhost/127.0.0.1), so verification is
       // skipped for this internal-only hop.
       '/api': {
-        target: process.env.API_PROXY_URL ?? (hasMkcert ? 'https://localhost:3000' : 'http://localhost:3000'),
+        target: process.env.API_PROXY_URL ?? (hasCert ? 'https://localhost:3000' : 'http://localhost:3000'),
         changeOrigin: false,
         secure: false
       }

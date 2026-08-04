@@ -8,18 +8,22 @@ services:
     # API_PROXY_URL is set at container startup (see apps/web/Dockerfile's
     # development CMD), not hardcoded here -- it must match whether api is
     # actually serving HTTPS or HTTP at that moment (see apps/api/src/app.ts),
-    # which depends on whether .certs/ exists yet on a given clone. The
-    # proxy itself (vite.config.ts) sets secure: false for this hop regardless,
-    # since the cert doesn't cover the 'api' hostname anyway.
+    # which depends on whether the cert was minted before the containers were
+    # created. The proxy itself (vite.config.ts) sets secure: false for this hop
+    # regardless, since the cert doesn't cover the 'api' hostname anyway.
     ports:
       - '5173:5173'
     volumes:
       - ./apps/web/src:/app/apps/web/src
-      # Reuses the repo's locally-trusted mkcert CA (gitignored, holds a
-      # private key -- see .gitignore) instead of generating a new one inside
-      # the container -- see vite.config.ts. Requires having run a dev server
-      # on the host (or this container) at least once so .certs/ exists.
-      - ./.certs:/app/.certs
+      # Leaf cert only, read-only, mounted file-by-file rather than as a
+      # directory: the CA root that signs it (rootCA-key.pem) lives outside the
+      # repo in ~/.vite-plugin-mkcert and must never reach a container -- it can
+      # mint certs the host browser trusts for ANY domain. Run
+      # `pnpm generate:certificates` on the host first (docker:up / docker:rebuild
+      # do it for you); until then these files don't exist and the container
+      # serves HTTP. See "Local HTTPS certs" in DOCKER.md.
+      - ./.certs/dev.pem:/app/.certs/dev.pem:ro
+      - ./.certs/cert.pem:/app/.certs/cert.pem:ro
     depends_on:
       - api
 
@@ -40,8 +44,9 @@ services:
       - '3000:3000'
     volumes:
       - ./apps/api/src:/app/apps/api/src
-      # Same cert as web/site (see apps/api/src/app.ts).
-      - ./.certs:/app/.certs
+      # Same leaf-only, read-only pair as web/site (see apps/api/src/app.ts).
+      - ./.certs/dev.pem:/app/.certs/dev.pem:ro
+      - ./.certs/cert.pem:/app/.certs/cert.pem:ro
     depends_on:
       postgres:
         condition: service_healthy
@@ -60,15 +65,9 @@ services:
       - '8080:8080'
     volumes:
       - ./apps/site/app:/app/apps/site/app
-      # Same cert as web (see apps/site/nuxt.config.ts).
-      - ./.certs:/app/.certs
-    depends_on:
-      # Advisory only: nuxt.config.ts checks .certs/ once at config load, and
-      # `depends_on` only waits for web's container to *start*, not for web to
-      # actually finish minting the cert -- so this narrows, but doesn't
-      # close, the window where site starts HTTP-only on a fresh clone. See
-      # "Local HTTPS certs" in DOCKER.md.
-      - web
+      # Same leaf-only, read-only pair as web (see apps/site/nuxt.config.ts).
+      - ./.certs/dev.pem:/app/.certs/dev.pem:ro
+      - ./.certs/cert.pem:/app/.certs/cert.pem:ro
 
   postgres:
     image: postgres:18-alpine

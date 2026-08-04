@@ -1,9 +1,6 @@
 FROM node:24.18.0-alpine AS base
 
 RUN corepack enable && corepack prepare pnpm@latest --activate
-# vite-plugin-mkcert's `mkcert -install` shells out to update-ca-certificates
-# when it needs to provision a cert from scratch (see vite.config.ts).
-RUN apk add --no-cache ca-certificates
 
 WORKDIR /app
 
@@ -29,8 +26,8 @@ EXPOSE 80
 # --- Development ---
 FROM base AS development
 EXPOSE 5173
-# api (see apps/api/src/app.ts) serves HTTPS only once .certs/ exists at its
-# own startup -- the exact same bind-mounted dir checked here -- so mirror
+# api (see apps/api/src/app.ts) serves HTTPS only once the cert exists at its
+# own startup -- the exact same bind-mounted files checked here -- so mirror
 # that check to pick a scheme that always matches what api is actually
 # serving instead of hardcoding one (see docker-compose.yml).
 CMD ["sh", "-c", "if [ -f /app/.certs/dev.pem ] && [ -f /app/.certs/cert.pem ]; then export API_PROXY_URL=https://api:3000; else export API_PROXY_URL=http://api:3000; fi; exec pnpm --filter @monorepo-fastify-vue/web exec vite --host 0.0.0.0"]
