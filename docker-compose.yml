@@ -37,7 +37,7 @@ services:
       - ./apps/api/.env
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-app}:${POSTGRES_PASSWORD:?Run pnpm docker:up to create a local Docker credential}@postgres:5432/${POSTGRES_DB:-monorepo_fastify_vue}
-      TEST_DATABASE_URL: postgresql://${POSTGRES_USER:-app}:${POSTGRES_PASSWORD:?Run pnpm docker:up to create a local Docker credential}@postgres:5432/monorepo_fastify_vue_test
+      TEST_DATABASE_URL: postgresql://${POSTGRES_USER:-app}:${POSTGRES_PASSWORD:?Run pnpm docker:up to create a local Docker credential}@postgres:5432/${POSTGRES_DB:-monorepo_fastify_vue}_test
       REDIS_URL: redis://redis:6379
       PORT: 3000
       NODE_ENV: development

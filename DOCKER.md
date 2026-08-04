@@ -61,6 +61,8 @@ pnpm docker:up
 
 Both create an ignored root `.env` with a random per-developer PostgreSQL password and mint the local HTTPS cert if needed. The plain `docker compose up --build` / `docker compose up` equivalents work too, but only after running `bash scripts/ensure-docker-env.sh` and `pnpm generate:certificates` at least once.
 
+The first time `POSTGRES_DB` isn't yet set in the root `.env`, `ensure-docker-env.sh` prompts for a database name (`Postgres database name [monorepo_fastify_vue]:`) when run from an interactive terminal — press Enter to accept the default, or type a name using letters, digits, and underscores. To skip the prompt, either pass it on the command line (`POSTGRES_DB=acme_app pnpm docker:up`) or run non-interactively (CI, piped input), where the default is used automatically. Once `POSTGRES_DB` exists in `.env`, every later `docker:up`, `docker:reset`, or `docker:rebuild*` run reuses it silently; edit `.env` directly to change it afterward, then run `pnpm docker:reset` if the Postgres volume already exists (see below).
+
 On a fresh clone, the same pre-Docker script also creates `apps/api/.env` and
 `apps/api/.env.test` from their example files, replaces the checked-in JWT
 placeholders with random secrets, and configures their host-facing database
@@ -73,6 +75,13 @@ DATABASE_URL=postgresql://<POSTGRES_USER>:<POSTGRES_PASSWORD>@localhost:5433/mon
 # apps/api/.env.test
 DATABASE_URL=postgresql://<POSTGRES_USER>:<POSTGRES_PASSWORD>@localhost:5433/monorepo_fastify_vue_test
 ```
+
+Both database names derive from `POSTGRES_DB` in the root `.env`: the
+development database uses that value verbatim and the test database appends a
+`_test` suffix. Overriding `POSTGRES_DB` therefore renames both consistently,
+and the Postgres init script, Compose's `TEST_DATABASE_URL`, and the test-only
+guards in `apps/api/vitest.setup.ts` and `apps/api/drizzle.test.config.ts` all
+follow that convention. The examples above show the default `POSTGRES_DB` value.
 
 Compose overrides these URLs with container-network addresses for services
 running in Docker. Host-run commands such as `pnpm test` still read
@@ -91,7 +100,7 @@ Once the `api` service is running, apply migrations in a new terminal:
 pnpm docker:db:migrate
 ```
 
-The Postgres container also auto-creates a `monorepo_fastify_vue_test` database on first boot (via `docker/postgres-init`, mounted at `/docker-entrypoint-initdb.d`). Apply migrations to it separately before running tests:
+The Postgres container also auto-creates a `<POSTGRES_DB>_test` database (`monorepo_fastify_vue_test` by default) on first boot (via `docker/postgres-init`, mounted at `/docker-entrypoint-initdb.d`). Because that init script runs only when the data volume is empty, changing `POSTGRES_DB` on an existing checkout requires `pnpm docker:reset` to recreate the volume. Apply migrations to the test database separately before running tests:
 
 ```bash
 pnpm docker:db:migrate:test
@@ -118,7 +127,7 @@ Run pgAdmin outside Docker, then register the Docker PostgreSQL server:
 | -------- | -------------------- |
 | Host     | localhost            |
 | Port     | 5433                 |
-| Database | monorepo_fastify_vue |
+| Database | Value of `POSTGRES_DB` in the root `.env` (`monorepo_fastify_vue` by default) |
 | Username | Value of `POSTGRES_USER` in the root `.env` |
 | Password | Value of `POSTGRES_PASSWORD` in the root `.env` |
 
@@ -153,7 +162,7 @@ Compose declares only Docker-specific overrides under `environment`:
 | Variable            | Value                                                         | Description                                              |
 | ------------------- | ------------------------------------------------------------- | -------------------------------------------------------- |
 | `DATABASE_URL`      | Constructed from the root `.env` PostgreSQL values             | PostgreSQL connection string (container-network address) |
-| `TEST_DATABASE_URL` | Same credential, targeting `monorepo_fastify_vue_test`         | Test migration connection string                        |
+| `TEST_DATABASE_URL` | Same credential, targeting `<POSTGRES_DB>_test`                | Test migration connection string                        |
 | `REDIS_URL`         | `redis://redis:6379`                                           | Redis connection string (container-network address)      |
 
 Values under `environment` take precedence over matching values from `env_file`. This lets the same `.env` use host addresses when the API runs directly while Compose replaces them with container-network addresses. See the [Docker Compose `environment` documentation](https://docs.docker.com/reference/compose-file/services/#environment).
@@ -238,7 +247,7 @@ docker compose up site
 
 ## Database migrations
 
-Always use `pnpm docker:db:migrate` for the development database when developing locally with Docker. Use `pnpm docker:db:migrate:test` for the Docker-hosted `monorepo_fastify_vue_test` database before running tests after migrations change. The non-Docker `pnpm db:migrate` and `pnpm db:migrate:test` commands are for environments whose database URLs are available directly from the host.
+Always use `pnpm docker:db:migrate` for the development database when developing locally with Docker. Use `pnpm docker:db:migrate:test` for the Docker-hosted `<POSTGRES_DB>_test` database before running tests after migrations change. The non-Docker `pnpm db:migrate` and `pnpm db:migrate:test` commands are for environments whose database URLs are available directly from the host.
 
 `pnpm docker:reset` removes the PostgreSQL volume, rebuilds every service, and migrates both the development and test databases. Use it only when discarding local database data is intended.
 
