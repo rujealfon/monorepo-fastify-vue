@@ -44,6 +44,14 @@ A pnpm workspace with a Fastify API backed by PostgreSQL and Redis, a Vue / Vite
 - ESLint with `@antfu/eslint-config`
 - Vitest
 
+**planned**
+
+- [Upstash QStash](https://upstash.com/docs/qstash) — background jobs / scheduled and delayed tasks, message queue for the serverless API
+- [Cloudflare R2](https://developers.cloudflare.com/r2/) — object storage (file/image uploads), S3-compatible with no egress fees
+- [Resend](https://resend.com/docs) — transactional email (verification, password reset, notifications)
+
+Not yet integrated; noted here so future work builds toward these choices instead of picking ad hoc alternatives.
+
 ## Project Structure
 
 ```
