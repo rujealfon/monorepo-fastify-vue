@@ -64,6 +64,8 @@ export default fp(async (fastify) => {
     // Each login intentionally creates an independent device session. Do not
     // delete other live rows here unless product policy becomes single-session-per-user.
     const session = await fastify.db.transaction(async (tx) => {
+      // This global sweep is intentionally simple for the current scale. Move it
+      // to a scheduled or batched job if concurrent logins cause lock contention.
       await tx.delete(sessions).where(lte(sessions.expiresAt, now))
 
       const [createdSession] = await tx
