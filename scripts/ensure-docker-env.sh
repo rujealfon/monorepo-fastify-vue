@@ -84,12 +84,10 @@ ensure_private_jwt_secret() {
 
 is_docker_host_database_url() {
   local value="$1"
-  local database="$2"
   local value_without_query
 
   value_without_query="${value%%\?*}"
-  [[ "$value_without_query" =~ ^postgres(ql)?://.*@(localhost|127\.0\.0\.1):5433/ ]] \
-    && [[ "${value_without_query##*/}" == "$database" ]]
+  [[ "$value_without_query" =~ ^postgres(ql)?://.*@(localhost|127\.0\.0\.1):5433/ ]]
 }
 
 sync_database_url() {
@@ -106,7 +104,7 @@ sync_database_url() {
   example_url="$(read_env_value "$example" DATABASE_URL)"
 
   if [[ -z "$current_url" || "$current_url" == "$example_url" ]] \
-    || is_docker_host_database_url "$current_url" "$database"; then
+    || is_docker_host_database_url "$current_url"; then
     database_url="postgresql://${user}:${password}@localhost:5433/${database}"
     if [[ "$current_url" != "$database_url" ]]; then
       set_env_value "$file" DATABASE_URL "$database_url"
@@ -128,6 +126,10 @@ if [[ -z "$(read_env_value "$docker_env_file" POSTGRES_PASSWORD)" ]]; then
 fi
 if [[ -z "$(read_env_value "$docker_env_file" POSTGRES_DB)" ]]; then
   postgres_db_value="${POSTGRES_DB:-}"
+  if [[ -n "$postgres_db_value" && ! "$postgres_db_value" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]]; then
+    printf 'Invalid POSTGRES_DB "%s": use letters, digits, and underscores, starting with a letter or underscore.\n' "$postgres_db_value" >&2
+    exit 1
+  fi
   if [[ -z "$postgres_db_value" && -t 0 ]]; then
     while true; do
       read -r -p "Postgres database name [monorepo_fastify_vue]: " postgres_db_value || { postgres_db_value=monorepo_fastify_vue; break; }
