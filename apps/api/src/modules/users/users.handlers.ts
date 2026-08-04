@@ -7,18 +7,19 @@ import * as service from './users.service.js'
 
 export async function register(request: FastifyRequest<{ Body: RegisterUser }>, reply: FastifyReply) {
   const user = await service.register(request.body)
-  request.server.setSession(reply, user.id)
+  await request.server.setSession(reply, user.id)
   reply.code(201)
   return user
 }
 
 export async function login(request: FastifyRequest<{ Body: LoginUser }>, reply: FastifyReply) {
   const user = await service.login(request.body)
-  request.server.setSession(reply, user.id)
+  await request.server.setSession(reply, user.id)
   return user
 }
 
-export async function logout(_request: FastifyRequest, reply: FastifyReply) {
+export async function logout(request: FastifyRequest, reply: FastifyReply) {
+  await request.server.revokeSession(request)
   reply.clearCookie(SESSION_COOKIE, { path: '/' }).code(204)
 }
 

@@ -97,14 +97,14 @@ cp apps/api/.env.example apps/api/.env
 cp apps/api/.env.test.example apps/api/.env.test
 ```
 
-Edit `apps/api/.env` with your dev database credentials, and `apps/api/.env.test` with a **separate** test database (so running tests never wipes dev data):
+Edit `apps/api/.env` with your own dev database credentials, and `apps/api/.env.test` with a **separate** test database (so running tests never wipes dev data). Do not reuse a checked-in example password:
 
 ```env
 # .env
-DATABASE_URL=postgresql://root:root@localhost:5433/monorepo_fastify_vue
+DATABASE_URL=postgresql://<username>:<password>@localhost:5433/monorepo_fastify_vue
 
 # .env.test
-DATABASE_URL=postgresql://root:root@localhost:5433/monorepo_fastify_vue_test
+DATABASE_URL=postgresql://<username>:<password>@localhost:5433/monorepo_fastify_vue_test
 ```
 
 Both files also require:

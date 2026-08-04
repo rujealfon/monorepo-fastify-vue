@@ -29,9 +29,10 @@
     "db:migrate:test": "pnpm --filter @monorepo-fastify-vue/api db:migrate:test",
     "db:studio": "pnpm --filter @monorepo-fastify-vue/api db:studio",
     "generate:certificates": "pnpm --filter @monorepo-fastify-vue/web certs:generate",
-    "predocker:up": "bash scripts/ensure-dev-certs.sh",
-    "predocker:rebuild": "bash scripts/ensure-dev-certs.sh",
-    "predocker:rebuild:all": "bash scripts/ensure-dev-certs.sh",
+    "predocker:up": "bash scripts/ensure-docker-env.sh && bash scripts/ensure-dev-certs.sh",
+    "predocker:rebuild": "bash scripts/ensure-docker-env.sh && bash scripts/ensure-dev-certs.sh",
+    "predocker:rebuild:all": "bash scripts/ensure-docker-env.sh && bash scripts/ensure-dev-certs.sh",
+    "predocker:reset": "bash scripts/ensure-docker-env.sh && bash scripts/ensure-dev-certs.sh",
     "docker:up": "docker compose up -d",
     "docker:start": "docker compose start",
     "docker:stop": "docker compose stop",
@@ -39,7 +40,7 @@
     "docker:rebuild": "docker compose up --build -d web api",
     "docker:rebuild:all": "docker compose up --build -d",
     "docker:db:migrate": "docker compose exec api pnpm --filter @monorepo-fastify-vue/api db:migrate",
-    "docker:db:migrate:test": "docker compose exec -e TEST_DATABASE_URL=postgresql://root:root@postgres:5432/monorepo_fastify_vue_test api pnpm --filter @monorepo-fastify-vue/api db:migrate:test",
+    "docker:db:migrate:test": "docker compose exec api pnpm --filter @monorepo-fastify-vue/api db:migrate:test",
     "docker:reset": "docker compose down -v && pnpm docker:rebuild:all && pnpm docker:db:migrate && pnpm docker:db:migrate:test"
   },
   "devDependencies": {

@@ -18,7 +18,7 @@ API, web, and site serve HTTPS with a locally-trusted cert — see [Local HTTPS 
 ## Prerequisites
 
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/) (or Docker Engine + Compose plugin)
-- Bash for `pnpm docker:up`, `pnpm docker:rebuild`, `pnpm docker:rebuild:all`, and `pnpm docker:reset` (they check the HTTPS cert first). On Windows, run them from WSL or Git Bash; from native PowerShell/CMD without Bash, run `pnpm generate:certificates` yourself and then use the equivalent `docker compose` commands directly.
+- Bash for `pnpm docker:up`, `pnpm docker:rebuild`, `pnpm docker:rebuild:all`, and `pnpm docker:reset` (they create the local Docker database credential and check the HTTPS cert first). On Windows, run them from WSL or Git Bash; from native PowerShell/CMD, run `bash scripts/ensure-docker-env.sh` and `pnpm generate:certificates` before using the equivalent `docker compose` commands directly.
 
 ## Local HTTPS certs
 
@@ -59,7 +59,9 @@ On subsequent runs (no Dockerfile changes):
 pnpm docker:up
 ```
 
-Both mint the local HTTPS cert first if it's missing (see [Local HTTPS certs](#local-https-certs)). The plain `docker compose up --build` / `docker compose up` equivalents work too, but only after you've run `pnpm generate:certificates` at least once.
+Both create an ignored root `.env` with a random per-developer PostgreSQL password and mint the local HTTPS cert if needed. The plain `docker compose up --build` / `docker compose up` equivalents work too, but only after running `bash scripts/ensure-docker-env.sh` and `pnpm generate:certificates` at least once.
+
+Existing checkouts that initialized the Docker volume with the former `root/root` credential must recreate that development-only volume once with `pnpm docker:reset`, or rotate the existing database role manually before starting the new Compose configuration.
 
 ### 2. Run database migrations
 
@@ -97,12 +99,12 @@ Run pgAdmin outside Docker, then register the Docker PostgreSQL server:
 | Host     | localhost            |
 | Port     | 5433                 |
 | Database | monorepo_fastify_vue |
-| Username | root                 |
-| Password | root                 |
+| Username | Value of `POSTGRES_USER` in the root `.env` |
+| Password | Value of `POSTGRES_PASSWORD` in the root `.env` |
 
 ## Drizzle Studio
 
-Open http://localhost:4983 to browse and edit your database visually. It connects automatically using the `DATABASE_URL` environment variable.
+Open http://localhost:4983 to browse and edit your database visually. It connects automatically using the `DATABASE_URL` environment variable. Studio is intentionally published only on `127.0.0.1`; do not expose it through a public proxy because it provides privileged database access.
 
 ## Redis
 
@@ -120,22 +122,23 @@ SCAN 0
 GET key_name
 ```
 
-External clients such as RedisInsight can connect to `localhost:6380`. Docker services connect to `redis:6379`.
+External clients such as RedisInsight can connect to `localhost:6380`. Docker services connect to `redis:6379`. The unauthenticated development instance is bound only to `127.0.0.1`, so it is not reachable from other network hosts.
 
 ## Environment Variables
 
-The API service loads shared application configuration and local secrets from the uncommitted `apps/api/.env` file through Compose `env_file`. This includes settings such as `JWT_SECRET`, `LOG_LEVEL`, `CORS_ORIGIN`, `PORT`, and `NODE_ENV`.
+The API service loads shared application configuration and local secrets from the uncommitted `apps/api/.env` file through Compose `env_file`. This includes settings such as `JWT_SECRET`, `LOG_LEVEL`, `CORS_ORIGIN`, `PORT`, and `NODE_ENV`. Separately, `scripts/ensure-docker-env.sh` creates the ignored root `.env` with the Docker-only `POSTGRES_USER`, `POSTGRES_PASSWORD`, and `POSTGRES_DB` values. The generated password is unique to the checkout and the file is mode `0600`.
 
 Compose declares only Docker-specific overrides under `environment`:
 
-| Variable       | Value                                                       | Description                                              |
-| -------------- | ----------------------------------------------------------- | -------------------------------------------------------- |
-| `DATABASE_URL` | `postgresql://root:root@postgres:5432/monorepo_fastify_vue` | PostgreSQL connection string (container-network address) |
-| `REDIS_URL`    | `redis://redis:6379`                                        | Redis connection string (container-network address)      |
+| Variable            | Value                                                         | Description                                              |
+| ------------------- | ------------------------------------------------------------- | -------------------------------------------------------- |
+| `DATABASE_URL`      | Constructed from the root `.env` PostgreSQL values             | PostgreSQL connection string (container-network address) |
+| `TEST_DATABASE_URL` | Same credential, targeting `monorepo_fastify_vue_test`         | Test migration connection string                        |
+| `REDIS_URL`         | `redis://redis:6379`                                           | Redis connection string (container-network address)      |
 
 Values under `environment` take precedence over matching values from `env_file`. This lets the same `.env` use host addresses when the API runs directly while Compose replaces them with container-network addresses. See the [Docker Compose `environment` documentation](https://docs.docker.com/reference/compose-file/services/#environment).
 
-Drizzle Studio receives only its Docker-specific `DATABASE_URL`; it does not load the API's `.env` or application secrets.
+Drizzle Studio receives only its Docker-specific `DATABASE_URL`; it does not load the API's `.env` or application secrets. PostgreSQL, Redis, and Studio host ports are all loopback-only.
 
 The Nuxt development service sets `NITRO_PORT=8080` so it does not conflict with the API on port 3000. The site currently requires no application secrets.
 
