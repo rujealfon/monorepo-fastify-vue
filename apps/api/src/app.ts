@@ -1,6 +1,5 @@
 import type { FastifyInstance } from 'fastify'
 
-import type { Buffer } from 'node:buffer'
 import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import cors from '@fastify/cors'
