@@ -2,7 +2,7 @@ import type { FastifyReply, FastifyRequest } from 'fastify'
 
 import cookie from '@fastify/cookie'
 import jwt from '@fastify/jwt'
-import { and, eq, gt } from 'drizzle-orm'
+import { and, eq, gt, lte } from 'drizzle-orm'
 import fp from 'fastify-plugin'
 
 import { config } from '#api/config/index.js'
@@ -59,11 +59,20 @@ export default fp(async (fastify) => {
   })
 
   fastify.decorate('setSession', async (reply: FastifyReply, userId: string) => {
-    const expires = new Date(Date.now() + SESSION_SECONDS * 1000)
-    const [session] = await fastify.db
-      .insert(sessions)
-      .values({ userId, expiresAt: expires })
-      .returning({ id: sessions.id })
+    const now = new Date()
+    const expires = new Date(now.getTime() + SESSION_SECONDS * 1000)
+    // Each login intentionally creates an independent device session. Do not
+    // delete other live rows here unless product policy becomes single-session-per-user.
+    const session = await fastify.db.transaction(async (tx) => {
+      await tx.delete(sessions).where(lte(sessions.expiresAt, now))
+
+      const [createdSession] = await tx
+        .insert(sessions)
+        .values({ userId, expiresAt: expires })
+        .returning({ id: sessions.id })
+
+      return createdSession
+    })
 
     reply.setCookie(SESSION_COOKIE, fastify.jwt.sign({ sid: session.id, sub: userId }), {
       expires,
