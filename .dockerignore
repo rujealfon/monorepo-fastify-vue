@@ -5,3 +5,6 @@
 **/*.log
 **/coverage
 **/.turbo
+# Dev HTTPS key/cert reach containers via bind mount, never the build context --
+# keep them out of image layers even if a Dockerfile ever adds a broad COPY.
+**/.certs

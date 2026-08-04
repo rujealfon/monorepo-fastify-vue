@@ -5,12 +5,25 @@ services:
       dockerfile: apps/web/Dockerfile
       target: development
     restart: unless-stopped
-    environment:
-      API_PROXY_URL: http://api:3000
+    # API_PROXY_URL is set at container startup (see apps/web/Dockerfile's
+    # development CMD), not hardcoded here -- it must match whether api is
+    # actually serving HTTPS or HTTP at that moment (see apps/api/src/app.ts),
+    # which depends on whether the cert was minted before the containers were
+    # created. The proxy itself (vite.config.ts) sets secure: false for this hop
+    # regardless, since the cert doesn't cover the 'api' hostname anyway.
     ports:
       - '5173:5173'
     volumes:
       - ./apps/web/src:/app/apps/web/src
+      # Leaf cert only, read-only, mounted file-by-file rather than as a
+      # directory: the CA root that signs it (rootCA-key.pem) lives outside the
+      # repo in ~/.vite-plugin-mkcert and must never reach a container -- it can
+      # mint certs the host browser trusts for ANY domain. Run
+      # `pnpm generate:certificates` on the host first (docker:up / docker:rebuild
+      # do it for you); until then these files don't exist and the container
+      # serves HTTP. See "Local HTTPS certs" in DOCKER.md.
+      - ./.certs/dev.pem:/app/.certs/dev.pem:ro
+      - ./.certs/cert.pem:/app/.certs/cert.pem:ro
     depends_on:
       - api
 
@@ -31,6 +44,9 @@ services:
       - '3000:3000'
     volumes:
       - ./apps/api/src:/app/apps/api/src
+      # Same leaf-only, read-only pair as web/site (see apps/api/src/app.ts).
+      - ./.certs/dev.pem:/app/.certs/dev.pem:ro
+      - ./.certs/cert.pem:/app/.certs/cert.pem:ro
     depends_on:
       postgres:
         condition: service_healthy
@@ -49,6 +65,9 @@ services:
       - '8080:8080'
     volumes:
       - ./apps/site/app:/app/apps/site/app
+      # Same leaf-only, read-only pair as web (see apps/site/nuxt.config.ts).
+      - ./.certs/dev.pem:/app/.certs/dev.pem:ro
+      - ./.certs/cert.pem:/app/.certs/cert.pem:ro
 
   postgres:
     image: postgres:18-alpine

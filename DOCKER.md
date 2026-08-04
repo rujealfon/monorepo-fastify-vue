@@ -4,32 +4,62 @@ This project runs entirely in Docker for local development. The setup includes t
 
 ## Services
 
-| Service        | URL                   | Description                        |
-| -------------- | --------------------- | ---------------------------------- |
-| API (Fastify)  | http://localhost:3000 | Backend API with hot reload        |
-| Web (Vue 3)    | http://localhost:5173 | Application with Vite HMR          |
-| Site (Nuxt 4)  | http://localhost:8080 | Public site with Nuxt hot reload   |
-| Drizzle Studio | http://localhost:4983 | Visual database browser            |
-| PostgreSQL     | localhost:5433        | Database                           |
-| Redis          | localhost:6380        | Rate-limit store                   |
+| Service        | URL                    | Description                        |
+| -------------- | ---------------------- | ----------------------------------- |
+| API (Fastify)  | https://localhost:3000 | Backend API with hot reload        |
+| Web (Vue 3)    | https://localhost:5173 | Application with Vite HMR          |
+| Site (Nuxt 4)  | https://localhost:8080 | Public site with Nuxt hot reload   |
+| Drizzle Studio | http://localhost:4983  | Visual database browser            |
+| PostgreSQL     | localhost:5433         | Database                           |
+| Redis          | localhost:6380         | Rate-limit store                   |
+
+API, web, and site serve HTTPS with a locally-trusted cert — see [Local HTTPS certs](#local-https-certs) below before your first run.
 
 ## Prerequisites
 
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/) (or Docker Engine + Compose plugin)
+- Bash for `pnpm docker:up`, `pnpm docker:rebuild`, `pnpm docker:rebuild:all`, and `pnpm docker:reset` (they check the HTTPS cert first). On Windows, run them from WSL or Git Bash; from native PowerShell/CMD without Bash, run `pnpm generate:certificates` yourself and then use the equivalent `docker compose` commands directly.
+
+## Local HTTPS certs
+
+API, web, and site all serve HTTPS using one locally-trusted certificate. Mint it once, on the host, before your first `docker compose up`:
+
+```bash
+pnpm generate:certificates
+```
+
+This installs a CA into your OS/browser trust store, writes the certificate, then exits on its own (no dev server left running, no Ctrl+C needed). `pnpm docker:up`, `pnpm docker:rebuild`, `pnpm docker:rebuild:all`, and `pnpm docker:reset` run it automatically when the cert is missing; a bare `docker compose up` does not, so run it yourself first.
+
+Two directories are involved, and the split matters:
+
+| Path                    | Holds                                        | Reaches containers?                            |
+| ----------------------- | -------------------------------------------- | ---------------------------------------------- |
+| `~/.vite-plugin-mkcert` | CA root (`rootCA-key.pem`) + `mkcert` binary  | **Never**                                       |
+| `<repo>/.certs`         | Leaf `dev.pem` + `cert.pem` for `localhost`   | Yes — those two files only, bind-mounted `:ro`  |
+
+The CA private key can sign a certificate your browser trusts for *any* domain, so it stays on the host: containers only ever see the leaf key/cert, read-only, mounted file-by-file rather than as a directory. Both paths are outside version control (`.certs/` is gitignored; `~/.vite-plugin-mkcert` is outside the repo entirely). The home directory is resolved through Node's `os.homedir()`, so this works on Windows (`%USERPROFILE%`) as well as macOS and Linux.
+
+Notes:
+
+- Nothing mints a certificate inside a container any more. A container-minted CA can only be trusted inside that container, so it bought a "Not Secure" browser warning and nothing else.
+- If the cert is missing, all three services simply fall back to HTTP rather than serving something untrusted.
+- **Upgrading an existing checkout:** older versions kept the CA root in `.certs/`. `pnpm generate:certificates` relocates it to `~/.vite-plugin-mkcert`, so the CA your browser already trusts keeps working. If `~/.vite-plugin-mkcert` already holds a *different* CA, it leaves both in place and tells you — deleting a CA key that's installed in your keychain isn't something a script should decide for you. Certificates are then signed by the `~/.vite-plugin-mkcert` one; delete `.certs/rootCA*.pem` by hand once you're sure nothing else uses it.
 
 ## Getting Started
 
 ### 1. Start all services
 
 ```bash
-docker compose up --build
+pnpm docker:rebuild:all
 ```
 
-On subsequent runs (no Dockerfile changes), omit `--build`:
+On subsequent runs (no Dockerfile changes):
 
 ```bash
-docker compose up
+pnpm docker:up
 ```
+
+Both mint the local HTTPS cert first if it's missing (see [Local HTTPS certs](#local-https-certs)). The plain `docker compose up --build` / `docker compose up` equivalents work too, but only after you've run `pnpm generate:certificates` at least once.
 
 ### 2. Run database migrations
 
@@ -49,9 +79,9 @@ See [Database migrations](#database-migrations) below for when to use these Dock
 
 ### 3. Access the services
 
-- **API docs (Scalar, development only):** http://localhost:3000
-- **Vue application:** http://localhost:5173
-- **Nuxt site:** http://localhost:8080
+- **API docs (Scalar, development only):** https://localhost:3000
+- **Vue application:** https://localhost:5173
+- **Nuxt site:** https://localhost:8080
 - **Drizzle Studio:** http://localhost:4983
 
 ## pgAdmin 4
@@ -249,3 +279,12 @@ docker compose build api
 docker compose build web
 docker compose build site
 ```
+
+**Browser shows "Not Secure" / privacy error on https://localhost:5173 (or :8080, :3000)**
+Usually the cert was replaced after the browser cached the old one's TLS state. Fix: `docker compose down`, `rm -rf .certs`, `pnpm generate:certificates`, then `pnpm docker:up`. Reload the browser tab (or close and reopen it) afterward. See [Local HTTPS certs](#local-https-certs).
+
+**A service serves HTTP when you expected HTTPS**
+`.certs/dev.pem` and `.certs/cert.pem` were missing when that container started — each service checks for them once at startup, not per request. Run `pnpm generate:certificates`, then recreate the containers with `pnpm docker:up`. (`docker compose restart` is not enough: bind mounts are resolved when a container is *created*.)
+
+**`.certs/dev.pem` is a directory**
+A bare `docker compose up` ran before the cert existed, and Docker created a directory in place of the missing mount source. Fix: `docker compose down`, `rm -rf .certs`, `pnpm docker:up` (which mints the cert first). The `pnpm docker:*` scripts guard against this; plain `docker compose` commands don't.

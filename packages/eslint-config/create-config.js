@@ -33,6 +33,9 @@ export default function createConfig(options = {}, ...userConfigs) {
       'antfu/no-top-level-await': 'off',
       'no-console': ['warn'],
       'node/no-process-env': ['error'],
+      // Buffer and process are globals under @types/node; requiring an explicit
+      // node:buffer / node:process import buys nothing here.
+      'node/prefer-global/buffer': 'off',
       'node/prefer-global/process': 'off',
       'perfectionist/sort-imports': ['error'],
       'style/comma-dangle': ['error', 'never'],
