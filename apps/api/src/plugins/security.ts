@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto'
 import helmet from '@fastify/helmet'
 import rateLimit from '@fastify/rate-limit'
 import fp from 'fastify-plugin'
@@ -47,6 +48,11 @@ export default fp(async (fastify) => {
     max: 100,
     timeWindow: '1 minute',
     redis,
+    // Redis outlives each test process, so a per-app namespace prevents counters
+    // from a previous run from making an otherwise isolated test start at 429.
+    nameSpace: config.NODE_ENV === 'test'
+      ? `fastify-rate-limit-test-${randomUUID()}-`
+      : undefined,
     // Fail open: rate limiting is defense-in-depth here (auth already relies on
     // sameSite cookies + sec-fetch-site checks, see plugins/auth.ts), not the only
     // control. Without this, a Redis outage would 500 every /api/v1/* request,
