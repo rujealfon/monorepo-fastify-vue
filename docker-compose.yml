@@ -36,7 +36,8 @@ services:
     env_file:
       - ./apps/api/.env
     environment:
-      DATABASE_URL: postgresql://root:root@postgres:5432/monorepo_fastify_vue
+      DATABASE_URL: postgresql://${POSTGRES_USER:-app}:${POSTGRES_PASSWORD:?Run pnpm docker:up to create a local Docker credential}@postgres:5432/${POSTGRES_DB:-monorepo_fastify_vue}
+      TEST_DATABASE_URL: postgresql://${POSTGRES_USER:-app}:${POSTGRES_PASSWORD:?Run pnpm docker:up to create a local Docker credential}@postgres:5432/monorepo_fastify_vue_test
       REDIS_URL: redis://redis:6379
       PORT: 3000
       NODE_ENV: development
@@ -73,16 +74,16 @@ services:
     image: postgres:18-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_USER: root
-      POSTGRES_PASSWORD: root
-      POSTGRES_DB: monorepo_fastify_vue
+      POSTGRES_USER: ${POSTGRES_USER:-app}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Run pnpm docker:up to create a local Docker credential}
+      POSTGRES_DB: ${POSTGRES_DB:-monorepo_fastify_vue}
     ports:
-      - '5433:5432'
+      - '127.0.0.1:5433:5432'
     volumes:
       - postgres_data:/var/lib/postgresql
       - ./docker/postgres-init:/docker-entrypoint-initdb.d
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U root -d monorepo_fastify_vue']
+      test: ['CMD-SHELL', 'pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"']
       interval: 5s
       timeout: 5s
       retries: 10
@@ -91,7 +92,7 @@ services:
     image: redis:8-alpine
     restart: unless-stopped
     ports:
-      - '6380:6379'
+      - '127.0.0.1:6380:6379'
     healthcheck:
       test: ['CMD', 'redis-cli', 'ping']
       interval: 5s
@@ -106,9 +107,9 @@ services:
     restart: unless-stopped
     command: pnpm --filter @monorepo-fastify-vue/api exec drizzle-kit studio --host 0.0.0.0
     environment:
-      DATABASE_URL: postgresql://root:root@postgres:5432/monorepo_fastify_vue
+      DATABASE_URL: postgresql://${POSTGRES_USER:-app}:${POSTGRES_PASSWORD:?Run pnpm docker:up to create a local Docker credential}@postgres:5432/${POSTGRES_DB:-monorepo_fastify_vue}
     ports:
-      - '4983:4983'
+      - '127.0.0.1:4983:4983'
     volumes:
       - ./apps/api/src:/app/apps/api/src
     depends_on:

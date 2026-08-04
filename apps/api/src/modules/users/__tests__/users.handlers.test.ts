@@ -61,6 +61,7 @@ describe('user routes', () => {
     expect(login.statusCode).toBe(200)
     expect(login.json()).toMatchObject({ id: storedUser.id, email: 'person@example.com' })
     expect(login.headers['set-cookie']).toEqual(expect.stringContaining('HttpOnly'))
+    const otherSessionCookie = cookie(login)
 
     const updated = await app.inject({
       method: 'PATCH',
@@ -101,6 +102,20 @@ describe('user routes', () => {
     const logout = await app.inject({ method: 'POST', url: '/api/v1/auth/logout', headers: { cookie: sessionCookie } })
     expect(logout.statusCode).toBe(204)
     expect(logout.headers['set-cookie']).toEqual(expect.stringContaining('Expires=Thu, 01 Jan 1970'))
+
+    const replayedSession = await app.inject({
+      method: 'GET',
+      url: '/api/v1/profile',
+      headers: { cookie: sessionCookie }
+    })
+    expect(replayedSession.statusCode).toBe(401)
+
+    const otherSession = await app.inject({
+      method: 'GET',
+      url: '/api/v1/profile',
+      headers: { cookie: otherSessionCookie }
+    })
+    expect(otherSession.statusCode).toBe(200)
   })
 
   it('maps duplicate races and invalid credentials to stable errors', async () => {
@@ -132,13 +147,22 @@ describe('user routes', () => {
   it('rejects missing, invalid, expired and cross-site sessions', async () => {
     const missing = await app.inject({ method: 'GET', url: '/api/v1/profile' })
     const invalid = await app.inject({ method: 'GET', url: '/api/v1/profile', headers: { cookie: 'session=invalid' } })
-    const expiredToken = app.jwt.sign({ sub: '00000000-0000-0000-0000-000000000000' }, { expiresIn: -1 })
+    const expiredToken = app.jwt.sign({
+      sid: '00000000-0000-0000-0000-000000000001',
+      sub: '00000000-0000-0000-0000-000000000000'
+    }, { expiresIn: -1 })
     const expired = await app.inject({ method: 'GET', url: '/api/v1/profile', headers: { cookie: `session=${expiredToken}` } })
     expect([missing.statusCode, invalid.statusCode, expired.statusCode]).toEqual([401, 401, 401])
 
-    const unknownToken = app.jwt.sign({ sub: '00000000-0000-0000-0000-000000000000' })
+    const unknownToken = app.jwt.sign({
+      sid: '00000000-0000-0000-0000-000000000001',
+      sub: '00000000-0000-0000-0000-000000000000'
+    })
     const unknown = await app.inject({ method: 'GET', url: '/api/v1/profile', headers: { cookie: `session=${unknownToken}` } })
     expect(unknown.statusCode).toBe(401)
+
+    const idempotentLogout = await app.inject({ method: 'POST', url: '/api/v1/auth/logout' })
+    expect(idempotentLogout.statusCode).toBe(204)
 
     const crossSite = await app.inject({
       method: 'POST',
