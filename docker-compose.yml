@@ -5,11 +5,12 @@ services:
       dockerfile: apps/web/Dockerfile
       target: development
     restart: unless-stopped
-    environment:
-      # api serves HTTPS-only once .certs/ exists (see apps/api/src/app.ts);
-      # the cert doesn't cover the 'api' hostname, so the proxy in
-      # vite.config.ts sets secure: false for this hop.
-      API_PROXY_URL: https://api:3000
+    # API_PROXY_URL is set at container startup (see apps/web/Dockerfile's
+    # development CMD), not hardcoded here -- it must match whether api is
+    # actually serving HTTPS or HTTP at that moment (see apps/api/src/app.ts),
+    # which depends on whether .certs/ exists yet on a given clone. The
+    # proxy itself (vite.config.ts) sets secure: false for this hop regardless,
+    # since the cert doesn't cover the 'api' hostname anyway.
     ports:
       - '5173:5173'
     volumes:
@@ -61,6 +62,13 @@ services:
       - ./apps/site/app:/app/apps/site/app
       # Same cert as web (see apps/site/nuxt.config.ts).
       - ./.certs:/app/.certs
+    depends_on:
+      # Advisory only: nuxt.config.ts checks .certs/ once at config load, and
+      # `depends_on` only waits for web's container to *start*, not for web to
+      # actually finish minting the cert -- so this narrows, but doesn't
+      # close, the window where site starts HTTP-only on a fresh clone. See
+      # "Local HTTPS certs" in DOCKER.md.
+      - web
 
   postgres:
     image: postgres:18-alpine
