@@ -18,6 +18,7 @@ API, web, and site serve HTTPS with a locally-trusted cert — see [Local HTTPS 
 ## Prerequisites
 
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/) (or Docker Engine + Compose plugin)
+- Bash for `pnpm docker:rebuild`, `pnpm docker:rebuild:all`, and `pnpm docker:reset`. On Windows, run them from WSL or Git Bash; from native PowerShell/CMD without Bash, use the equivalent `docker compose` commands directly.
 
 ## Local HTTPS certs
 
