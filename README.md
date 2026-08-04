@@ -115,6 +115,13 @@ DATABASE_URL=postgresql://<username>:<password>@localhost:5433/monorepo_fastify_
 DATABASE_URL=postgresql://<username>:<password>@localhost:5433/monorepo_fastify_vue_test
 ```
 
+When using Docker, `pnpm docker:up` generates `POSTGRES_USER` and a random
+`POSTGRES_PASSWORD` in the ignored root `.env`. Its pre-Docker script creates
+missing API environment files, replaces example JWT secrets, and synchronizes
+Docker-owned localhost database URLs automatically. Existing custom database
+URLs and non-example JWT secrets are preserved. See [Docker: Getting
+Started](./DOCKER.md#getting-started) for the complete sequence.
+
 Both files also require:
 
 ```env
