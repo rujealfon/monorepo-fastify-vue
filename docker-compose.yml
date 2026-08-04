@@ -6,11 +6,19 @@ services:
       target: development
     restart: unless-stopped
     environment:
-      API_PROXY_URL: http://api:3000
+      # api serves HTTPS-only once .certs/ exists (see apps/api/src/app.ts);
+      # the cert doesn't cover the 'api' hostname, so the proxy in
+      # vite.config.ts sets secure: false for this hop.
+      API_PROXY_URL: https://api:3000
     ports:
       - '5173:5173'
     volumes:
       - ./apps/web/src:/app/apps/web/src
+      # Reuses the repo's locally-trusted mkcert CA (gitignored, holds a
+      # private key -- see .gitignore) instead of generating a new one inside
+      # the container -- see vite.config.ts. Requires having run a dev server
+      # on the host (or this container) at least once so .certs/ exists.
+      - ./.certs:/app/.certs
     depends_on:
       - api
 
@@ -31,6 +39,8 @@ services:
       - '3000:3000'
     volumes:
       - ./apps/api/src:/app/apps/api/src
+      # Same cert as web/site (see apps/api/src/app.ts).
+      - ./.certs:/app/.certs
     depends_on:
       postgres:
         condition: service_healthy
@@ -49,6 +59,8 @@ services:
       - '8080:8080'
     volumes:
       - ./apps/site/app:/app/apps/site/app
+      # Same cert as web (see apps/site/nuxt.config.ts).
+      - ./.certs:/app/.certs
 
   postgres:
     image: postgres:18-alpine

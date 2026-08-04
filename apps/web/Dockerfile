@@ -1,6 +1,9 @@
 FROM node:24.18.0-alpine AS base
 
 RUN corepack enable && corepack prepare pnpm@latest --activate
+# vite-plugin-mkcert's `mkcert -install` shells out to update-ca-certificates
+# when it needs to provision a cert from scratch (see vite.config.ts).
+RUN apk add --no-cache ca-certificates
 
 WORKDIR /app
 
