@@ -149,19 +149,19 @@ pnpm db:migrate:test
 ### 4. Start the workspaces
 
 ```sh
-NITRO_PORT=8080 pnpm dev
+NITRO_PORT=8000 pnpm dev
 ```
 
 The root command starts the API, Vue app, and Nuxt site in parallel. `NITRO_PORT` keeps Nuxt from conflicting with the API's default port.
 
 - Vue application: [http://localhost:5173](http://localhost:5173)
-- Nuxt site: [http://localhost:8080](http://localhost:8080)
+- Nuxt site: [http://localhost:8000](http://localhost:8000)
 - Fastify API and Scalar: [http://localhost:3000](http://localhost:3000)
 
 To run the Nuxt site by itself on a fixed port:
 
 ```sh
-pnpm --filter @monorepo-fastify-vue/site dev -- --port 8080
+pnpm --filter @monorepo-fastify-vue/site dev -- --port 8000
 ```
 
 All requests to `/api` are proxied to the Fastify server running on [http://localhost:3000](http://localhost:3000).
