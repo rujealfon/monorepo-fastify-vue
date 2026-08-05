@@ -61,9 +61,9 @@ services:
       target: development
     restart: unless-stopped
     environment:
-      NITRO_PORT: 8080
+      NITRO_PORT: 8000
     ports:
-      - '8080:8080'
+      - '8000:8000'
     volumes:
       - ./apps/site/app:/app/apps/site/app
       # Same leaf-only, read-only pair as web (see apps/site/nuxt.config.ts).
@@ -83,7 +83,8 @@ services:
       - postgres_data:/var/lib/postgresql
       - ./docker/postgres-init:/docker-entrypoint-initdb.d
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"']
+      test:
+        ['CMD-SHELL', 'pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"']
       interval: 5s
       timeout: 5s
       retries: 10
@@ -106,6 +107,8 @@ services:
       target: development
     restart: unless-stopped
     command: pnpm --filter @monorepo-fastify-vue/api exec drizzle-kit studio --host 0.0.0.0
+    env_file:
+      - ./apps/api/.env
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-app}:${POSTGRES_PASSWORD:?Run pnpm docker:up to create a local Docker credential}@postgres:5432/${POSTGRES_DB:-monorepo_fastify_vue}
     ports:

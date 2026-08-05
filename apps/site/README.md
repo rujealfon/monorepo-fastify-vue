@@ -10,19 +10,19 @@ Install dependencies from the repository root:
 pnpm install
 ```
 
-Run the site by itself on port 8080:
+Run the site by itself on port 8000:
 
 ```sh
-pnpm --filter @monorepo-fastify-vue/site dev -- --port 8080
+pnpm --filter @monorepo-fastify-vue/site dev -- --port 8000
 ```
 
-Visit [http://localhost:8080](http://localhost:8080). To start every workspace together without conflicting with the API on port 3000, run this from the repository root:
+Visit [http://localhost:8000](http://localhost:8000). To start every workspace together without conflicting with the API on port 3000, run this from the repository root:
 
 ```sh
-NITRO_PORT=8080 pnpm dev
+NITRO_PORT=8000 pnpm dev
 ```
 
-With Docker, the site is always available at [http://localhost:8080](http://localhost:8080).
+With Docker, the site is always available at [http://localhost:8000](http://localhost:8000).
 
 ## Project Structure
 
@@ -42,13 +42,13 @@ Follow Nuxt conventions as the site grows: add file-based routes under `app/page
 
 Run scripts from the repository root with `pnpm --filter @monorepo-fastify-vue/site <script>`.
 
-| Script | Description |
-| --- | --- |
-| `dev` | Start the Nuxt development server |
-| `build` | Generate the static site in `.output/public` |
-| `preview` | Preview the generated build locally |
-| `lint` | Check the site with ESLint |
-| `lint:fix` | Apply safe ESLint fixes |
+| Script     | Description                                  |
+| ---------- | -------------------------------------------- |
+| `dev`      | Start the Nuxt development server            |
+| `build`    | Generate the static site in `.output/public` |
+| `preview`  | Preview the generated build locally          |
+| `lint`     | Check the site with ESLint                   |
+| `lint:fix` | Apply safe ESLint fixes                      |
 
 ## Deployment
 
