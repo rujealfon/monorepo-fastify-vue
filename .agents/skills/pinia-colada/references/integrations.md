@@ -106,6 +106,7 @@ export function mountWithData(component: Component) {
 ```
 
 - Do not reuse the query cache between tests.
+- Never use `createTestingPinia()` for components under test that use Pinia Colada: its stubbed actions break Colada's action-based internals. Use a real `createPinia()` instead.
 - Prefer MSW or the project's existing network boundary for integration-like component tests.
 - Use mocked query/mutation functions for narrow unit tests.
 - Flush promises after initial query execution, mutations, invalidation, and refetches.
