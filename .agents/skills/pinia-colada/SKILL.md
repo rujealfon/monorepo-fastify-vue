@@ -1,137 +1,54 @@
 ---
 name: pinia-colada
-description: Build, migrate, debug, review, and test typed server-state flows in Vue 3 and Nuxt with Pinia Colada. Use for @pinia/colada setup, useQuery, useInfiniteQuery, useMutation, query-key factories, defineQueryOptions, cache invalidation, optimistic updates, prefetching, SSR/hydration, persistence, plugins, testing, or migrations from Nuxt data composables and TanStack Vue Query.
+description: Build, review, migrate, test, and troubleshoot async data workflows with Pinia Colada in Vue and Nuxt applications. Use for @pinia/colada installation and setup, queries, mutations, query keys, cache updates and invalidation, optimistic updates, pagination and infinite queries, SSR and Nuxt integration, plugins, testing, TypeScript, TanStack Vue Query migrations, and Pinia Colada runtime errors.
 ---
 
 # Pinia Colada
 
-Implement Pinia Colada as the server-state layer while preserving the host
-project's Vue, Nuxt, TypeScript, API-client, and testing conventions.
+Use the target project's installed Pinia Colada version and local types as the API authority. Use the focused references in this skill for workflow guidance and common patterns.
 
-## Start With the Repository
+## Start from the project
 
-1. Inspect `package.json`, the lockfile, Nuxt/Vite configuration, Pinia setup,
-   API clients, existing query modules, and tests.
-2. Determine the installed versions of `@pinia/colada`,
-   `@pinia/colada-nuxt`, and any Colada plugins.
-3. Prefer installed package types and local source over this skill when a
-   version-specific API differs. Consult the current official documentation
-   before adding an option or export that is absent locally.
-4. Change only the server-state behavior in scope. Preserve established
-   request, error, auth, and serialization boundaries.
+1. Inspect the package manifest and lockfile to identify the package manager and installed versions of Vue, Pinia, Nuxt, and `@pinia/colada`.
+2. Locate existing app setup, query definitions, key factories, mutations, cache access, tests, and SSR conventions.
+3. Preserve the project's organization and naming unless the task explicitly requests a refactor.
+4. Determine whether the task targets the installed version or explicitly asks for the latest upstream behavior.
 
-## Choose the Primitive
+If a bundled reference conflicts with installed TypeScript declarations or source, follow the installed package for signatures and call out the version difference. When no version is installed, use the references as a starting point and verify version-sensitive details in the official documentation.
 
-- Use `useQuery()` for declarative reads that should be cached, deduplicated,
-  shared, invalidated, or rendered during SSR.
-- Use `useMutation()` for writes and other user-triggered side effects.
-- Use page-in-key `useQuery()` for independently cached numbered pages.
-- Use `useInfiniteQuery()` for load-more or infinite-scroll data whose loaded
-  pages should form one cache entry.
-- Use `defineQueryOptions()` to organize and type reusable query options.
-- Use `defineQuery()` only when the query must share additional reactive state
-  or expose a shared composed interface.
-- Keep Nuxt `useFetch()` or `useAsyncData()` for genuinely simple, page-local,
-  one-off data when Colada's shared cache and mutation features add no value.
+## Read the relevant reference
 
-Read [queries-and-keys.md](references/queries-and-keys.md) before implementing
-queries, query organization, reusable queries, or key changes.
+- Read [references/queries.md](references/queries.md) for `useQuery`, key factories, reusable queries, pagination, infinite queries, status handling, and TypeScript.
+- Read [references/cache-and-mutations.md](references/cache-and-mutations.md) for `useMutation`, invalidation, cache operations, prefetching, and optimistic updates.
+- Read [references/integrations.md](references/integrations.md) for Vue setup, Nuxt, custom SSR, and testing.
+- Read [references/plugins-and-persistence.md](references/plugins-and-persistence.md) for official plugins, cache persistence, custom plugin authoring, module augmentation, and plugin lifecycle.
+- Read [references/migration.md](references/migration.md) for TanStack Vue Query migration, compatibility helpers, semantic differences, and Pinia Colada version codemods.
+- Read [references/troubleshooting.md](references/troubleshooting.md) when diagnosing runtime codes, injection-context failures, cache misuse, or infinite-query errors.
 
-## Model Keys Before Fetching
+These references are intentionally curated rather than copies of upstream documentation. If the user asks for current or version-specific behavior that local declarations do not answer, consult the matching page in the [official Pinia Colada documentation](https://pinia-colada.esm.dev/) and state which version or source you followed.
 
-1. Create a domain key factory with hierarchical keys and `as const`.
-2. Include every variable that affects the query result in the key.
-3. Use a getter when a key depends on reactive values.
-4. Define options with `defineQueryOptions()` so keys carry the query data type.
-5. Reuse the same factory and defined options for cache reads, writes,
-   invalidation, prefetching, and tests.
+## Implement deliberately
 
-Do not scatter string-literal keys through production code. When modifying
-existing ad-hoc queries, consolidate their keys unless the requested change is
-strictly isolated and a refactor would be unsafe.
+- Install `PiniaColada` after Pinia and integrate it at the existing application bootstrap point.
+- Model query keys as serializable hierarchical arrays. Include every reactive input used by the query function in the key.
+- Prefer reusable query definitions and key factories when the project repeats queries or cache operations.
+- Distinguish initial data status from active fetch status. Preserve stale data and error behavior intentionally.
+- Choose `refresh`, `refetch`, prefetching, invalidation, or direct cache updates according to the desired freshness and network behavior.
+- Keep mutation inputs explicit. Define success, error, and settled behavior, and make optimistic updates reversible.
+- Treat SSR hydration, Nuxt module behavior, cache persistence, retries, and refetch plugins as opt-in integration concerns; consult their dedicated pages before changing them.
+- Use TanStack compatibility helpers only when the migration or interoperability task calls for them.
 
-## Implement the State Lifecycle
+## Troubleshoot from evidence
 
-- Treat `state.status` as data state: `pending`, `success`, or `error`.
-- Treat `asyncStatus` as request activity: `idle` or `loading`.
-- Prefer the grouped `state` value when TypeScript must narrow `data` and
-  `error`.
-- Use `refresh()` for cache-aware, deduplicated refreshes. Use `refetch()` only
-  when a forced network request is intentional.
-- Guard missing route params, auth state, or client-only dependencies with
-  reactive `enabled`.
-- Make `fetch()` wrappers throw for non-success HTTP responses when failures
-  should enter Colada's error state.
+1. Capture the runtime error code, stack, failing component or composable, and relevant query or mutation options.
+2. Read the matching error-reference page and inspect the installed implementation or declarations.
+3. Check injection context, plugin order, effect scope, query-key completeness, cache entry lifetime, and SSR boundaries as applicable.
+4. Fix the narrowest verified cause. Avoid broad cache resets or unrelated rewrites.
 
-## Keep Writes and Cache Consistent
+## Verify the result
 
-1. Pass mutation inputs as the `mutation` argument so hooks and `variables`
-   receive them.
-2. Invalidate affected key families after writes, usually in `onSettled`.
-3. Await or return invalidation only when the mutation must remain loading until
-   active queries finish refreshing.
-4. Use optimistic updates only when the UX benefit justifies rollback logic:
-   cancel competing requests, snapshot data, write immutably, return context,
-   conditionally roll back on error, and invalidate on settlement.
-5. Use a mutation key when another component must discover its state through
-   the mutation cache.
-
-Read [mutations-and-cache.md](references/mutations-and-cache.md) before changing
-mutations, invalidation, optimistic updates, or direct cache operations.
-
-## Integrate With Nuxt and SSR
-
-- Install `@pinia/colada-nuxt` alongside the Pinia Nuxt module.
-- When introducing Pinia Colada, install `@pinia/colada-devtools` as a
-  development dependency and place `PiniaColadaDevtools` at the end of the root
-  component template. Do not enable production devtools unless requested.
-- Put module options in root-level `colada.options.ts`.
-- Do not add `await` merely to make `useQuery()` SSR-compatible; the Nuxt module
-  registers server prefetching and hydrates the cache automatically.
-- Add `await refresh()` only when navigation should block on the client.
-- Keep keys and serialized metadata deterministic and serializable across
-  server and client.
-- Import `useRoute` from `vue-router` inside Nuxt `defineQuery()` definitions.
-- Store extra SSR-dependent `defineQuery()` state in Nuxt `useState()` or a
-  serializable Pinia store.
-
-Read [nuxt-and-ssr.md](references/nuxt-and-ssr.md) for installation, migration,
-custom SSR, and hydration details.
-
-## Validate Behavior
-
-1. Run the project's typecheck, lint, and focused tests.
-2. Exercise pending, success, error, refresh, and mutation states relevant to
-   the change.
-3. Test cache effects by behavior: deduplication, invalidation scope, rollback,
-   pagination transitions, or hydration.
-4. Mount with a real `createPinia()` and `PiniaColada`; never use
-   `createTestingPinia()` because stubbed actions break Colada internals.
-5. Prefer network-layer mocking such as MSW and flush pending Vue promises.
-
-Read [advanced-and-testing.md](references/advanced-and-testing.md) for
-pagination, infinite queries, prefetching, persistence, plugins, migration, and
-test patterns.
-
-## Guardrails
-
-- Do not create a long-lived query inside a Pinia store by default. Stores are
-  never disposed, so the query can become immortal; consume the query cache or
-  use defined options instead.
-- Do not omit a reactive input from a key.
-- Do not put the infinite-query page or cursor parameter in its key; include
-  filters, not `pageParam`.
-- Do not mutate cached arrays or objects in place.
-- Do not clear entries without canceling pending requests first.
-- Do not persist sensitive queries by default.
-- Do not place functions or non-serializable values in SSR metadata unless they
-  are omitted on the server or use an explicit serializer.
-
-## Official Sources
-
-This skill was derived from the Pinia Colada documentation at repository commit
-`5c9363d64fab2c12481701e66d4491a6b3b18f21` (2026-07-22).
-
-- Documentation: https://pinia-colada.esm.dev/
-- Source: https://github.com/posva/pinia-colada/tree/main/docs
-- API: https://pinia-colada.esm.dev/api/
+- Run the project's existing typecheck and the narrowest relevant tests.
+- Run lint and broader tests when the change crosses shared query, cache, plugin, or SSR infrastructure.
+- Exercise success, pending/loading, error, refetch, and stale-data states when they are affected.
+- For mutations, verify invalidation or cache updates after both success and failure; test optimistic rollback when used.
+- Report any behavior that could not be exercised and the version assumptions used.
