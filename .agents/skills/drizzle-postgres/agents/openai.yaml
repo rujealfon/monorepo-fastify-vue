@@ -3,4 +3,4 @@ interface:
   short_description: "Build reliable Drizzle ORM Postgres data layers"
   default_prompt: "Use $drizzle-postgres to implement and verify Drizzle ORM schemas, queries, and migrations for PostgreSQL in this project."
 policy:
-  allow_implicit_invocation: false
+  allow_implicit_invocation: true

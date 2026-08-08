@@ -3,4 +3,4 @@ interface:
   short_description: "Build reliable Zod validation schemas"
   default_prompt: "Use $zod to define and verify Zod schemas for validating and parsing data in this project."
 policy:
-  allow_implicit_invocation: false
+  allow_implicit_invocation: true

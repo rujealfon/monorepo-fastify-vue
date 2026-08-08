@@ -3,4 +3,4 @@ interface:
   short_description: "Build reliable Pinia Colada data workflows"
   default_prompt: "Use $pinia-colada to implement and verify async data fetching in this Vue application."
 policy:
-  allow_implicit_invocation: false
+  allow_implicit_invocation: true
