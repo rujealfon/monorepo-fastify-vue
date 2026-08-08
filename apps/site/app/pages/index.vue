@@ -10,8 +10,8 @@ const { public: { webUrl } } = useRuntimeConfig()
     :ui="{ container: 'py-12 sm:py-16 lg:py-20' }"
   >
     <template #links>
-      <UButton :href="`${webUrl}/register`" size="lg" icon="i-lucide-user-plus" label="Get started" />
-      <UButton :href="`${webUrl}/login`" size="lg" color="neutral" variant="outline" label="Login" />
+      <UButton :to="`${webUrl}/register`" size="lg" icon="i-lucide-user-plus" label="Get started" />
+      <UButton :to="`${webUrl}/login`" size="lg" color="neutral" variant="outline" label="Login" />
     </template>
   </UPageHero>
 

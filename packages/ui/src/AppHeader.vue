@@ -1,10 +1,13 @@
 <script setup lang="ts">
 import type { NavigationMenuItem } from '@nuxt/ui'
 
-defineProps<{
+withDefaults(defineProps<{
   brandHref: string
+  brandLabel?: string
   links: NavigationMenuItem[]
-}>()
+}>(), {
+  brandLabel: 'Starter Template'
+})
 </script>
 
 <template>
@@ -12,7 +15,7 @@ defineProps<{
     <template #title>
       <ULink :to="brandHref" class="flex items-center gap-2 font-semibold text-highlighted">
         <UIcon name="i-lucide-check-check" class="size-6 text-primary" />
-        Starter Template
+        {{ brandLabel }}
       </ULink>
     </template>
 
