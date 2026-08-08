@@ -1,9 +1,5 @@
 <script setup lang="ts">
-import { useQuery } from '@pinia/colada'
-
-import { profileQuery } from '@/features/profile'
-
-const profile = useQuery(profileQuery)
+const { public: { webUrl } } = useRuntimeConfig()
 </script>
 
 <template>
@@ -14,17 +10,8 @@ const profile = useQuery(profileQuery)
     :ui="{ container: 'py-12 sm:py-16 lg:py-20' }"
   >
     <template #links>
-      <UButton
-        v-if="profile.data.value"
-        to="/profile"
-        size="lg"
-        icon="i-lucide-user"
-        label="Go to Profile"
-      />
-      <template v-else>
-        <UButton to="/register" size="lg" icon="i-lucide-user-plus" label="Get started" />
-        <UButton to="/login" size="lg" color="neutral" variant="outline" label="Login" />
-      </template>
+      <UButton :href="`${webUrl}/register`" size="lg" icon="i-lucide-user-plus" label="Get started" />
+      <UButton :href="`${webUrl}/login`" size="lg" color="neutral" variant="outline" label="Login" />
     </template>
   </UPageHero>
 
