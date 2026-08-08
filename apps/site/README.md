@@ -29,14 +29,16 @@ With Docker, the site is always available at [http://localhost:8000](http://loca
 ```text
 apps/site/
 ├── app/
-│   └── app.vue          # Nuxt application root
-├── public/              # Files copied to the site root unchanged
-├── nuxt.config.ts       # Nuxt and module configuration
-├── Dockerfile           # Development and static-production images
-└── vercel.json          # Static Vercel build settings
+│   ├── app.vue           # Nuxt application root
+│   ├── layouts/          # App shells (default.vue)
+│   └── pages/            # File-based routes (index.vue, about.vue)
+├── public/               # Files copied to the site root unchanged
+├── nuxt.config.ts        # Nuxt and module configuration (webUrl runtime config)
+├── Dockerfile            # Development and static-production images
+└── vercel.json           # Static Vercel build settings
 ```
 
-Follow Nuxt conventions as the site grows: add file-based routes under `app/pages`, layouts under `app/layouts`, and site-owned components and composables under their corresponding `app` directories.
+The site hosts only public pages — Home and About. Its `default` layout's Login and Register buttons link out to the web app (`runtimeConfig.public.webUrl`, set via `NUXT_PUBLIC_WEB_URL`) rather than to internal routes, since authenticated routes live in `apps/web`. Follow Nuxt conventions as the site grows: add file-based routes under `app/pages`, layouts under `app/layouts`, and site-owned components and composables under their corresponding `app` directories.
 
 ## Scripts
 

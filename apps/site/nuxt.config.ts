@@ -17,6 +17,23 @@ export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
   devtools: { enabled: true },
   modules: ['@nuxt/ui'],
+  css: ['~/assets/css/main.css'],
   ui: {},
-  devServer: hasCert ? { https: { key: certKey, cert: certFile } } : undefined
+  devServer: hasCert ? { https: { key: certKey, cert: certFile } } : undefined,
+  // @monorepo-fastify-vue/ui ships raw .vue/.ts source (no build step) so both
+  // web and site compile it with their own Vue tooling. Without this, Nitro's
+  // server bundle would leave the workspace package external and try to
+  // `require()` an uncompiled .vue file at runtime.
+  build: { transpile: ['@monorepo-fastify-vue/ui'] },
+  runtimeConfig: {
+    public: {
+      // Login/Register live on web, not site — baked in at build time since
+      // `nuxt generate` produces static output with no server to read env
+      // vars per-request. Set NUXT_PUBLIC_WEB_URL to web's deployed origin
+      // (e.g. https://app.example.com) in the site's Vercel project. Locally,
+      // web serves HTTPS once the shared dev cert exists (same hasCert check
+      // as this file's own devServer, above) and HTTP otherwise.
+      webUrl: process.env.NUXT_PUBLIC_WEB_URL ?? `${hasCert ? 'https' : 'http'}://localhost:5173`
+    }
+  }
 })

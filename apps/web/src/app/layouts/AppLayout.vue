@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import type { NavigationMenuItem } from '@nuxt/ui'
+import { AppHeader } from '@monorepo-fastify-vue/ui'
 import { useToast } from '@nuxt/ui/composables'
 import { useQuery } from '@pinia/colada'
 import { computed } from 'vue'
-import { RouterLink, RouterView, useRouter } from 'vue-router'
+import { RouterView, useRouter } from 'vue-router'
 
 import { useAuthMutations } from '@/features/auth'
 import { profileQuery } from '@/features/profile'
@@ -14,9 +15,7 @@ const profile = useQuery(profileQuery)
 const toast = useToast()
 
 const links: NavigationMenuItem[] = [
-  { label: 'Home', to: '/', icon: 'i-lucide-house' },
-  { label: 'Health', to: '/health', icon: 'i-lucide-activity' },
-  { label: 'About', to: '/about', icon: 'i-lucide-info' }
+  { label: 'Health', to: '/health', icon: 'i-lucide-activity' }
 ]
 
 async function signOut() {
@@ -43,18 +42,8 @@ const userMenu = computed(() => [[
 
 <template>
   <div class="min-h-dvh bg-default">
-    <UHeader :ui="{ root: 'border-b border-default' }">
-      <template #title>
-        <RouterLink to="/" class="flex items-center gap-2 font-semibold text-highlighted">
-          <UIcon name="i-lucide-check-check" class="size-6 text-primary" />
-          Starter Template
-        </RouterLink>
-      </template>
-
-      <UNavigationMenu :items="links" variant="link" />
-
+    <AppHeader brand-href="/" :links="links">
       <template #right>
-        <UColorModeButton />
         <template v-if="profile.data.value">
           <UDropdownMenu :items="userMenu">
             <UButton
@@ -72,11 +61,7 @@ const userMenu = computed(() => [[
           <UButton to="/register" color="primary" label="Register" />
         </template>
       </template>
-
-      <template #body>
-        <UNavigationMenu :items="links" orientation="vertical" class="-mx-2.5" />
-      </template>
-    </UHeader>
+    </AppHeader>
 
     <UMain>
       <UContainer class="py-10">

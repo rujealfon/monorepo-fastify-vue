@@ -63,7 +63,8 @@ Not yet integrated; noted here so future work builds toward these choices instea
 │   └── web/          # Vue / Vite application
 └── packages/
     ├── api-client/   # Typed API client generated from the OpenAPI spec (openapi-fetch)
-    └── eslint-config/ # Shared ESLint config
+    ├── eslint-config/ # Shared ESLint config
+    └── ui/           # Shared Vue components (AppHeader) used by both web and site
 ```
 
 Detailed structure and dependency rules live with each workspace:
@@ -73,6 +74,7 @@ Detailed structure and dependency rules live with each workspace:
 - [Vue web app](./apps/web/README.md)
 - [Generated API client](./packages/api-client/README.md)
 - [Shared ESLint config](./packages/eslint-config/README.md)
+- [Shared UI components](./packages/ui/README.md)
 
 Regenerate the client after changing API routes or schemas:
 
@@ -276,13 +278,19 @@ Output Directory: dist
 Install Command: pnpm install
 ```
 
-Enable "Include files outside the Root Directory in the Build Step" — the web app depends on the pnpm workspace root (lockfile, hoisted `node_modules`, `packages/api-client`).
+Enable "Include files outside the Root Directory in the Build Step" — the web app depends on the pnpm workspace root (lockfile, hoisted `node_modules`, `packages/api-client`, `packages/ui`).
 
 No `VITE_API_BASE_URL` (or any API URL env var) is needed. `apps/web/vercel.json` rewrites `/api/*` to the API project's URL, so the browser always calls the web app's own origin — matching what `vite.config.ts`'s dev server proxy already does locally. This keeps every request same-origin regardless of whether web and API end up on unrelated domains, so update the `destination` in `apps/web/vercel.json` if the API project's URL changes.
 
+Set `VITE_SITE_URL` to the site project's URL (e.g. `https://example.com`) — `AuthLayout`'s Home/About links point there since those pages live on site, not web (see `apps/web/src/app/layouts/AuthLayout.vue`). Like `VITE_API_BASE_URL` above, this is inlined at build time (`vite.config.ts`'s `define`), so redeploy web whenever site's URL changes. Defaults to `http://localhost:8000` for local development.
+
 ### Site project
 
-Create a Vercel project with `apps/site` as its Root Directory; its checked-in `vercel.json` runs `pnpm build` and publishes `.output/public`. No environment variables required.
+Create a Vercel project with `apps/site` as its Root Directory; its checked-in `vercel.json` runs `pnpm build` and publishes `.output/public`.
+
+Enable "Include files outside the Root Directory in the Build Step" here too — site now depends on the shared header component in `packages/ui` (see [Shared UI components](./packages/ui/README.md)), the first workspace package it's needed since site previously had no `packages/*` dependencies.
+
+The site hosts only public pages (Home, About); Login and Register live on web, so its header links out to it. Set `NUXT_PUBLIC_WEB_URL` to the web project's URL (e.g. `https://app.example.com`) — it's read at build time since `nuxt generate` produces static output with no server to read env vars per-request, so redeploy the site whenever web's URL changes. Defaults to `http://localhost:5173` for local development.
 
 ### Direct requests between unrelated domains
 

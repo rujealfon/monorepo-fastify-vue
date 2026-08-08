@@ -25,6 +25,15 @@ export default defineConfig({
     outDir: 'dist',
     emptyOutDir: true
   },
+  define: {
+    // AuthLayout's Home/About links point at the public site, which doesn't
+    // exist in web anymore (moved out — see apps/site). Locally it serves
+    // HTTPS once the shared dev cert exists (same hasCert check as this
+    // file's own server.https, below) and HTTP otherwise.
+    'import.meta.env.VITE_SITE_URL': JSON.stringify(
+      process.env.VITE_SITE_URL ?? `${hasCert ? 'https' : 'http'}://localhost:8000`
+    )
+  },
   resolve: {
     alias: {
       '@': path.resolve(import.meta.dirname, './src'),

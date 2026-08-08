@@ -19,7 +19,7 @@ Feature-based layout under `src/`. Data fetching uses [Pinia Colada](https://pin
 ```
 src/
 ├── app/                        # App-level setup & config
-│   ├── layouts/                # App shells (DefaultLayout.vue)
+│   ├── layouts/                # App shells (AppLayout.vue, AuthLayout.vue)
 │   ├── router/                 # Root router; imports feature public entries
 │   └── plugins/                # Vue plugin registration (Pinia and Pinia Colada)
 │       ├── index.ts            # registerPlugins(app) — installs Pinia + PiniaColada

@@ -1,12 +1,10 @@
 import { useQueryCache } from '@pinia/colada'
 import { createRouter, createWebHistory } from 'vue-router'
 
+import AppLayout from '@/app/layouts/AppLayout.vue'
 import AuthLayout from '@/app/layouts/AuthLayout.vue'
-import DefaultLayout from '@/app/layouts/DefaultLayout.vue'
-import { aboutRoutes } from '@/features/about'
 import { authRoutes } from '@/features/auth'
 import { healthRoutes } from '@/features/health'
-import { homeRoutes } from '@/features/home'
 import { profileQuery, profileRoutes } from '@/features/profile'
 
 const router = createRouter({
@@ -14,8 +12,10 @@ const router = createRouter({
   routes: [
     {
       path: '/',
-      component: DefaultLayout,
-      children: [...homeRoutes, ...aboutRoutes, ...healthRoutes, ...profileRoutes]
+      component: AppLayout,
+      // Home and About are public marketing pages served by apps/site; web
+      // only hosts authenticated app routes, so '/' redirects into the app.
+      children: [{ path: '/', name: 'root', redirect: '/profile' }, ...healthRoutes, ...profileRoutes]
     },
     {
       path: '/',
