@@ -5,7 +5,7 @@
       "source": "rujealfon/skills",
       "sourceType": "github",
       "skillPath": "skills/drizzle-postgres/SKILL.md",
-      "computedHash": "e3485894bfe58eda374bd13401d56823a87060cc7d799c310c9299dde89dbff3"
+      "computedHash": "90ad6507c23d0dd012b8788fe06fa46f3a82f7d54dd777a16d0bfa5e49787287"
     },
     "fastify-best-practices": {
       "source": "mcollina/skills",
@@ -25,6 +25,12 @@
       "skillPath": "skills/pinia/SKILL.md",
       "computedHash": "897b6b0982956f41f5cc85128ca638b625e1b3c8bc619e303cd1e7661c95b7de"
     },
+    "pinia-colada": {
+      "source": "rujealfon/skills",
+      "sourceType": "github",
+      "skillPath": "skills/pinia-colada/SKILL.md",
+      "computedHash": "6ee0740c0d692e7257c4b7745bd052d7655570eeb1fefdadc749313f67996475"
+    },
     "vue": {
       "source": "antfu/skills",
       "sourceType": "github",
@@ -35,7 +41,7 @@
       "source": "rujealfon/skills",
       "sourceType": "github",
       "skillPath": "skills/zod/SKILL.md",
-      "computedHash": "0ae5ff4aa7358c9ae9324a4f0e3e9e6b8f8ade8c403f9de3217a52ed9907eaa0"
+      "computedHash": "ccad53b5003804279148b4b8175f26163adf3fab6971d2ce5089b9b696e1f96f"
     }
   }
 }
