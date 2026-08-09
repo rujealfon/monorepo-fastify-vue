@@ -1,5 +1,5 @@
 import type { User } from '@monorepo-fastify-vue/api-client'
-import { createApiClient } from '@monorepo-fastify-vue/api-client'
+import { createApiClient, RpcError } from '@monorepo-fastify-vue/api-client'
 
 let client: ReturnType<typeof createApiClient> | undefined
 // Module-level, not a ref: this must fire exactly once per page load regardless
@@ -26,8 +26,9 @@ export function useProfile() {
 
   async function logout() {
     const { response } = await client!.POST('/api/v1/auth/logout')
-    if (response.ok)
-      profile.value = null
+    if (!response.ok)
+      throw new RpcError(response.status)
+    profile.value = null
   }
 
   if (import.meta.client && !fetched) {

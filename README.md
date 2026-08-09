@@ -250,7 +250,8 @@ DATABASE_URL=postgresql://USER:PASSWORD@HOST:5432/DATABASE?sslmode=verify-full
 JWT_SECRET=replace-with-a-random-secret-of-at-least-32-characters
 NODE_ENV=production
 REDIS_URL=rediss://default:PASSWORD@HOST:6379
-CORS_ORIGIN=https://app.example.com
+CORS_ORIGIN=https://app.example.com,https://example.com
+COOKIE_DOMAIN=.example.com
 ```
 
 If `DATABASE_URL` is a pooled (PgBouncer) endpoint — e.g. Neon's default pooled connection string — also set:
@@ -261,7 +262,9 @@ DATABASE_URL_UNPOOLED=postgresql://USER:PASSWORD@HOST:5432/DATABASE?sslmode=veri
 
 `pnpm db:migrate` (part of `build:vercel`) takes a session-scoped Postgres advisory lock, which transaction-mode PgBouncer doesn't support — `apps/api/drizzle.config.ts` uses `DATABASE_URL_UNPOOLED` for migrations when it's set, falling back to `DATABASE_URL` otherwise. Runtime queries always use `DATABASE_URL` (pooled is preferred there — Vercel's serverless functions open many short-lived concurrent connections, which a direct Postgres connection limit can't absorb). Get both connection strings from Neon's connection dialog by toggling "Connection pooling" on/off.
 
-`CORS_ORIGIN` is required in production (validated in `apps/api/src/config`) — it's both the `@fastify/cors` allowlist and the extra origin the `sameOrigin` decorator (`apps/api/src/plugins/auth.ts`) accepts alongside same-host requests.
+`CORS_ORIGIN` is required in production (validated in `apps/api/src/config`) — it's both the `@fastify/cors` allowlist and the extra origins the `sameOrigin` decorator (`apps/api/src/plugins/auth.ts`) accepts alongside same-host requests. It's comma-separated and must include **both** web's and site's origins: unlike web (which reaches the API through a same-origin rewrite proxy, see below), site's header calls the API's real origin directly (`apps/site/app/composables/use-profile.ts`) to check login state and to log out, so its origin needs to be in the allowlist too.
+
+`COOKIE_DOMAIN` is required for the login session to be visible on site as well as web. Without it, the session cookie is host-only — scoped to whichever origin issued it, which in practice is web's own origin (since web reaches the API through its own rewrite proxy), so site would never see the user as logged in even though it calls the same API. Set it to the shared parent domain (e.g. `.example.com`) so both `app.example.com` and `example.com` receive the cookie. Leave it unset only when web and site don't share a registrable domain — e.g. `*.vercel.app` project URLs, which are each their own entry on the Public Suffix List (see [Bare `*.vercel.app` project URLs](#direct-requests-between-unrelated-domains) below) — where setting an explicit `Domain` would just make the cookie invalid.
 
 Use `rediss://` (TLS), not `redis://`, with Upstash — its endpoints enforce TLS ("TLS/SSL: Enabled" in the Upstash console), and `redis://` will fail to connect.
 
@@ -288,9 +291,11 @@ Set `VITE_SITE_URL` to the site project's URL (e.g. `https://example.com`) — `
 
 Create a Vercel project with `apps/site` as its Root Directory; its checked-in `vercel.json` runs `pnpm build` and publishes `.output/public`.
 
-Enable "Include files outside the Root Directory in the Build Step" here too — site now depends on the shared header component in `packages/ui` (see [Shared UI components](./packages/ui/README.md)), the first workspace package it's needed since site previously had no `packages/*` dependencies.
+Enable "Include files outside the Root Directory in the Build Step" here too — site depends on the shared header component in `packages/ui` (see [Shared UI components](./packages/ui/README.md)) and on `packages/api-client` to call the API directly for login state, the first workspace packages it's needed since site previously had no `packages/*` dependencies. Unlike web (which aliases `api-client` straight to its TypeScript source in `vite.config.ts`), site resolves it through normal Node module resolution, so `apps/site/package.json`'s `build` script builds `packages/api-client`'s `dist/` first before `nuxt generate`.
 
-The site hosts only public pages (Home, About); Login and Register live on web, so its header links out to it. Set `NUXT_PUBLIC_WEB_URL` to the web project's URL (e.g. `https://app.example.com`) — it's read at build time since `nuxt generate` produces static output with no server to read env vars per-request, so redeploy the site whenever web's URL changes. Defaults to `http://localhost:5173` for local development.
+The site hosts only public pages (Home, About); Login and Register live on web, so its header links out to it when signed out, and shows a profile dropdown (with a link back to web's `/profile`) when the shared session is signed in. Set `NUXT_PUBLIC_WEB_URL` to the web project's URL (e.g. `https://app.example.com`) — it's read at build time since `nuxt generate` produces static output with no server to read env vars per-request, so redeploy the site whenever web's URL changes. Defaults to `http://localhost:5173` for local development.
+
+Also set `NUXT_PUBLIC_API_URL` to the API project's URL (e.g. `https://api.example.com`) — unlike web, site has no build/dev-time proxy to the API (`nuxt generate`'s static output has no server to proxy through), so the site's header calls this origin directly client-side to check login state and to log out (`apps/site/app/composables/use-profile.ts`). This only works once `CORS_ORIGIN` and `COOKIE_DOMAIN` are set on the API project as described above. Defaults to `http://localhost:3000` for local development.
 
 ### Direct requests between unrelated domains
 
