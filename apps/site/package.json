@@ -11,6 +11,8 @@
     "postinstall": "nuxt prepare"
   },
   "dependencies": {
+    "@fontsource-variable/geist": "^5.3.0",
+    "@fontsource-variable/geist-mono": "^5.3.0",
     "@monorepo-fastify-vue/ui": "workspace:^",
     "@nuxt/ui": "^4.10.0",
     "nuxt": "^4.5.1",

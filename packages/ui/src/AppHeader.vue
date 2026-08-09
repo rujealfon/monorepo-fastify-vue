@@ -11,12 +11,10 @@ withDefaults(defineProps<{
 </script>
 
 <template>
-  <UHeader :ui="{ root: 'border-b border-default' }">
+  <UHeader :to="brandHref" :ui="{ root: 'border-b border-default' }">
     <template #title>
-      <ULink :to="brandHref" class="flex items-center gap-2 font-semibold text-highlighted">
-        <UIcon name="i-lucide-check-check" class="size-6 text-primary" />
-        {{ brandLabel }}
-      </ULink>
+      <UIcon name="i-lucide-check-check" class="size-6 text-primary" />
+      {{ brandLabel }}
     </template>
 
     <UNavigationMenu :items="links" variant="link" />

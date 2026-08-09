@@ -26,6 +26,36 @@ export default defineNuxtConfig({
   // Follows the OS/browser preference; falls back to dark (the "night"
   // theme's primary identity) when that can't be detected.
   colorMode: { preference: 'system', fallback: 'dark' },
+  icon: {
+    // @nuxt/ui only auto-bundles its own default icon set; icons we
+    // reference ourselves (nav items, page content) otherwise resolve via
+    // an on-demand fetch that can fail during SSR — e.g. in a container
+    // with no outbound network — leaving a hydration mismatch between the
+    // empty server render and the successful client fetch. Pinning them
+    // here guarantees they're bundled at build time, no fetch required.
+    clientBundle: {
+      icons: [
+        'lucide:activity',
+        'lucide:check-check',
+        'lucide:house',
+        'lucide:info',
+        'lucide:shield-check',
+        'lucide:user',
+        'lucide:user-plus'
+      ]
+    }
+  },
+  // @nuxt/ui auto-registers @nuxt/fonts, whose default providers (google,
+  // fontsource, ...) resolve font metadata over the network — the same
+  // failure mode fixed above for icons. Geist/Geist Mono are self-hosted via
+  // @fontsource-variable (imported directly in main.css), so 'none' tells
+  // @nuxt/fonts not to also try fetching them itself.
+  fonts: {
+    families: [
+      { name: 'Geist Variable', provider: 'none' },
+      { name: 'Geist Mono Variable', provider: 'none' }
+    ]
+  },
   devServer: hasCert ? { https: { key: certKey, cert: certFile } } : undefined,
   // @monorepo-fastify-vue/ui ships raw .vue/.ts source (no build step) so both
   // web and site compile it with their own Vue tooling. Without this, Nitro's

@@ -1,11 +1,16 @@
 @import 'tailwindcss';
 @import '@nuxt/ui';
+@import '@fontsource-variable/geist';
+@import '@fontsource-variable/geist-mono';
 
 /* "night" palette — 11-shade ramps derived from the daisyUI oklch base
    colors (hue/chroma held constant per color, shade 400 pinned to the
    original value since Nuxt UI reads shade 400 for dark-mode semantic
    colors), gamut-mapped to sRGB hex. */
 @theme static {
+  --font-sans: 'Geist Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'Geist Mono Variable', ui-monospace, monospace;
+
   --color-brand-primary-50: #f8fcff;
   --color-brand-primary-100: #f8fcff;
   --color-brand-primary-200: #e6f6ff;
