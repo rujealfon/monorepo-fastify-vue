@@ -1,21 +1,19 @@
 <script setup lang="ts">
 import { reactive, useTemplateRef } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRouter } from 'vue-router'
 
-import { internalRedirect } from '@/features/auth/auth.utils'
 import { useAuthMutations } from '@/features/auth/mutations'
 import { apiFormErrors } from '@/shared/api/form-errors'
 
 const state = reactive({ email: '', password: '' })
 const form = useTemplateRef('form')
-const route = useRoute()
 const router = useRouter()
 const { register } = useAuthMutations()
 
 async function submit() {
   try {
     await register.mutateAsync({ email: state.email, password: state.password })
-    await router.push(internalRedirect(route.query.redirect))
+    await router.push('/login')
   }
   catch (error) {
     form.value?.setErrors(apiFormErrors(error))

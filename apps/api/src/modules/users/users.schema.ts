@@ -43,6 +43,10 @@ export const registerUserSchema = z.object({
 }).meta({ examples: [{ email: 'person@example.com', password: 'correct horse battery staple' }] })
 export type RegisterUser = z.infer<typeof registerUserSchema>
 
+export const registrationResponseSchema = z.object({
+  message: z.string()
+})
+
 export const loginUserSchema = registerUserSchema
   .pick({ email: true, password: true })
   .meta({ examples: [{ email: 'person@example.com', password: 'correct horse battery staple' }] })

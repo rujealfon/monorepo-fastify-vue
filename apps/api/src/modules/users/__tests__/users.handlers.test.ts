@@ -32,26 +32,15 @@ describe('user routes', () => {
       url: '/api/v1/auth/register',
       payload: { email: '  Person@Example.COM ', password }
     })
-    expect(registration.statusCode).toBe(201)
-    expect(registration.json()).toMatchObject({
-      email: 'person@example.com',
-      profile: { firstName: null, lastName: null, gender: null, birthDate: null, bio: null }
-    })
-    expect(registration.body).not.toContain('passwordHash')
-    expect(registration.headers['set-cookie']).toEqual(expect.stringContaining('HttpOnly'))
-    expect(registration.headers['set-cookie']).toEqual(expect.stringContaining('SameSite=Strict'))
-    expect(registration.headers['set-cookie']).toEqual(expect.stringContaining('Path=/'))
-    expect(registration.headers['set-cookie']).toEqual(expect.stringContaining('Max-Age=604800'))
+    expect(registration.statusCode).toBe(202)
+    expect(registration.json()).toEqual({ message: 'Registration request accepted' })
+    expect(registration.headers['set-cookie']).toBeUndefined()
 
     const [storedUser] = await db.select().from(users).where(eq(users.email, 'person@example.com'))
     const [storedProfile] = await db.select().from(profiles).where(eq(profiles.userId, storedUser.id))
     expect(storedProfile).toBeDefined()
     expect(storedUser.passwordHash).not.toBe(password)
     expect(storedUser.passwordHash).toMatch(/^\$argon2id\$/)
-
-    const sessionCookie = cookie(registration)
-    const profile = await app.inject({ method: 'GET', url: '/api/v1/profile', headers: { cookie: sessionCookie } })
-    expect(profile.statusCode).toBe(200)
 
     const login = await app.inject({
       method: 'POST',
@@ -61,7 +50,10 @@ describe('user routes', () => {
     expect(login.statusCode).toBe(200)
     expect(login.json()).toMatchObject({ id: storedUser.id, email: 'person@example.com' })
     expect(login.headers['set-cookie']).toEqual(expect.stringContaining('HttpOnly'))
-    const otherSessionCookie = cookie(login)
+    const sessionCookie = cookie(login)
+
+    const profile = await app.inject({ method: 'GET', url: '/api/v1/profile', headers: { cookie: sessionCookie } })
+    expect(profile.statusCode).toBe(200)
 
     const updated = await app.inject({
       method: 'PATCH',
@@ -109,13 +101,6 @@ describe('user routes', () => {
       headers: { cookie: sessionCookie }
     })
     expect(replayedSession.statusCode).toBe(401)
-
-    const otherSession = await app.inject({
-      method: 'GET',
-      url: '/api/v1/profile',
-      headers: { cookie: otherSessionCookie }
-    })
-    expect(otherSession.statusCode).toBe(200)
   })
 
   it('removes expired sessions when issuing a new session', async () => {
@@ -126,7 +111,7 @@ describe('user routes', () => {
       remoteAddress: '203.0.113.60',
       payload: { email, password }
     })
-    expect(registration.statusCode).toBe(201)
+    expect(registration.statusCode).toBe(202)
 
     const [storedUser] = await db.select({ id: users.id }).from(users).where(eq(users.email, email))
     const [expiredSession] = await db.insert(sessions)
@@ -149,16 +134,21 @@ describe('user routes', () => {
     const activeSessions = await db.select({ id: sessions.id })
       .from(sessions)
       .where(eq(sessions.userId, storedUser.id))
-    expect(activeSessions).toHaveLength(2)
+    expect(activeSessions).toHaveLength(1)
   })
 
-  it('maps duplicate races and invalid credentials to stable errors', async () => {
+  it('returns indistinguishable responses for new and existing registration emails', async () => {
     const payload = { email: 'race@example.com', password }
     const responses = await Promise.all([
       app.inject({ method: 'POST', url: '/api/v1/auth/register', payload }),
       app.inject({ method: 'POST', url: '/api/v1/auth/register', payload })
     ])
-    expect(responses.map(response => response.statusCode).sort()).toEqual([201, 409])
+    expect(responses.map(response => response.statusCode)).toEqual([202, 202])
+    expect(responses.map(response => response.body)).toEqual([
+      '{"message":"Registration request accepted"}',
+      '{"message":"Registration request accepted"}'
+    ])
+    expect(responses.every(response => response.headers['set-cookie'] === undefined)).toBe(true)
 
     const invalid = await app.inject({
       method: 'POST',
@@ -220,11 +210,18 @@ describe('user routes', () => {
       remoteAddress: '203.0.113.20',
       payload: { email: 'csrf-profile@example.com', password }
     })
+    expect(registration.statusCode).toBe(202)
+    const csrfLogin = await app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/login',
+      remoteAddress: '203.0.113.20',
+      payload: { email: 'csrf-profile@example.com', password }
+    })
     const profilePatch = await app.inject({
       method: 'PATCH',
       url: '/api/v1/profile',
       remoteAddress: '203.0.113.20',
-      headers: { cookie: cookie(registration), origin: 'https://evil.example' },
+      headers: { cookie: cookie(csrfLogin), origin: 'https://evil.example' },
       payload: { firstName: 'Blocked' }
     })
     expect(profilePatch.statusCode).toBe(403)
@@ -240,7 +237,7 @@ describe('user routes', () => {
         payload: { email: `limit-${index}@example.com`, password }
       }))
     }
-    expect(registrations.slice(0, 5).map(response => response.statusCode)).toEqual([201, 201, 201, 201, 201])
+    expect(registrations.slice(0, 5).map(response => response.statusCode)).toEqual([202, 202, 202, 202, 202])
     expect(registrations[5].statusCode).toBe(429)
 
     const otherIp = await app.inject({
@@ -249,7 +246,7 @@ describe('user routes', () => {
       remoteAddress: '203.0.113.2',
       payload: { email: 'other-ip@example.com', password }
     })
-    expect(otherIp.statusCode).toBe(201)
+    expect(otherIp.statusCode).toBe(202)
 
     const logins = []
     for (let attempt = 0; attempt < 11; attempt++) {

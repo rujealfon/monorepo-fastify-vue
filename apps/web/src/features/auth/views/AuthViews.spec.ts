@@ -66,7 +66,7 @@ describe('authentication views', () => {
     await flushPromises()
     expect(login.wrapper.get('[role="alert"]').text()).toContain('Invalid')
 
-    api.POST.mockResolvedValueOnce({ data: user, response: { ok: true, status: 201 } })
+    api.POST.mockResolvedValueOnce({ data: { message: 'Registration request accepted' }, response: { ok: true, status: 202 } })
     const registration = await mountAt(RegisterView, '/register')
     await registration.wrapper.get('input[name="email"]').setValue(user.email)
     await registration.wrapper.get('input[name="password"]').setValue('correct horse battery staple')
@@ -75,8 +75,8 @@ describe('authentication views', () => {
     expect(api.POST).toHaveBeenLastCalledWith('/api/v1/auth/register', {
       body: { email: user.email, password: 'correct horse battery staple' }
     })
-    expect(registration.router.currentRoute.value.fullPath).toBe('/profile')
-    expect(useQueryCache(registration.pinia).getQueryData(PROFILE_KEY)).toEqual(user)
+    expect(registration.router.currentRoute.value.fullPath).toBe('/login')
+    expect(useQueryCache(registration.pinia).getQueryData(PROFILE_KEY)).toBeUndefined()
   })
 
   it('shows registration errors without redirecting', async () => {

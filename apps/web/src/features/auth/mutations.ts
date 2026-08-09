@@ -18,10 +18,10 @@ export function useAuthMutations() {
   return {
     register: useMutation({
       mutation: async (body: RegisterUser) => {
-        const { data, error, response } = await api.POST('/api/v1/auth/register', { body })
-        return result(response, data, error)
-      },
-      onSuccess: signedIn
+        const { error, response } = await api.POST('/api/v1/auth/register', { body })
+        if (!response.ok)
+          throw new RpcError(response.status, error)
+      }
     }),
     login: useMutation({
       mutation: async (body: LoginUser) => {

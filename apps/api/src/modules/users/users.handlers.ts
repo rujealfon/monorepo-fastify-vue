@@ -7,10 +7,9 @@ import { SESSION_COOKIE } from '#api/plugins/auth.js'
 import * as service from './users.service.js'
 
 export async function register(request: FastifyRequest<{ Body: RegisterUser }>, reply: FastifyReply) {
-  const user = await service.register(request.body)
-  await request.server.setSession(reply, user.id)
-  reply.code(201)
-  return user
+  await service.register(request.body)
+  reply.code(202)
+  return { message: 'Registration request accepted' }
 }
 
 export async function login(request: FastifyRequest<{ Body: LoginUser }>, reply: FastifyReply) {
