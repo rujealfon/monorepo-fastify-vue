@@ -15,7 +15,11 @@ RUN pnpm install --frozen-lockfile
 # TS source via vite.config.ts), site resolves it through normal node module
 # resolution -> package.json's "main": "./dist/index.js", so the package must
 # be built here. .dockerignore excludes **/dist from the build context, so a
-# dist built on the host never reaches the image.
+# dist built on the host never reaches the image. Required specifically for
+# the development target below, whose CMD runs `nuxt dev` directly rather
+# than through apps/site/package.json's own build script (which also builds
+# this as its first step) -- the production build stage re-runs it via that
+# script, redundant but harmless there since it's already fresh.
 RUN pnpm --filter @monorepo-fastify-vue/api-client build
 
 COPY apps/site/ ./apps/site/
