@@ -1,5 +1,6 @@
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
+import { brandColorNames } from '@monorepo-fastify-vue/ui/theme'
 
 // Nuxt's dev server (Nitro) is the actual TLS listener, not Vite, so a Vite
 // plugin can't wire up https here. Point devServer.https directly at the leaf
@@ -20,7 +21,7 @@ export default defineNuxtConfig({
   css: ['~/assets/css/main.css'],
   ui: {
     theme: {
-      colors: ['primary', 'secondary', 'accent', 'info', 'success', 'warning', 'error']
+      colors: [...brandColorNames]
     }
   },
   // Follows the OS/browser preference; falls back to dark (the "night"

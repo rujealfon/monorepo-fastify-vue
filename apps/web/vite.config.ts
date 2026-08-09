@@ -1,5 +1,6 @@
 import { existsSync, readFileSync } from 'node:fs'
 import path from 'node:path'
+import { brandColorNames, brandColors } from '@monorepo-fastify-vue/ui/theme'
 import ui from '@nuxt/ui/vite'
 import vue from '@vitejs/plugin-vue'
 import { defineConfig } from 'vite'
@@ -47,19 +48,10 @@ export default defineConfig({
     vue(),
     ui({
       theme: {
-        colors: ['primary', 'secondary', 'accent', 'info', 'success', 'warning', 'error']
+        colors: [...brandColorNames]
       },
       ui: {
-        colors: {
-          primary: 'brand-primary',
-          secondary: 'brand-secondary',
-          accent: 'brand-accent',
-          info: 'brand-info',
-          success: 'brand-success',
-          warning: 'brand-warning',
-          error: 'brand-error',
-          neutral: 'slate'
-        }
+        colors: brandColors
       }
     })
   ],
