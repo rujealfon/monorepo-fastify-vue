@@ -49,7 +49,8 @@ export default fp(async (fastify) => {
     // origin against the configured web app allowlist instead of trusting sec-fetch-site
     // alone, which would reject those legitimate requests.
     const origin = request.headers.origin
-    const isAllowedOrigin = origin === `${request.protocol}://${request.host}` || origin === config.CORS_ORIGIN
+    const isAllowedOrigin = origin === `${request.protocol}://${request.host}`
+      || (origin !== undefined && config.CORS_ORIGINS.includes(origin))
 
     if (request.headers['sec-fetch-site'] === 'cross-site' && !isAllowedOrigin)
       throw fastify.httpErrors.forbidden('Cross-site request rejected')
@@ -77,6 +78,7 @@ export default fp(async (fastify) => {
     })
 
     reply.setCookie(SESSION_COOKIE, fastify.jwt.sign({ sid: session.id, sub: userId }), {
+      ...(config.COOKIE_DOMAIN ? { domain: config.COOKIE_DOMAIN } : {}),
       expires,
       httpOnly: true,
       maxAge: SESSION_SECONDS,

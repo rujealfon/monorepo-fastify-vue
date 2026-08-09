@@ -6,9 +6,17 @@ const envSchema = z.object({
   HOST: z.string().default('0.0.0.0'),
   DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
   JWT_SECRET: z.string().min(32, 'JWT_SECRET must be at least 32 characters'),
-  // The web app's origin (e.g. https://app.mysite.com). API, web, and site deploy as
+  // Comma-separated origins allowed to call the API with credentials (e.g.
+  // "https://app.mysite.com,https://mysite.com"). API, web, and site deploy as
   // separate Vercel projects/origins, so the API needs an explicit CORS allowlist.
   CORS_ORIGIN: z.string().min(1).optional(),
+  // Shared parent domain for the session cookie (e.g. ".mysite.com"), so web
+  // (app.mysite.com) and site (mysite.com) both receive it. Leave unset when web
+  // and site aren't deployed under one registrable domain (e.g. *.vercel.app
+  // preview/project domains, each its own public-suffix entry) — an explicit
+  // Domain there would just make the cookie invalid. Unset keeps the current
+  // host-only cookie, scoped only to whichever origin issued it.
+  COOKIE_DOMAIN: z.string().min(1).optional(),
   LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal', 'silent']).default('info'),
   // Backs the rate-limit store through the ioredis client. Required in production
   // because Vercel runs the API as isolated
@@ -42,5 +50,10 @@ if (!parsed.success) {
   process.exit(1)
 }
 
-export const config = parsed.data
+export const config = {
+  ...parsed.data,
+  // Parsed once here rather than at each call site (CORS registration, the
+  // sameOrigin check) so both agree on exactly the same allowlist.
+  CORS_ORIGINS: parsed.data.CORS_ORIGIN?.split(',').map(origin => origin.trim()).filter(Boolean) ?? []
+}
 export type Config = typeof config

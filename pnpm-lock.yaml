@@ -110,6 +110,9 @@ importers:
 
   apps/site:
     dependencies:
+      '@monorepo-fastify-vue/api-client':
+        specifier: workspace:^
+        version: link:../../packages/api-client
       '@monorepo-fastify-vue/ui':
         specifier: workspace:^
         version: link:../../packages/ui

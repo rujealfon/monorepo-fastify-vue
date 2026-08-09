@@ -11,6 +11,13 @@ COPY apps/site/package.json ./apps/site/package.json
 
 RUN pnpm install --frozen-lockfile
 
+# Unlike web (which aliases @monorepo-fastify-vue/api-client straight to its
+# TS source via vite.config.ts), site resolves it through normal node module
+# resolution -> package.json's "main": "./dist/index.js", so the package must
+# be built here. .dockerignore excludes **/dist from the build context, so a
+# dist built on the host never reaches the image.
+RUN pnpm --filter @monorepo-fastify-vue/api-client build
+
 COPY apps/site/ ./apps/site/
 
 # --- Production build ---

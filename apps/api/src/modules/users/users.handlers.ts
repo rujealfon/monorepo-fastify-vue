@@ -1,6 +1,7 @@
 import type { FastifyReply, FastifyRequest } from 'fastify'
 import type { LoginUser, PatchProfile, RegisterUser } from './users.schema.js'
 
+import { config } from '#api/config/index.js'
 import { SESSION_COOKIE } from '#api/plugins/auth.js'
 
 import * as service from './users.service.js'
@@ -20,7 +21,10 @@ export async function login(request: FastifyRequest<{ Body: LoginUser }>, reply:
 
 export async function logout(request: FastifyRequest, reply: FastifyReply) {
   await request.server.revokeSession(request)
-  reply.clearCookie(SESSION_COOKIE, { path: '/' }).code(204)
+  reply.clearCookie(SESSION_COOKIE, {
+    ...(config.COOKIE_DOMAIN ? { domain: config.COOKIE_DOMAIN } : {}),
+    path: '/'
+  }).code(204)
 }
 
 export function profile(request: FastifyRequest) {
