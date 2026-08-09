@@ -1,5 +1,6 @@
 import { existsSync, readFileSync } from 'node:fs'
 import path from 'node:path'
+import { brandColorNames, brandColors } from '@monorepo-fastify-vue/ui/theme'
 import ui from '@nuxt/ui/vite'
 import vue from '@vitejs/plugin-vue'
 import { defineConfig } from 'vite'
@@ -45,7 +46,14 @@ export default defineConfig({
   },
   plugins: [
     vue(),
-    ui()
+    ui({
+      theme: {
+        colors: [...brandColorNames]
+      },
+      ui: {
+        colors: brandColors
+      }
+    })
   ],
   server: {
     https: hasCert

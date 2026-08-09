@@ -3,8 +3,9 @@ import type { NavigationMenuItem } from '@nuxt/ui'
 import { AppHeader } from '@monorepo-fastify-vue/ui'
 import { RouterView, useRoute } from 'vue-router'
 
+import { siteUrl } from '@/shared/site-url'
+
 const route = useRoute()
-const siteUrl = import.meta.env.VITE_SITE_URL ?? 'http://localhost:8000'
 
 // Home and About live on the public site, not web — see apps/site.
 const links: NavigationMenuItem[] = [

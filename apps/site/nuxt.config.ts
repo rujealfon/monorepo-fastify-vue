@@ -1,5 +1,7 @@
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
+import { brandColorNames } from '@monorepo-fastify-vue/ui/theme'
+import { collectLucideIconNames } from './scripts/collect-icon-names'
 
 // Nuxt's dev server (Nitro) is the actual TLS listener, not Vite, so a Vite
 // plugin can't wire up https here. Point devServer.https directly at the leaf
@@ -12,13 +14,51 @@ const certKey = join(certDir, 'dev.pem')
 const certFile = join(certDir, 'cert.pem')
 const hasCert = existsSync(certKey) && existsSync(certFile)
 
+// Derived from actual `i-lucide-*` usage below rather than hand-maintained,
+// so it can't drift out of sync when a page/layout/component starts
+// referencing a new icon (see clientBundle.icons' comment for why this list
+// needs to exist at all).
+const lucideIcons = collectLucideIconNames([
+  join(import.meta.dirname, 'app'),
+  join(import.meta.dirname, '../../packages/ui/src')
+])
+
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
   devtools: { enabled: true },
   modules: ['@nuxt/ui'],
   css: ['~/assets/css/main.css'],
-  ui: {},
+  ui: {
+    theme: {
+      colors: [...brandColorNames]
+    }
+  },
+  // Follows the OS/browser preference; falls back to dark (the "night"
+  // theme's primary identity) when that can't be detected.
+  colorMode: { preference: 'system', fallback: 'dark' },
+  icon: {
+    // @nuxt/ui only auto-bundles its own default icon set; icons we
+    // reference ourselves (nav items, page content) otherwise resolve via
+    // an on-demand fetch that can fail during SSR — e.g. in a container
+    // with no outbound network — leaving a hydration mismatch between the
+    // empty server render and the successful client fetch. Pinning them
+    // here guarantees they're bundled at build time, no fetch required.
+    clientBundle: {
+      icons: lucideIcons
+    }
+  },
+  // @nuxt/ui auto-registers @nuxt/fonts, whose default providers (google,
+  // fontsource, ...) resolve font metadata over the network — the same
+  // failure mode fixed above for icons. Geist/Geist Mono are self-hosted via
+  // @fontsource-variable (imported directly in main.css), so 'none' tells
+  // @nuxt/fonts not to also try fetching them itself.
+  fonts: {
+    families: [
+      { name: 'Geist Variable', provider: 'none' },
+      { name: 'Geist Mono Variable', provider: 'none' }
+    ]
+  },
   devServer: hasCert ? { https: { key: certKey, cert: certFile } } : undefined,
   // @monorepo-fastify-vue/ui ships raw .vue/.ts source (no build step) so both
   // web and site compile it with their own Vue tooling. Without this, Nitro's

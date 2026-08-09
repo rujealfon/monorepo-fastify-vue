@@ -1,2 +1,2 @@
 @import 'tailwindcss';
-@import '@nuxt/ui';
+@import '@monorepo-fastify-vue/ui/theme.css';
