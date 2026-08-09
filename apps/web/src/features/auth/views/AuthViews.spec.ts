@@ -67,7 +67,7 @@ describe('authentication views', () => {
     expect(login.wrapper.get('[role="alert"]').text()).toContain('Invalid')
 
     api.POST.mockResolvedValueOnce({ data: { message: 'Registration request accepted' }, response: { ok: true, status: 202 } })
-    const registration = await mountAt(RegisterView, '/register')
+    const registration = await mountAt(RegisterView, '/register?redirect=/health')
     await registration.wrapper.get('input[name="email"]').setValue(user.email)
     await registration.wrapper.get('input[name="password"]').setValue('correct horse battery staple')
     await registration.wrapper.get('form').trigger('submit')
@@ -75,7 +75,7 @@ describe('authentication views', () => {
     expect(api.POST).toHaveBeenLastCalledWith('/api/v1/auth/register', {
       body: { email: user.email, password: 'correct horse battery staple' }
     })
-    expect(registration.router.currentRoute.value.fullPath).toBe('/login')
+    expect(registration.router.currentRoute.value.fullPath).toBe('/login?redirect=/health')
     expect(useQueryCache(registration.pinia).getQueryData(PROFILE_KEY)).toBeUndefined()
   })
 
