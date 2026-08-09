@@ -53,10 +53,10 @@ export default fp(async (fastify) => {
     nameSpace: config.NODE_ENV === 'test'
       ? `fastify-rate-limit-test-${randomUUID()}-`
       : undefined,
-    // Fail open: rate limiting is defense-in-depth here (auth already relies on
-    // sameSite cookies + sec-fetch-site checks, see plugins/auth.ts), not the only
-    // control. Without this, a Redis outage would 500 every /api/v1/* request,
-    // including the health/ready probe, instead of just losing the rate-limit guard.
+    // Fail open by default so a Redis outage does not 500 every /api/v1/* request,
+    // including the health/ready probe. The credential-processing /register and
+    // /login routes intentionally override this with skipOnError: false in
+    // users.constants.ts, preventing a limiter outage from admitting Argon2 work.
     skipOnError: true
   })
 }, { name: 'security-plugin' })

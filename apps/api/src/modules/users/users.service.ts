@@ -1,6 +1,6 @@
 import type { LoginUser, PatchProfile, PublicUser, RegisterUser } from './users.schema.js'
 
-import { EmailAlreadyExistsError, UnauthorizedError } from './users.errors.js'
+import { UnauthorizedError } from './users.errors.js'
 import { hashPassword, verifyPassword } from './users.password.js'
 import * as repository from './users.repository.js'
 
@@ -19,7 +19,7 @@ export async function register(data: RegisterUser) {
   catch (error) {
     const cause = typeof error === 'object' && error && 'cause' in error ? error.cause : error
     if (typeof cause === 'object' && cause && 'code' in cause && cause.code === '23505')
-      throw new EmailAlreadyExistsError()
+      return
     throw new Error('Could not create account', { cause: error })
   }
 }

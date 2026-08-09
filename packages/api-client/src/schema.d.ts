@@ -37,46 +37,18 @@ export interface paths {
             };
             responses: {
                 /** @description Default Response */
-                201: {
+                202: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
                         "application/json": {
-                            /** Format: uuid */
-                            id: string;
-                            email: string;
-                            /** Format: date-time */
-                            createdAt: string;
-                            /** Format: date-time */
-                            updatedAt: string;
-                            profile: {
-                                firstName: string | null;
-                                lastName: string | null;
-                                /** @enum {string|null} */
-                                gender: "male" | "female" | "intersex" | "prefer_not_to_say" | null;
-                                /** Format: date */
-                                birthDate: string | null;
-                                bio: string | null;
-                                /** Format: date-time */
-                                createdAt: string;
-                                /** Format: date-time */
-                                updatedAt: string;
-                            };
+                            message: string;
                         };
                     };
                 };
                 /** @description Default Response */
                 403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["HttpError"];
-                    };
-                };
-                /** @description Default Response */
-                409: {
                     headers: {
                         [name: string]: unknown;
                     };

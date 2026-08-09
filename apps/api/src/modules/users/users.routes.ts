@@ -6,22 +6,22 @@ import { z } from 'zod'
 
 import { httpErrorSchema, validationErrorSchema } from '#api/lib/http-error.schema.js'
 
+import { LOGIN_RATE_LIMIT, REGISTER_RATE_LIMIT } from './users.constants.js'
 import * as handlers from './users.handlers.js'
-import { loginUserSchema, patchProfileSchema, publicUserSchema, registerUserSchema } from './users.schema.js'
+import { loginUserSchema, patchProfileSchema, publicUserSchema, registerUserSchema, registrationResponseSchema } from './users.schema.js'
 
 export const authRoutes: FastifyPluginAsync = async (fastify) => {
   const app = fastify.withTypeProvider<ZodTypeProvider>()
 
   app.post<{ Body: RegisterUser }>('/register', {
     preHandler: app.sameOrigin,
-    config: { rateLimit: { max: 5, timeWindow: '1 minute' } },
+    config: { rateLimit: REGISTER_RATE_LIMIT },
     schema: {
       tags: ['Authentication'],
       body: registerUserSchema,
       response: {
-        201: publicUserSchema,
+        202: registrationResponseSchema,
         403: httpErrorSchema,
-        409: httpErrorSchema,
         422: validationErrorSchema,
         429: httpErrorSchema,
         500: httpErrorSchema
@@ -31,7 +31,7 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
 
   app.post<{ Body: LoginUser }>('/login', {
     preHandler: app.sameOrigin,
-    config: { rateLimit: { max: 10, timeWindow: '1 minute' } },
+    config: { rateLimit: LOGIN_RATE_LIMIT },
     schema: {
       tags: ['Authentication'],
       body: loginUserSchema,

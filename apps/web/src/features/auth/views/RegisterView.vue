@@ -2,7 +2,6 @@
 import { reactive, useTemplateRef } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
-import { internalRedirect } from '@/features/auth/auth.utils'
 import { useAuthMutations } from '@/features/auth/mutations'
 import { apiFormErrors } from '@/shared/api/form-errors'
 
@@ -15,7 +14,10 @@ const { register } = useAuthMutations()
 async function submit() {
   try {
     await register.mutateAsync({ email: state.email, password: state.password })
-    await router.push(internalRedirect(route.query.redirect))
+    await router.push({
+      path: '/login',
+      query: route.query.redirect ? { redirect: route.query.redirect } : undefined
+    })
   }
   catch (error) {
     form.value?.setErrors(apiFormErrors(error))

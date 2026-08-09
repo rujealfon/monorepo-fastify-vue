@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { EmailAlreadyExistsError, UnauthorizedError } from '#api/modules/users/users.errors.js'
+import { UnauthorizedError } from '#api/modules/users/users.errors.js'
 import * as usersPassword from '#api/modules/users/users.password.js'
 import * as usersRepository from '#api/modules/users/users.repository.js'
 import * as usersService from '#api/modules/users/users.service.js'
@@ -42,17 +42,18 @@ describe('users.service', () => {
 
     expect(usersPassword.hashPassword).toHaveBeenCalledWith('correct horse battery staple')
     expect(usersRepository.insert).toHaveBeenCalledWith({ email: 'person@example.com', passwordHash: 'hashed' })
+    expect(user).toMatchObject({ email: 'person@example.com' })
     expect(user).not.toHaveProperty('passwordHash')
-    expect(user.profile).not.toHaveProperty('userId')
+    expect(user).not.toHaveProperty('profile.userId')
   })
 
-  it('register maps a unique-violation cause to EmailAlreadyExistsError', async () => {
+  it('register treats a duplicate email like an accepted registration request', async () => {
     vi.mocked(usersPassword.hashPassword).mockResolvedValue('hashed')
     vi.mocked(usersRepository.insert).mockRejectedValue(new Error('duplicate', { cause: { code: '23505' } }))
 
     await expect(usersService.register({ email: 'person@example.com', password: 'correct horse battery staple' }))
-      .rejects
-      .toThrow(EmailAlreadyExistsError)
+      .resolves
+      .toBeUndefined()
   })
 
   it('register preserves the original error as the cause for unexpected failures', async () => {
