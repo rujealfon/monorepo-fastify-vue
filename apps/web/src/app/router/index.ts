@@ -26,13 +26,18 @@ const router = createRouter({
 })
 
 router.beforeEach(async (to) => {
-  if (!to.meta.requiresAuth)
+  if (!to.meta.requiresAuth && !to.meta.guestOnly)
     return
 
   const cache = useQueryCache()
   const state = await cache.refresh(cache.ensure(profileQuery)).catch(() => null)
-  if (!state || state.status === 'error' || !state.data)
+  const isAuthenticated = Boolean(state && state.status !== 'error' && state.data)
+
+  if (to.meta.requiresAuth && !isAuthenticated)
     return { path: '/login', query: { redirect: to.fullPath } }
+
+  if (to.meta.guestOnly && isAuthenticated)
+    return { path: '/profile' }
 })
 
 export default router

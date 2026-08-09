@@ -86,7 +86,7 @@ export function buildApp(): FastifyInstance {
   // from the API (api.mysite.com), so cross-origin requests need explicit CORS.
   // CORS_ORIGIN is required in production (see config); falls back to reflecting
   // the request origin in dev/test where it's unset.
-  app.register(cors, { origin: config.CORS_ORIGIN ?? true, credentials: true })
+  app.register(cors, { origin: config.CORS_ORIGINS.length ? config.CORS_ORIGINS : true, credentials: true })
 
   app.register(openapiPlugin)
   app.register(securityPlugin)

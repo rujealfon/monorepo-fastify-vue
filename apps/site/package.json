@@ -3,7 +3,7 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "build": "nuxt generate",
+    "build": "pnpm --filter @monorepo-fastify-vue/api-client build && nuxt generate",
     "dev": "nuxt dev",
     "preview": "nuxt preview",
     "lint": "eslint .",
@@ -11,6 +11,7 @@
     "postinstall": "nuxt prepare"
   },
   "dependencies": {
+    "@monorepo-fastify-vue/api-client": "workspace:^",
     "@monorepo-fastify-vue/ui": "workspace:^",
     "@nuxt/ui": "^4.10.0",
     "nuxt": "^4.5.1",

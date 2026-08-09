@@ -73,7 +73,13 @@ export default defineNuxtConfig({
       // (e.g. https://app.example.com) in the site's Vercel project. Locally,
       // web serves HTTPS once the shared dev cert exists (same hasCert check
       // as this file's own devServer, above) and HTTP otherwise.
-      webUrl: process.env.NUXT_PUBLIC_WEB_URL ?? `${hasCert ? 'https' : 'http'}://localhost:5173`
+      webUrl: process.env.NUXT_PUBLIC_WEB_URL ?? `${hasCert ? 'https' : 'http'}://localhost:5173`,
+      // Unlike web, site has no dev/prod proxy to the API (nuxt generate's
+      // static output has no server to proxy through), so this must be the
+      // API's real origin and the API's CORS_ORIGIN allowlist must include
+      // site's own origin. Set NUXT_PUBLIC_API_URL to the API's deployed
+      // origin in the site's Vercel project.
+      apiUrl: process.env.NUXT_PUBLIC_API_URL ?? `${hasCert ? 'https' : 'http'}://localhost:3000`
     }
   }
 })

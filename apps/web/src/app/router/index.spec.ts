@@ -12,7 +12,7 @@ vi.mock('@/shared/api/client', () => ({ api }))
 describe('authentication router guard', () => {
   beforeEach(() => vi.clearAllMocks())
 
-  it('checks the session only for protected routes', async () => {
+  it('checks the session only for protected and guest-only routes', async () => {
     api.GET.mockResolvedValue({ response: { ok: false, status: 401 } })
     const app = createApp({ template: '<div />' })
     const pinia = createPinia()
@@ -36,7 +36,17 @@ describe('authentication router guard', () => {
     await router.push('/profile')
     expect(router.currentRoute.value.fullPath).toBe('/profile')
 
+    // Signed-in users shouldn't be able to reach login/register: both bounce
+    // back to /profile instead of showing the form.
+    await router.push('/health')
+    await router.push('/login')
+    expect(router.currentRoute.value.fullPath).toBe('/profile')
+
+    await router.push('/health')
     await router.push('/register')
+    expect(router.currentRoute.value.fullPath).toBe('/profile')
+
+    await router.push('/health')
     await cache.invalidateQueries({ key: PROFILE_KEY })
     api.GET.mockResolvedValue({ response: { ok: false, status: 503 } })
     await router.push('/profile')
