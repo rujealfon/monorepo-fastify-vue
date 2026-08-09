@@ -18,7 +18,14 @@ export default defineNuxtConfig({
   devtools: { enabled: true },
   modules: ['@nuxt/ui'],
   css: ['~/assets/css/main.css'],
-  ui: {},
+  ui: {
+    theme: {
+      colors: ['primary', 'secondary', 'accent', 'info', 'success', 'warning', 'error']
+    }
+  },
+  // Follows the OS/browser preference; falls back to dark (the "night"
+  // theme's primary identity) when that can't be detected.
+  colorMode: { preference: 'system', fallback: 'dark' },
   devServer: hasCert ? { https: { key: certKey, cert: certFile } } : undefined,
   // @monorepo-fastify-vue/ui ships raw .vue/.ts source (no build step) so both
   // web and site compile it with their own Vue tooling. Without this, Nitro's

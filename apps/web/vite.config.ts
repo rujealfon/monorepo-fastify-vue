@@ -45,7 +45,23 @@ export default defineConfig({
   },
   plugins: [
     vue(),
-    ui()
+    ui({
+      theme: {
+        colors: ['primary', 'secondary', 'accent', 'info', 'success', 'warning', 'error']
+      },
+      ui: {
+        colors: {
+          primary: 'brand-primary',
+          secondary: 'brand-secondary',
+          accent: 'brand-accent',
+          info: 'brand-info',
+          success: 'brand-success',
+          warning: 'brand-warning',
+          error: 'brand-error',
+          neutral: 'slate'
+        }
+      }
+    })
   ],
   server: {
     https: hasCert
