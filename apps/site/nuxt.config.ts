@@ -1,6 +1,7 @@
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { brandColorNames } from '@monorepo-fastify-vue/ui/theme'
+import { collectLucideIconNames } from './scripts/collect-icon-names'
 
 // Nuxt's dev server (Nitro) is the actual TLS listener, not Vite, so a Vite
 // plugin can't wire up https here. Point devServer.https directly at the leaf
@@ -12,6 +13,15 @@ const certDir = join(import.meta.dirname, '../../.certs')
 const certKey = join(certDir, 'dev.pem')
 const certFile = join(certDir, 'cert.pem')
 const hasCert = existsSync(certKey) && existsSync(certFile)
+
+// Derived from actual `i-lucide-*` usage below rather than hand-maintained,
+// so it can't drift out of sync when a page/layout/component starts
+// referencing a new icon (see clientBundle.icons' comment for why this list
+// needs to exist at all).
+const lucideIcons = collectLucideIconNames([
+  join(import.meta.dirname, 'app'),
+  join(import.meta.dirname, '../../packages/ui/src')
+])
 
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
@@ -35,15 +45,7 @@ export default defineNuxtConfig({
     // empty server render and the successful client fetch. Pinning them
     // here guarantees they're bundled at build time, no fetch required.
     clientBundle: {
-      icons: [
-        'lucide:activity',
-        'lucide:check-check',
-        'lucide:house',
-        'lucide:info',
-        'lucide:shield-check',
-        'lucide:user',
-        'lucide:user-plus'
-      ]
+      icons: lucideIcons
     }
   },
   // @nuxt/ui auto-registers @nuxt/fonts, whose default providers (google,
