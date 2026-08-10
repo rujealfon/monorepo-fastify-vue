@@ -2,7 +2,6 @@ import { randomUUID } from 'node:crypto'
 import helmet from '@fastify/helmet'
 import rateLimit from '@fastify/rate-limit'
 import fp from 'fastify-plugin'
-import { Redis } from 'ioredis'
 
 import { config } from '#api/config/index.js'
 
@@ -19,27 +18,6 @@ export default fp(async (fastify) => {
       : undefined
   })
 
-  // Vercel runs the API as isolated serverless instances with no shared memory, so the
-  // default in-memory rate-limit store only caps requests per instance, not globally.
-  // Backing it with Redis when configured makes the limit (including the health/ready
-  // DB probe) hold across instances.
-  const redis = config.REDIS_URL
-    ? new Redis(config.REDIS_URL, { connectTimeout: 2000, maxRetriesPerRequest: 1 })
-    : undefined
-
-  if (redis) {
-    // ioredis emits 'error' on connection failures and failed reconnects; per Node's
-    // EventEmitter contract, an 'error' event with no listener throws and crashes the
-    // process. Listening here just logs it instead.
-    redis.on('error', (err) => {
-      fastify.log.error({ err }, 'Redis connection error')
-    })
-
-    fastify.addHook('onClose', async () => {
-      await redis.quit()
-    })
-  }
-
   await fastify.register(rateLimit, {
     allowList: (request) => {
       const path = request.url.split('?', 1)[0]
@@ -47,7 +25,11 @@ export default fp(async (fastify) => {
     },
     max: 100,
     timeWindow: '1 minute',
-    redis,
+    // Vercel runs the API as isolated serverless instances with no shared memory, so
+    // the default in-memory rate-limit store only caps requests per instance, not
+    // globally. Backing it with Redis when configured (see plugins/redis.ts) makes
+    // the limit (including the health/ready DB probe) hold across instances.
+    redis: fastify.redis,
     // Redis outlives each test process, so a per-app namespace prevents counters
     // from a previous run from making an otherwise isolated test start at 429.
     nameSpace: config.NODE_ENV === 'test'
@@ -59,4 +41,4 @@ export default fp(async (fastify) => {
     // users.constants.ts, preventing a limiter outage from admitting Argon2 work.
     skipOnError: true
   })
-}, { name: 'security-plugin' })
+}, { name: 'security-plugin', dependencies: ['redis-plugin'] })

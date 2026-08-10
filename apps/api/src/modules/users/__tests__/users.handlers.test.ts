@@ -260,4 +260,48 @@ describe('user routes', () => {
     expect(logins.slice(0, 10).every(response => response.statusCode === 401)).toBe(true)
     expect(logins[10].statusCode).toBe(429)
   })
+
+  it('enforces auth and same-origin checks on the handoff endpoints', async () => {
+    const unauthenticatedMint = await app.inject({ method: 'POST', url: '/api/v1/auth/handoff' })
+    expect(unauthenticatedMint.statusCode).toBe(401)
+
+    const crossSiteExchange = await app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/handoff/exchange',
+      headers: { 'origin': 'https://evil.example', 'sec-fetch-site': 'cross-site' },
+      payload: { token: 'whatever' }
+    })
+    expect(crossSiteExchange.statusCode).toBe(403)
+
+    const emptyToken = await app.inject({ method: 'POST', url: '/api/v1/auth/handoff/exchange', payload: { token: '' } })
+    expect(emptyToken.statusCode).toBe(422)
+  })
+
+  it('reports handoff as unavailable when redis is not configured', async () => {
+    // This test suite's .env.test intentionally leaves REDIS_URL unset (see
+    // apps/api/.env.test.example) so rate limiting falls back to an in-memory
+    // store; the handoff token store has no such fallback, so it must fail
+    // clearly instead of pretending to work.
+    const registration = await app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/register',
+      remoteAddress: '203.0.113.70',
+      payload: { email: 'handoff@example.com', password }
+    })
+    expect(registration.statusCode).toBe(202)
+
+    const login = await app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/login',
+      remoteAddress: '203.0.113.70',
+      payload: { email: 'handoff@example.com', password }
+    })
+    const sessionCookie = cookie(login)
+
+    const mint = await app.inject({ method: 'POST', url: '/api/v1/auth/handoff', headers: { cookie: sessionCookie } })
+    expect(mint.statusCode).toBe(503)
+
+    const exchange = await app.inject({ method: 'POST', url: '/api/v1/auth/handoff/exchange', payload: { token: 'whatever' } })
+    expect(exchange.statusCode).toBe(503)
+  })
 })

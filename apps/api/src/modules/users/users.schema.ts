@@ -82,3 +82,14 @@ export const publicUserSchema = createSelectSchema(users)
   .omit({ passwordHash: true })
   .extend({ profile: publicProfileSchema })
 export type PublicUser = z.infer<typeof publicUserSchema>
+
+export const handoffTokenSchema = z.object({
+  // null when COOKIE_DOMAIN is set: the session cookie is already shared with
+  // site, so there's nothing to redeem (see users.handlers.ts mintHandoff).
+  token: z.string().nullable()
+})
+
+export const exchangeHandoffSchema = z.object({
+  token: z.string().min(1)
+})
+export type ExchangeHandoff = z.infer<typeof exchangeHandoffSchema>
