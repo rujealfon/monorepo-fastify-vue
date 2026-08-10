@@ -270,7 +270,7 @@ Use `rediss://` (TLS), not `redis://`, with Upstash — its endpoints enforce TL
 
 Upstash Redis (and similar providers) issue both a read/write **Token** and a **Readonly Token**. `REDIS_URL` must use the read/write Token — Redis backs both the `@fastify/rate-limit` store (`apps/api/src/plugins/security.ts`) and the web→site handoff token store (`apps/api/src/modules/users`, see [Direct requests between unrelated domains](#direct-requests-between-unrelated-domains) below), both of which write on every use, so a readonly token would break them.
 
-`HANDOFF_TOKEN_TTL_SECONDS` (optional, default `60`) controls how long a web→site handoff token stays redeemable — see below. It only needs to survive one click-to-page-load round trip, so the default is deliberately short.
+`HANDOFF_TOKEN_TTL_SECONDS` (optional, `1`-`300`, default `60`) controls how long a web→site handoff token stays redeemable — see below. It only needs to survive one click-to-page-load round trip, so the default is deliberately short and the range is capped so a misconfiguration can't turn it into a long-lived credential.
 
 Fastify's built-in Pino logger writes structured logs to Vercel Runtime Logs. It defaults to `info`; set `LOG_LEVEL=warn` if routine request logs become noisy, and keep `silent` in `.env.test`. Do not log request bodies, cookies, authorization headers, passwords, or tokens. Add a Vercel Drain only when the dashboard's retention is insufficient or external alerting is required.
 

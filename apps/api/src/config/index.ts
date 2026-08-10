@@ -26,7 +26,9 @@ const envSchema = z.object({
   // How long a web->site handoff token (see modules/users) stays redeemable.
   // Short-lived and single-use by design: it only needs to survive one
   // click-to-page-load round trip, not sit around as a reusable credential.
-  HANDOFF_TOKEN_TTL_SECONDS: z.coerce.number().default(60)
+  // Bounded (not just env-controlled) so a misconfiguration -- e.g. pasting in
+  // SESSION_SECONDS by mistake -- can't silently turn it into a long-lived one.
+  HANDOFF_TOKEN_TTL_SECONDS: z.coerce.number().int().min(1).max(300).default(60)
 }).superRefine((env, ctx) => {
   if (env.NODE_ENV === 'production' && !env.REDIS_URL) {
     ctx.addIssue({
