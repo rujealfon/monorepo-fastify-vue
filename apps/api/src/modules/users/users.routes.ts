@@ -1,4 +1,4 @@
-import type { FastifyPluginAsync } from 'fastify'
+import type { FastifyPluginAsync, FastifyRequest } from 'fastify'
 import type { ZodTypeProvider } from 'fastify-type-provider-zod'
 import type { ExchangeHandoff, LoginUser, PatchProfile, RegisterUser } from './users.schema.js'
 
@@ -60,7 +60,12 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
   app.post('/handoff', {
     onRequest: [app.authenticate],
     preHandler: app.sameOrigin,
-    config: { rateLimit: HANDOFF_MINT_RATE_LIMIT },
+    config: {
+      rateLimit: {
+        ...HANDOFF_MINT_RATE_LIMIT,
+        keyGenerator: (request: FastifyRequest) => request.user.sub
+      }
+    },
     schema: {
       tags: ['Authentication'],
       response: {

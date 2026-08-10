@@ -58,6 +58,7 @@ jobs:
           HOST=0.0.0.0
           NODE_ENV=test
           LOG_LEVEL=silent
+          REDIS_URL=redis://localhost:6379
           EOF
           cp apps/api/.env apps/api/.env.test
 
