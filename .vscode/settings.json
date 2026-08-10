@@ -35,5 +35,11 @@
   },
   "[vue]": {
     "editor.defaultFormatter": "dbaeumer.vscode-eslint"
+  },
+  "[css]": {
+    "editor.formatOnSave": false
+  },
+  "[postcss]": {
+    "editor.formatOnSave": false
   }
 }
