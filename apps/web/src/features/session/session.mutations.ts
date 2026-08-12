@@ -10,33 +10,24 @@ function cancelCurrentUser(cache: ReturnType<typeof useQueryCache>) {
   cache.cancelQueries({ key: SESSION_KEY, exact: true })
 }
 
-export function useRegister() {
-  return useMutation({ mutation: (body: RegisterUser) => sessionClient.register(body) })
-}
-
-export function useLogin() {
+export function useSessionActions() {
   const cache = useQueryCache()
-  return useMutation({
+  const register = useMutation({ mutation: (body: RegisterUser) => sessionClient.register(body) })
+  const login = useMutation({
     mutation: (body: LoginUser) => sessionClient.login(body),
     onMutate: () => cancelCurrentUser(cache),
     onSuccess: user => cache.setQueryData(SESSION_KEY, user)
   })
-}
-
-export function useLogout() {
-  const cache = useQueryCache()
-  return useMutation({
+  const logout = useMutation({
     mutation: () => sessionClient.logout(),
     onMutate: () => cancelCurrentUser(cache),
     onSuccess: () => cache.setQueryData(SESSION_KEY, null)
   })
-}
-
-export function useUpdateProfile() {
-  const cache = useQueryCache()
-  return useMutation({
+  const updateProfile = useMutation({
     mutation: (body: UpdateProfile) => sessionClient.updateProfile(body),
     onMutate: () => cancelCurrentUser(cache),
     onSuccess: user => cache.setQueryData(SESSION_KEY, user)
   })
+
+  return { login, logout, register, updateProfile }
 }

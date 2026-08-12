@@ -16,13 +16,17 @@ Run the site by itself on port 8000:
 pnpm --filter @monorepo-fastify-vue/site dev -- --port 8000
 ```
 
-Visit [http://localhost:8000](http://localhost:8000). To start every workspace together without conflicting with the API on port 3000, run this from the repository root:
+The development server uses HTTPS when the shared development certificate is
+available and otherwise falls back to HTTP. Open the protocol Nuxt prints for
+port 8000. To start every workspace together without conflicting with the API
+on port 3000, run this from the repository root:
 
 ```sh
 NITRO_PORT=8000 pnpm dev
 ```
 
-With Docker, the site is always available at [http://localhost:8000](http://localhost:8000).
+Docker Compose provisions the shared certificate, so its development site is
+normally available at `https://localhost:8000`.
 
 ## Project Structure
 
@@ -30,15 +34,22 @@ With Docker, the site is always available at [http://localhost:8000](http://loca
 apps/site/
 ├── app/
 │   ├── app.vue           # Nuxt application root
+│   ├── composables/      # Session state adapter (use-session.ts)
 │   ├── layouts/          # App shells (default.vue)
 │   └── pages/            # File-based routes (index.vue, about.vue)
 ├── public/               # Files copied to the site root unchanged
-├── nuxt.config.ts        # Nuxt and module configuration (webUrl runtime config)
+├── nuxt.config.ts        # Nuxt, runtime URLs, and shared local HTTPS policy
 ├── Dockerfile            # Development and static-production images
 └── vercel.json           # Static Vercel build settings
 ```
 
-The site hosts only public pages — Home and About. Its `default` layout's Login and Register buttons link out to the web app (`runtimeConfig.public.webUrl`, set via `NUXT_PUBLIC_WEB_URL`) rather than to internal routes, since authenticated routes live in `apps/web`. Follow Nuxt conventions as the site grows: add file-based routes under `app/pages`, layouts under `app/layouts`, and site-owned components and composables under their corresponding `app` directories.
+The site hosts only public pages — Home and About. Its `default` layout renders
+the shared `SessionHeader`: Login and Register link to the web app through
+`runtimeConfig.public.webUrl`, while the site-owned `useSession` composable
+provides current-User and logout behavior through `runtimeConfig.public.apiUrl`.
+Follow Nuxt conventions as the site grows: add file-based routes under
+`app/pages`, layouts under `app/layouts`, and site-owned components and
+composables under their corresponding `app` directories.
 
 ## Scripts
 

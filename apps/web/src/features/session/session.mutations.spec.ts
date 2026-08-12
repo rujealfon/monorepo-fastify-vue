@@ -6,7 +6,7 @@ import { createPinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { defineComponent, h } from 'vue'
 
-import { useLogin, useLogout, useUpdateProfile } from './session.mutations'
+import { useSessionActions } from './session.mutations'
 import { currentUserQuery, SESSION_KEY } from './session.query'
 
 const sessionClient = vi.hoisted(() => ({
@@ -42,13 +42,14 @@ function deferred<T>() {
 function mountMutations() {
   const pinia = createPinia()
   let mutations!: {
-    login: ReturnType<typeof useLogin>
-    logout: ReturnType<typeof useLogout>
-    updateProfile: ReturnType<typeof useUpdateProfile>
+    login: ReturnType<typeof useSessionActions>['login']
+    logout: ReturnType<typeof useSessionActions>['logout']
+    updateProfile: ReturnType<typeof useSessionActions>['updateProfile']
   }
   const Host = defineComponent({
     setup() {
-      mutations = { login: useLogin(), logout: useLogout(), updateProfile: useUpdateProfile() }
+      const { login, logout, updateProfile } = useSessionActions()
+      mutations = { login, logout, updateProfile }
       return () => h('div')
     }
   })

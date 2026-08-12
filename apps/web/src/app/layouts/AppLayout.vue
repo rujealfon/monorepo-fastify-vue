@@ -1,16 +1,15 @@
 <script setup lang="ts">
 import type { NavigationMenuItem } from '@nuxt/ui'
-import { AppHeader } from '@monorepo-fastify-vue/ui'
+import { SessionHeader } from '@monorepo-fastify-vue/ui'
 import { useToast } from '@nuxt/ui/composables'
-import { computed } from 'vue'
 import { RouterView, useRouter } from 'vue-router'
 
-import { useCurrentUser, useLogout } from '@/features/session'
+import { useSessionActions, useSessionState } from '@/features/session'
 import { siteUrl } from '@/shared/site-url'
 
 const router = useRouter()
-const logout = useLogout()
-const profile = useCurrentUser()
+const { logout } = useSessionActions()
+const profile = useSessionState()
 const toast = useToast()
 
 const links: NavigationMenuItem[] = [
@@ -18,49 +17,31 @@ const links: NavigationMenuItem[] = [
 ]
 
 async function signOut() {
-  try {
-    await logout.mutateAsync()
-    await router.push('/login')
-  }
-  catch {
-    toast.add({
-      title: 'Could not log out.',
-      color: 'error',
-      icon: 'i-lucide-triangle-alert'
-    })
-  }
+  await logout.mutateAsync()
+  await router.push('/login')
 }
 
-const userMenu = computed(() => [[
-  { label: profile.data.value?.email ?? '', type: 'label' as const },
-  { label: 'Profile', icon: 'i-lucide-user', to: '/profile' }
-], [
-  { label: 'Logout', icon: 'i-lucide-log-out', onSelect: signOut }
-]])
+function notifyLogoutError() {
+  toast.add({
+    title: 'Could not log out.',
+    color: 'error',
+    icon: 'i-lucide-triangle-alert'
+  })
+}
 </script>
 
 <template>
   <div class="min-h-dvh bg-default">
-    <AppHeader :brand-href="siteUrl" :links="links">
-      <template #right>
-        <template v-if="profile.data.value">
-          <UDropdownMenu :items="userMenu">
-            <UButton
-              color="neutral"
-              variant="ghost"
-              icon="i-lucide-user-circle"
-              :label="profile.data.value.email"
-              class="max-w-48"
-              :ui="{ label: 'truncate' }"
-            />
-          </UDropdownMenu>
-        </template>
-        <template v-else>
-          <UButton to="/login" color="neutral" variant="ghost" label="Login" />
-          <UButton to="/register" color="primary" label="Register" />
-        </template>
-      </template>
-    </AppHeader>
+    <SessionHeader
+      :brand-href="siteUrl"
+      :links="links"
+      login-href="/login"
+      register-href="/register"
+      profile-href="/profile"
+      :user-email="profile.data.value?.email"
+      :on-logout="signOut"
+      @logout-error="notifyLogoutError"
+    />
 
     <UMain>
       <UContainer class="py-10">

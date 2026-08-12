@@ -1,23 +1,17 @@
-import { PiniaColada, useQueryCache } from '@pinia/colada'
-import { createPinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createApp } from 'vue'
 
-import { SESSION_KEY } from '@/features/session'
 import router from './index'
 
-const sessionClient = vi.hoisted(() => ({ currentUser: vi.fn() }))
-vi.mock('@/shared/api/client', () => ({ sessionClient }))
+const checkSessionAccess = vi.hoisted(() => vi.fn())
+vi.mock('@/features/session', () => ({ checkSessionAccess }))
 
 describe('authentication router guard', () => {
   beforeEach(() => vi.clearAllMocks())
 
   it('checks the session only for protected and guest-only routes', async () => {
-    sessionClient.currentUser.mockResolvedValue(null)
+    checkSessionAccess.mockResolvedValue({ status: 'guest', user: null })
     const app = createApp({ template: '<div />' })
-    const pinia = createPinia()
-    app.use(pinia)
-    app.use(PiniaColada)
     app.use(router)
     await router.isReady()
 
@@ -26,13 +20,10 @@ describe('authentication router guard', () => {
 
     await router.push('/register')
     expect(router.currentRoute.value.fullPath).toBe('/register')
-    expect(sessionClient.currentUser).toHaveBeenCalledOnce()
+    expect(checkSessionAccess).toHaveBeenCalled()
 
-    const cache = useQueryCache(pinia)
-    cache.setQueryData(SESSION_KEY, {
-      id: '00000000-0000-0000-0000-000000000001',
-      email: 'person@example.com'
-    })
+    checkSessionAccess.mockResolvedValue({ status: 'authenticated', user: { email: 'person@example.com' } })
+    await router.push('/health')
     await router.push('/profile')
     expect(router.currentRoute.value.fullPath).toBe('/profile')
 
@@ -47,9 +38,8 @@ describe('authentication router guard', () => {
     expect(router.currentRoute.value.fullPath).toBe('/profile')
 
     await router.push('/health')
-    await cache.invalidateQueries({ key: SESSION_KEY })
-    sessionClient.currentUser.mockRejectedValue(new Error('Unavailable'))
+    checkSessionAccess.mockResolvedValue({ status: 'unavailable', error: new Error('Unavailable') })
     await router.push('/profile')
-    expect(router.currentRoute.value.fullPath).toBe('/login?redirect=/profile')
+    expect(router.currentRoute.value.fullPath).toBe('/health')
   })
 })

@@ -9,5 +9,3 @@ export const LOGIN_RATE_LIMIT = {
   timeWindow: '1 minute',
   skipOnError: false
 } as const
-
-export const SESSION_SECONDS = 7 * 24 * 60 * 60

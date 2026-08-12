@@ -11,7 +11,13 @@ export class RpcError extends Error {
 
 export type ApiErrorSchema = HttpError & { details?: ValidationError['details'] }
 
-export async function rpcRequest<T>(request: () => Promise<T>): Promise<T> {
+type TransportResult<T> = {
+  data?: T
+  error?: ApiErrorSchema
+  response: Response
+}
+
+async function execute<T>(request: () => Promise<TransportResult<T>>): Promise<TransportResult<T>> {
   try {
     return await request()
   }
@@ -20,4 +26,33 @@ export async function rpcRequest<T>(request: () => Promise<T>): Promise<T> {
       throw error
     throw new RpcError(0, undefined, { cause: error })
   }
+}
+
+export async function expectData<T>(request: () => Promise<TransportResult<T>>): Promise<T> {
+  const result = await execute(request)
+  if (!result.response.ok)
+    throw new RpcError(result.response.status, result.error)
+  if (result.data === undefined)
+    throw new RpcError(result.response.status, undefined, { cause: new Error('Successful response contained no data') })
+  return result.data
+}
+
+export async function expectEmpty(request: () => Promise<TransportResult<unknown>>): Promise<void> {
+  const result = await execute(request)
+  if (!result.response.ok)
+    throw new RpcError(result.response.status, result.error)
+}
+
+export async function expectOptional<T>(
+  request: () => Promise<TransportResult<T>>,
+  absentStatuses: readonly number[]
+): Promise<T | null> {
+  const result = await execute(request)
+  if (absentStatuses.includes(result.response.status))
+    return null
+  if (!result.response.ok)
+    throw new RpcError(result.response.status, result.error)
+  if (result.data === undefined)
+    throw new RpcError(result.response.status, undefined, { cause: new Error('Successful response contained no data') })
+  return result.data
 }

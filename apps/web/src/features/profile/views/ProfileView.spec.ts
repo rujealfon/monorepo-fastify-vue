@@ -1,12 +1,9 @@
-import type { User } from '@monorepo-fastify-vue/api-client'
-
-import { PiniaColada, useQueryCache } from '@pinia/colada'
+import { PiniaColada } from '@pinia/colada'
 import { flushPromises, mount } from '@vue/test-utils'
 import { createPinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMemoryHistory, createRouter } from 'vue-router'
 
-import { SESSION_KEY } from '@/features/session'
 import ProfileView from './ProfileView.vue'
 
 const sessionClient = vi.hoisted(() => ({ currentUser: vi.fn(), logout: vi.fn(), updateProfile: vi.fn() }))
@@ -54,13 +51,11 @@ describe('profile view', () => {
       birthDate: '1990-05-20',
       bio: 'Hello'
     })
-    expect(useQueryCache(pinia).getQueryData<User>(SESSION_KEY)?.profile.firstName).toBe('Updated')
 
     await wrapper.get('button[type="button"]').trigger('click')
     await flushPromises()
     expect(sessionClient.logout).toHaveBeenCalledOnce()
     expect(router.currentRoute.value.fullPath).toBe('/login')
-    expect(useQueryCache(pinia).getQueryData(SESSION_KEY)).toBeNull()
   })
 
   it('shows update and logout failures without redirecting', async () => {

@@ -2,14 +2,14 @@
 import { reactive, useTemplateRef } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
-import { useRegister } from '@/features/session'
+import { useSessionActions } from '@/features/session'
 import { apiFormErrors } from '@/shared/api/form-errors'
 
 const state = reactive({ email: '', password: '' })
 const form = useTemplateRef('form')
 const route = useRoute()
 const router = useRouter()
-const register = useRegister()
+const { register } = useSessionActions()
 
 async function submit() {
   try {

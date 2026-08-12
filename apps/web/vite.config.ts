@@ -1,5 +1,5 @@
-import { existsSync, readFileSync } from 'node:fs'
 import path from 'node:path'
+import { localDevelopmentTransport } from '@monorepo-fastify-vue/dev-config'
 import { brandColorNames, brandColors } from '@monorepo-fastify-vue/ui/theme'
 import ui from '@nuxt/ui/vite'
 import vue from '@vitejs/plugin-vue'
@@ -15,10 +15,7 @@ import { defineConfig } from 'vite'
 // and api (apps/api/src/app.ts) through the repo-root .certs/ dir (gitignored:
 // it holds a private key; repo-relative because docker-compose bind-mounts it,
 // and compose does not expand "~"). Falls back to HTTP until the cert exists.
-const certDir = path.resolve(import.meta.dirname, '../../.certs')
-const certKey = path.join(certDir, 'dev.pem')
-const certFile = path.join(certDir, 'cert.pem')
-const hasCert = existsSync(certKey) && existsSync(certFile)
+const devTransport = localDevelopmentTransport(import.meta.dirname)
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -32,7 +29,7 @@ export default defineConfig({
     // HTTPS once the shared dev cert exists (same hasCert check as this
     // file's own server.https, below) and HTTP otherwise.
     'import.meta.env.VITE_SITE_URL': JSON.stringify(
-      process.env.VITE_SITE_URL ?? `${hasCert ? 'https' : 'http'}://localhost:8000`
+      process.env.VITE_SITE_URL ?? `${devTransport.protocol}://localhost:8000`
     )
   },
   resolve: {
@@ -56,9 +53,7 @@ export default defineConfig({
     })
   ],
   server: {
-    https: hasCert
-      ? { key: readFileSync(certKey), cert: readFileSync(certFile) }
-      : undefined,
+    https: devTransport.readHttps(),
     proxy: {
       // Development stays same-origin; Vite forwards API calls to the API container.
       // The api dev server serves HTTPS-only once .certs/ exists (mirrors this
@@ -66,7 +61,7 @@ export default defineConfig({
       // internal 'api' hostname (only localhost/127.0.0.1), so verification is
       // skipped for this internal-only hop.
       '/api': {
-        target: process.env.API_PROXY_URL ?? (hasCert ? 'https://localhost:3000' : 'http://localhost:3000'),
+        target: process.env.API_PROXY_URL ?? `${devTransport.protocol}://localhost:3000`,
         changeOrigin: false,
         secure: false
       }

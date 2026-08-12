@@ -1,12 +1,11 @@
 import type { Component } from 'vue'
 import { RpcError } from '@monorepo-fastify-vue/api-client'
-import { PiniaColada, useQueryCache } from '@pinia/colada'
+import { PiniaColada } from '@pinia/colada'
 import { flushPromises, mount } from '@vue/test-utils'
 import { createPinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMemoryHistory, createRouter } from 'vue-router'
 
-import { SESSION_KEY } from '@/features/session'
 import LoginView from './LoginView.vue'
 import RegisterView from './RegisterView.vue'
 
@@ -34,7 +33,7 @@ async function mountAt(component: Component, path: string) {
   await router.push(path)
   await router.isReady()
   const pinia = createPinia()
-  return { pinia, router, wrapper: mount(component, { global: { plugins: [pinia, PiniaColada, router] } }) }
+  return { router, wrapper: mount(component, { global: { plugins: [pinia, PiniaColada, router] } }) }
 }
 
 describe('authentication views', () => {
@@ -42,13 +41,12 @@ describe('authentication views', () => {
 
   it('logs in and honors only internal redirects', async () => {
     sessionClient.login.mockResolvedValue(user)
-    const { pinia, router, wrapper } = await mountAt(LoginView, '/login?redirect=/health')
+    const { router, wrapper } = await mountAt(LoginView, '/login?redirect=/health')
     await wrapper.get('input[name="email"]').setValue(user.email)
     await wrapper.get('input[name="password"]').setValue('correct horse battery staple')
     await wrapper.get('form').trigger('submit')
     await flushPromises()
     expect(router.currentRoute.value.fullPath).toBe('/health')
-    expect(useQueryCache(pinia).getQueryData(SESSION_KEY)).toEqual(user)
 
     const unsafe = await mountAt(LoginView, '/login?redirect=//evil.example')
     await unsafe.wrapper.get('input[name="email"]').setValue(user.email)
@@ -75,7 +73,6 @@ describe('authentication views', () => {
     await flushPromises()
     expect(sessionClient.register).toHaveBeenLastCalledWith({ email: user.email, password: 'correct horse battery staple' })
     expect(registration.router.currentRoute.value.fullPath).toBe('/login?redirect=/health')
-    expect(useQueryCache(registration.pinia).getQueryData(SESSION_KEY)).toBeUndefined()
   })
 
   it('shows registration errors without redirecting', async () => {

@@ -10,16 +10,13 @@ export async function register(request: FastifyRequest<{ Body: RegisterUser }>, 
 }
 
 export async function login(request: FastifyRequest<{ Body: LoginUser }>, reply: FastifyReply) {
-  const { session, user } = await service.login(request.body)
-  request.server.setSession(reply, session)
+  const user = await service.login(request.body)
+  await request.server.session.establish(reply, user.id)
   return user
 }
 
 export async function logout(request: FastifyRequest, reply: FastifyReply) {
-  const session = await request.server.sessionIdentity(request)
-  if (session)
-    await service.logout(session)
-  request.server.clearSession(reply)
+  await request.server.session.end(request, reply)
   reply.code(204)
 }
 

@@ -5,7 +5,7 @@ import AuthLayout from '@/app/layouts/AuthLayout.vue'
 import { authRoutes } from '@/features/auth'
 import { healthRoutes } from '@/features/health'
 import { profileRoutes } from '@/features/profile'
-import { refreshCurrentUser } from '@/features/session'
+import { checkSessionAccess } from '@/features/session'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -29,8 +29,14 @@ router.beforeEach(async (to) => {
   if (!to.meta.requiresAuth && !to.meta.guestOnly)
     return
 
-  const user = await refreshCurrentUser().catch(() => null)
-  const isAuthenticated = Boolean(user)
+  const access = await checkSessionAccess()
+
+  // Fail closed without translating an outage into a guest Session or
+  // discarding stale User data. Keep the caller on its current route.
+  if (access.status === 'unavailable')
+    return false
+
+  const isAuthenticated = access.status === 'authenticated'
 
   if (to.meta.requiresAuth && !isAuthenticated)
     return { path: '/login', query: { redirect: to.fullPath } }

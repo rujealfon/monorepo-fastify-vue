@@ -1,6 +1,10 @@
+import { PiniaColada } from '@pinia/colada'
+import { mount } from '@vue/test-utils'
+import { createPinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { defineComponent, h } from 'vue'
 
-import { currentUserQuery } from './session.query'
+import { checkSessionAccess, currentUserQuery } from './session.query'
 
 const sessionClient = vi.hoisted(() => ({ currentUser: vi.fn() }))
 vi.mock('@/shared/api/client', () => ({ sessionClient }))
@@ -14,5 +18,14 @@ describe('current User query', () => {
 
     await expect(currentUserQuery.query({} as never)).resolves.toEqual(user)
     expect(sessionClient.currentUser).toHaveBeenCalledOnce()
+  })
+
+  it('reports an unavailable Session check without translating it to guest', async () => {
+    sessionClient.currentUser.mockRejectedValue(new Error('Unavailable'))
+    const Host = defineComponent({ setup: () => () => h('div') })
+    const wrapper = mount(Host, { global: { plugins: [createPinia(), PiniaColada] } })
+
+    await expect(checkSessionAccess()).resolves.toMatchObject({ status: 'unavailable' })
+    wrapper.unmount()
   })
 })

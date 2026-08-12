@@ -44,6 +44,14 @@ describe('session client', () => {
     })
   })
 
+  it('rejects a malformed successful response with no data', async () => {
+    vi.mocked(api.POST).mockResolvedValue({ response: new Response(null, { status: 200 }) })
+
+    await expect(session.login({ email: user.email, password: 'correct horse battery staple' }))
+      .rejects
+      .toMatchObject({ status: 200, cause: expect.any(Error) })
+  })
+
   it('returns the signed-in User and updated Profile', async () => {
     vi.mocked(api.POST).mockResolvedValueOnce({ data: user, response: new Response(null, { status: 200 }) })
     vi.mocked(api.PATCH).mockResolvedValueOnce({ data: user, response: new Response(null, { status: 200 }) })

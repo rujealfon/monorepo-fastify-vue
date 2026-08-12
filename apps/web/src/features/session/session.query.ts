@@ -12,12 +12,21 @@ export const currentUserQuery = defineQueryOptions({
   staleTime: 30_000
 })
 
-export function useCurrentUser() {
+export function useSessionState() {
   return useQuery(currentUserQuery)
 }
 
-export async function refreshCurrentUser() {
+export async function checkSessionAccess() {
   const cache = useQueryCache()
-  const state = await cache.refresh(cache.ensure(currentUserQuery))
-  return state.status === 'success' ? state.data : null
+  try {
+    const state = await cache.refresh(cache.ensure(currentUserQuery))
+    return state.status === 'success'
+      ? { status: state.data ? 'authenticated' as const : 'guest' as const, user: state.data }
+      : { status: 'unavailable' as const, error: state.error }
+  }
+  catch (error) {
+    // Pinia Colada intentionally retains stale data on refresh failure. Access
+    // policy reports the outage separately so callers never erase that User.
+    return { status: 'unavailable' as const, error }
+  }
 }

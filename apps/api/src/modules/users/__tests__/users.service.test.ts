@@ -28,8 +28,6 @@ const sampleProfile = {
 }
 
 const sampleRow = { user: sampleUser, profile: sampleProfile }
-const sampleSession = { id: 'session-1', userId: '1', expiresAt: new Date(Date.now() + 60_000) }
-
 describe('users.service', () => {
   beforeEach(() => {
     vi.resetAllMocks()
@@ -86,41 +84,13 @@ describe('users.service', () => {
       .toThrow(UnauthorizedError)
   })
 
-  it('login creates a Session and returns the public User on success', async () => {
+  it('login verifies credentials and returns the public User on success', async () => {
     vi.mocked(usersRepository.findByEmail).mockResolvedValue(sampleRow)
     vi.mocked(usersPassword.verifyPassword).mockResolvedValue(true)
-    vi.mocked(usersRepository.createSession).mockResolvedValue(sampleSession)
 
-    const { session, user } = await usersService.login({ email: 'person@example.com', password: 'correct horse battery staple' })
+    const user = await usersService.login({ email: 'person@example.com', password: 'correct horse battery staple' })
     expect(user.id).toBe('1')
     expect(user).not.toHaveProperty('passwordHash')
-    expect(session).toBe(sampleSession)
-    expect(usersRepository.createSession).toHaveBeenCalledWith('1', expect.any(Date), expect.any(Date))
-  })
-
-  it('authenticates only an active Session', async () => {
-    const identity = { id: 'session-1', userId: '1' }
-    vi.mocked(usersRepository.findActiveSession).mockResolvedValue({ id: identity.id })
-
-    await expect(usersService.authenticateSession(identity)).resolves.toBeUndefined()
-
-    vi.mocked(usersRepository.findActiveSession).mockResolvedValue(undefined)
-    await expect(usersService.authenticateSession(identity)).rejects.toThrow(UnauthorizedError)
-  })
-
-  it('preserves Session persistence failures', async () => {
-    const dbError = new Error('connection lost')
-    vi.mocked(usersRepository.findActiveSession).mockRejectedValue(dbError)
-
-    await expect(usersService.authenticateSession({ id: 'session-1', userId: '1' }))
-      .rejects
-      .toBe(dbError)
-  })
-
-  it('logs out by deleting the Session', async () => {
-    const identity = { id: 'session-1', userId: '1' }
-    await usersService.logout(identity)
-    expect(usersRepository.deleteSession).toHaveBeenCalledWith(identity)
   })
 
   it('getProfile throws UnauthorizedError when the account is missing', async () => {

@@ -5,7 +5,8 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { buildApp } from '#api/app.js'
 import { db } from '#api/db/index.js'
-import { profiles, sessions, users } from '#api/modules/users'
+import { sessions } from '#api/modules/sessions'
+import { profiles, users } from '#api/modules/users'
 
 const password = 'correct horse battery staple'
 

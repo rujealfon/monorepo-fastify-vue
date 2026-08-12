@@ -1,6 +1,3 @@
-export { SESSION_SECONDS } from './users.constants.js'
 export { UnauthorizedError } from './users.errors.js'
 export { authRoutes, profileRoutes } from './users.routes.js'
 export * from './users.schema.js'
-export { authenticateSession } from './users.service.js'
-export type { ActiveSession, SessionIdentity } from './users.types.js'
