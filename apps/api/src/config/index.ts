@@ -22,7 +22,13 @@ const envSchema = z.object({
   // because Vercel runs the API as isolated
   // serverless instances with no shared memory, so the default in-memory store would
   // let each instance enforce its own limit instead of one global limit.
-  REDIS_URL: z.string().min(1).optional()
+  REDIS_URL: z.string().min(1).optional(),
+  // How long a web->site handoff token (see modules/users) stays redeemable.
+  // Short-lived and single-use by design: it only needs to survive one
+  // click-to-page-load round trip, not sit around as a reusable credential.
+  // Bounded (not just env-controlled) so a misconfiguration -- e.g. pasting in
+  // SESSION_SECONDS by mistake -- can't silently turn it into a long-lived one.
+  HANDOFF_TOKEN_TTL_SECONDS: z.coerce.number().int().min(1).max(300).default(60)
 }).superRefine((env, ctx) => {
   if (env.NODE_ENV === 'production' && !env.REDIS_URL) {
     ctx.addIssue({

@@ -4,6 +4,7 @@ import { eq, sql } from 'drizzle-orm'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { buildApp } from '#api/app.js'
+import { config } from '#api/config/index.js'
 import { db } from '#api/db/index.js'
 import { profiles, sessions, users } from '#api/modules/users'
 
@@ -259,5 +260,126 @@ describe('user routes', () => {
     }
     expect(logins.slice(0, 10).every(response => response.statusCode === 401)).toBe(true)
     expect(logins[10].statusCode).toBe(429)
+  })
+
+  it('enforces auth and same-origin checks on the handoff endpoints', async () => {
+    const unauthenticatedMint = await app.inject({ method: 'POST', url: '/api/v1/auth/handoff' })
+    expect(unauthenticatedMint.statusCode).toBe(401)
+
+    const crossSiteExchange = await app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/handoff/exchange',
+      headers: { 'origin': 'https://evil.example', 'sec-fetch-site': 'cross-site' },
+      payload: { token: 'whatever' }
+    })
+    expect(crossSiteExchange.statusCode).toBe(403)
+
+    const emptyToken = await app.inject({ method: 'POST', url: '/api/v1/auth/handoff/exchange', payload: { token: '' } })
+    expect(emptyToken.statusCode).toBe(422)
+  })
+
+  it('scopes the handoff mint rate limit to the authenticated user, not the IP', async () => {
+    const remoteAddress = '203.0.113.90'
+
+    async function loginAs(email: string) {
+      await app.inject({ method: 'POST', url: '/api/v1/auth/register', remoteAddress, payload: { email, password } })
+      const login = await app.inject({ method: 'POST', url: '/api/v1/auth/login', remoteAddress, payload: { email, password } })
+      return cookie(login)
+    }
+
+    const userACookie = await loginAs('handoff-rate-a@example.com')
+    const userBCookie = await loginAs('handoff-rate-b@example.com')
+
+    const attempts = []
+    for (let index = 0; index < 31; index++) {
+      attempts.push(await app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/handoff',
+        remoteAddress,
+        headers: { cookie: userACookie }
+      }))
+    }
+    expect(attempts.slice(0, 30).every(response => response.statusCode !== 429)).toBe(true)
+    expect(attempts[30].statusCode).toBe(429)
+
+    // Same IP, a different authenticated user: must be unaffected by user A's
+    // exhausted budget, proving the limit is keyed by user id, not IP.
+    const userBMint = await app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/handoff',
+      remoteAddress,
+      headers: { cookie: userBCookie }
+    })
+    expect(userBMint.statusCode).not.toBe(429)
+  })
+
+  // These two tests are mutually exclusive by design: whichever way REDIS_URL
+  // is configured for this run, exactly one of them exercises that behavior.
+  it.skipIf(config.REDIS_URL)('reports handoff as unavailable when redis is not configured', async () => {
+    // This test suite's .env.test intentionally leaves REDIS_URL unset (see
+    // apps/api/.env.test.example) so rate limiting falls back to an in-memory
+    // store; the handoff token store has no such fallback, so it must fail
+    // clearly instead of pretending to work.
+    const registration = await app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/register',
+      remoteAddress: '203.0.113.70',
+      payload: { email: 'handoff@example.com', password }
+    })
+    expect(registration.statusCode).toBe(202)
+
+    const login = await app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/login',
+      remoteAddress: '203.0.113.70',
+      payload: { email: 'handoff@example.com', password }
+    })
+    const sessionCookie = cookie(login)
+
+    const mint = await app.inject({ method: 'POST', url: '/api/v1/auth/handoff', headers: { cookie: sessionCookie } })
+    expect(mint.statusCode).toBe(503)
+
+    const exchange = await app.inject({ method: 'POST', url: '/api/v1/auth/handoff/exchange', payload: { token: 'whatever' } })
+    expect(exchange.statusCode).toBe(503)
+  })
+
+  it.skipIf(!config.REDIS_URL)('completes a full web -> site handoff: mint, exchange, and a single-use token', async () => {
+    const registration = await app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/register',
+      remoteAddress: '203.0.113.80',
+      payload: { email: 'handoff-e2e@example.com', password }
+    })
+    expect(registration.statusCode).toBe(202)
+
+    const login = await app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/login',
+      remoteAddress: '203.0.113.80',
+      payload: { email: 'handoff-e2e@example.com', password }
+    })
+    const webSessionCookie = cookie(login)
+    const userId = login.json().id
+
+    const mint = await app.inject({ method: 'POST', url: '/api/v1/auth/handoff', headers: { cookie: webSessionCookie } })
+    expect(mint.statusCode).toBe(200)
+    const { token } = mint.json()
+    expect(token).toEqual(expect.any(String))
+
+    const exchange = await app.inject({ method: 'POST', url: '/api/v1/auth/handoff/exchange', payload: { token } })
+    expect(exchange.statusCode).toBe(200)
+    expect(exchange.json()).toMatchObject({ id: userId, email: 'handoff-e2e@example.com' })
+
+    // Exchanging establishes a brand-new session on site's own cookie, distinct
+    // from the one web already has -- not a copy or extension of it.
+    const siteSessionCookie = cookie(exchange)
+    expect(siteSessionCookie).not.toBe(webSessionCookie)
+
+    const siteProfile = await app.inject({ method: 'GET', url: '/api/v1/profile', headers: { cookie: siteSessionCookie } })
+    expect(siteProfile.statusCode).toBe(200)
+    expect(siteProfile.json()).toMatchObject({ id: userId })
+
+    const replay = await app.inject({ method: 'POST', url: '/api/v1/auth/handoff/exchange', payload: { token } })
+    expect(replay.statusCode).toBe(401)
   })
 })

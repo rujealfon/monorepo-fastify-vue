@@ -1,5 +1,7 @@
+import type { Redis } from 'ioredis'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { config } from '#api/config/index.js'
 import { UnauthorizedError } from '#api/modules/users/users.errors.js'
 import * as usersPassword from '#api/modules/users/users.password.js'
 import * as usersRepository from '#api/modules/users/users.repository.js'
@@ -7,6 +9,24 @@ import * as usersService from '#api/modules/users/users.service.js'
 
 vi.mock('#api/modules/users/users.repository.js')
 vi.mock('#api/modules/users/users.password.js')
+
+// A minimal in-memory stand-in for the one ioredis method pair mintHandoffToken/
+// redeemHandoffToken use, so these tests don't depend on a real Redis connection.
+function createFakeRedis() {
+  const store = new Map<string, string>()
+  return {
+    set: vi.fn(async (key: string, value: string) => {
+      store.set(key, value)
+      return 'OK'
+    }),
+    getdel: vi.fn(async (key: string) => {
+      const value = store.get(key) ?? null
+      // eslint-disable-next-line drizzle/enforce-delete-with-where -- plain in-memory Map, not a Drizzle table
+      store.delete(key)
+      return value
+    })
+  } as unknown as Redis
+}
 
 const sampleUser = {
   id: '1',
@@ -116,5 +136,29 @@ describe('users.service', () => {
     vi.mocked(usersRepository.updateProfile).mockResolvedValue(sampleRow)
 
     await expect(usersService.updateProfile('1', { firstName: 'Alex' })).resolves.toMatchObject({ id: '1' })
+  })
+
+  it('mintHandoffToken stores the user id under the configured TTL and returns an opaque token', async () => {
+    const redis = createFakeRedis()
+
+    const token = await usersService.mintHandoffToken(redis, 'user-1')
+
+    expect(token).toMatch(/^[\w-]+$/)
+    expect(redis.set).toHaveBeenCalledWith(`handoff:${token}`, 'user-1', 'EX', config.HANDOFF_TOKEN_TTL_SECONDS)
+  })
+
+  it('redeemHandoffToken returns the user id for a valid token and consumes it', async () => {
+    const redis = createFakeRedis()
+    const token = await usersService.mintHandoffToken(redis, 'user-1')
+
+    await expect(usersService.redeemHandoffToken(redis, token)).resolves.toBe('user-1')
+    // Single-use: a second redemption of the same token must fail.
+    await expect(usersService.redeemHandoffToken(redis, token)).resolves.toBeNull()
+  })
+
+  it('redeemHandoffToken returns null for an unknown token', async () => {
+    const redis = createFakeRedis()
+
+    await expect(usersService.redeemHandoffToken(redis, 'does-not-exist')).resolves.toBeNull()
   })
 })

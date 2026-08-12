@@ -1,8 +1,15 @@
+import type { Redis } from 'ioredis'
 import type { LoginUser, PatchProfile, PublicUser, RegisterUser } from './users.schema.js'
+
+import { randomBytes } from 'node:crypto'
+
+import { config } from '#api/config/index.js'
 
 import { UnauthorizedError } from './users.errors.js'
 import { hashPassword, verifyPassword } from './users.password.js'
 import * as repository from './users.repository.js'
+
+const HANDOFF_KEY_PREFIX = 'handoff:'
 
 function publicUser({ user: { passwordHash: _, ...user }, profile }: NonNullable<Awaited<ReturnType<typeof repository.findById>>>) {
   const { userId: __, ...publicProfile } = profile
@@ -44,4 +51,16 @@ export async function updateProfile(id: string, data: PatchProfile) {
   if (!user)
     throw new UnauthorizedError()
   return publicUser(user)
+}
+
+export async function mintHandoffToken(redis: Redis, userId: string) {
+  const token = randomBytes(32).toString('base64url')
+  await redis.set(`${HANDOFF_KEY_PREFIX}${token}`, userId, 'EX', config.HANDOFF_TOKEN_TTL_SECONDS)
+  return token
+}
+
+export async function redeemHandoffToken(redis: Redis, token: string) {
+  // GETDEL atomically reads and removes the key, so two exchange requests
+  // racing on the same token can never both succeed.
+  return redis.getdel(`${HANDOFF_KEY_PREFIX}${token}`)
 }

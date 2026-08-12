@@ -14,6 +14,7 @@ import dbPlugin from './plugins/db.js'
 import errorHandlerPlugin from './plugins/error-handler.js'
 import multipartPlugin from './plugins/multipart.js'
 import openapiPlugin from './plugins/openapi.js'
+import redisPlugin from './plugins/redis.js'
 import securityPlugin from './plugins/security.js'
 import sensiblePlugin from './plugins/sensible.js'
 
@@ -89,6 +90,7 @@ export function buildApp(): FastifyInstance {
   app.register(cors, { origin: config.CORS_ORIGINS.length ? config.CORS_ORIGINS : true, credentials: true })
 
   app.register(openapiPlugin)
+  app.register(redisPlugin)
   app.register(securityPlugin)
   app.register(errorHandlerPlugin)
   app.register(modules)

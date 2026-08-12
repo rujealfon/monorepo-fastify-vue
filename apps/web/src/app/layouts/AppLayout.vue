@@ -8,6 +8,7 @@ import { RouterView, useRouter } from 'vue-router'
 
 import { useAuthMutations } from '@/features/auth'
 import { profileQuery } from '@/features/profile'
+import { api } from '@/shared/api/client'
 import { siteUrl } from '@/shared/site-url'
 
 const router = useRouter()
@@ -15,7 +16,38 @@ const { logout } = useAuthMutations()
 const profile = useQuery(profileQuery)
 const toast = useToast()
 
+// site is a separate origin with no shared cookie domain (see AGENTS.md/README
+// on *.vercel.app deployments), so it can't see this session on its own. Mint
+// a short-lived, one-time handoff token and hand it to site via the URL so it
+// can exchange it for its own session — falling back to a plain navigation
+// (site just shows logged out) if minting fails for any reason.
+//
+// Once web and site share a registrable domain and COOKIE_DOMAIN is set on the
+// API, the cookie is already visible to site directly, so the API's own
+// mintHandoff handler skips minting and returns { token: null } instead —
+// COOKIE_DOMAIN is the single source of truth for this, not a separate flag
+// here, so this same code path stays correct in both deployments unchanged.
+//
+// The token rides in the URL fragment (#token=...), not a query param: the
+// fragment is never sent to the server on the initial request, so it can't
+// leak into site's access logs or a subsequent page's Referer header the way
+// a query param could before handoff.client.ts strips it client-side.
+async function goToSite(path: string) {
+  const url = `${siteUrl}${path}`
+  try {
+    const { data } = await api.POST('/api/v1/auth/handoff')
+    window.location.href = data?.token ? `${url}#token=${data.token}` : url
+  }
+  catch {
+    window.location.href = url
+  }
+}
+
+// The brand logo (below, brand-href) still links straight to siteUrl without a
+// handoff token -- AppHeader has no click-interception hook for it, and that's
+// fine since this "Home" item is the primary, discoverable way back to site.
 const links: NavigationMenuItem[] = [
+  { label: 'Home', icon: 'i-lucide-house', onSelect: () => goToSite('/') },
   { label: 'Health', to: '/health', icon: 'i-lucide-activity' }
 ]
 
