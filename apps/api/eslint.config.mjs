@@ -46,6 +46,24 @@ export default createConfig({
       }]
     }
   }, {
+    // *.schema.ts files may deep-import another module's *.schema.js to reference
+    // its Drizzle tables for foreign keys (mirrors db/schema/index.ts, which does
+    // the same to compose module-owned tables). Schema files must stay free of
+    // route/handler/service/config side effects for this to be safe: drizzle-kit
+    // loads this file directly to generate migrations, outside the app's normal
+    // runtime, and a module's public entry point can pull in config parsing or
+    // other eager work (e.g. the knowledge module's corpus load) that isn't safe
+    // in that context.
+    files: [`src/modules/${module}/*.schema.ts`],
+    rules: {
+      'no-restricted-imports': ['error', {
+        patterns: [{
+          group: ['#api/modules/*/*', `!#api/modules/${module}/**`, '!#api/modules/*/*.schema.js'],
+          message: 'Import another module through its public #api/modules/<domain> entry point, except *.schema.js for composing Drizzle table references.'
+        }, parentRelativePattern]
+      }]
+    }
+  }, {
     // Preserve route -> handler -> service -> repository dependency direction within a module
     files: [`src/modules/${module}/*.routes.ts`],
     rules: {
