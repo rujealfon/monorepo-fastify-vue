@@ -1,11 +1,11 @@
-import { useQueryCache } from '@pinia/colada'
 import { createRouter, createWebHistory } from 'vue-router'
 
 import AppLayout from '@/app/layouts/AppLayout.vue'
 import AuthLayout from '@/app/layouts/AuthLayout.vue'
 import { authRoutes } from '@/features/auth'
 import { healthRoutes } from '@/features/health'
-import { profileQuery, profileRoutes } from '@/features/profile'
+import { profileRoutes } from '@/features/profile'
+import { refreshCurrentUser } from '@/features/session'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -29,9 +29,8 @@ router.beforeEach(async (to) => {
   if (!to.meta.requiresAuth && !to.meta.guestOnly)
     return
 
-  const cache = useQueryCache()
-  const state = await cache.refresh(cache.ensure(profileQuery)).catch(() => null)
-  const isAuthenticated = Boolean(state && state.status !== 'error' && state.data)
+  const user = await refreshCurrentUser().catch(() => null)
+  const isAuthenticated = Boolean(user)
 
   if (to.meta.requiresAuth && !isAuthenticated)
     return { path: '/login', query: { redirect: to.fullPath } }

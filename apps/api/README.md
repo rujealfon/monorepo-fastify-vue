@@ -35,13 +35,13 @@ src/
 │   ├── migrations/                # Generated migrations
 │   └── schema/index.ts            # Drizzle Kit composition barrel
 ├── plugins/
-│   ├── auth.ts                    # Session cookie auth: authenticate, sameOrigin, setSession
+│   ├── auth.ts                    # Session cookie transport adapter
 │   ├── compress.ts
 │   ├── db.ts
 │   ├── error-handler.ts
 │   ├── multipart.ts
 │   ├── openapi.ts
-│   ├── security.ts
+│   ├── security.ts                # Headers, rate limits, and same-origin defense
 │   ├── sensible.ts
 │   └── static.ts
 ├── modules/
@@ -56,7 +56,8 @@ src/
 │       ├── users.handlers.ts
 │       ├── users.service.ts
 │       ├── users.repository.ts
-│       ├── users.schema.ts        # users + profiles tables
+│       ├── users.schema.ts        # users + profiles + sessions tables
+│       ├── users.types.ts         # Internal Session values crossing the Fastify seam
 │       ├── users.errors.ts
 │       ├── users.password.ts
 │       └── __tests__/
@@ -84,11 +85,13 @@ Add a module by keeping its code local, exporting routes from its `index.ts`, ad
 
 ## Authentication
 
-This starter template ships session-cookie authentication with no role or permission system. `plugins/auth.ts` registers `@fastify/jwt` and exposes:
+This starter template ships session-cookie authentication with no role or permission system. The users module owns credential checks and the Session lifecycle; `plugins/auth.ts` adapts that behavior to signed cookies and Fastify requests:
 
 - `app.authenticate` — verifies the session cookie, throws `UnauthorizedError` otherwise. Use as an `onRequest` hook on any route that requires a signed-in user.
-- `app.sameOrigin` — rejects cross-site state-changing requests. Use as a `preHandler` on mutating routes.
-- `app.setSession(reply, userId)` — signs and sets the `session` cookie after register/login.
+- `app.setSession(reply, session)` and `app.clearSession(reply)` — translate a Session to and from the cookie transport.
+- `app.sessionIdentity(request)` — reads an optional Session identity for idempotent logout.
+
+`plugins/security.ts` exposes `app.sameOrigin`, which rejects cross-site state-changing requests. Use it as a `preHandler` on mutating routes.
 
 Protect a new route by requiring a session:
 

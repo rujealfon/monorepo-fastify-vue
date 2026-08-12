@@ -1,14 +1,16 @@
+import type { User } from '@monorepo-fastify-vue/api-client'
+
 import { PiniaColada, useQueryCache } from '@pinia/colada'
 import { flushPromises, mount } from '@vue/test-utils'
 import { createPinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMemoryHistory, createRouter } from 'vue-router'
 
-import { profileQuery } from '@/features/profile'
+import { SESSION_KEY } from '@/features/session'
 import ProfileView from './ProfileView.vue'
 
-const api = vi.hoisted(() => ({ GET: vi.fn(), PATCH: vi.fn(), POST: vi.fn() }))
-vi.mock('@/shared/api/client', () => ({ api }))
+const sessionClient = vi.hoisted(() => ({ currentUser: vi.fn(), logout: vi.fn(), updateProfile: vi.fn() }))
+vi.mock('@/shared/api/client', () => ({ sessionClient }))
 
 const USelectStub = {
   props: ['modelValue'],
@@ -19,11 +21,10 @@ const USelectStub = {
 describe('profile view', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    const response = { ok: true, status: 200 }
     const profile = { firstName: 'Person', lastName: null, gender: null, birthDate: null, bio: null, createdAt: '', updatedAt: '' }
-    api.GET.mockResolvedValue({ data: { id: '1', email: 'person@example.com', profile, createdAt: '', updatedAt: '' }, response })
-    api.PATCH.mockResolvedValue({ data: { id: '1', email: 'person@example.com', profile: { ...profile, firstName: 'Updated' }, createdAt: '', updatedAt: '' }, response })
-    api.POST.mockResolvedValue({ response: { ok: true, status: 204 } })
+    sessionClient.currentUser.mockResolvedValue({ id: '1', email: 'person@example.com', profile, createdAt: '', updatedAt: '' })
+    sessionClient.updateProfile.mockResolvedValue({ id: '1', email: 'person@example.com', profile: { ...profile, firstName: 'Updated' }, createdAt: '', updatedAt: '' })
+    sessionClient.logout.mockResolvedValue(undefined)
   })
 
   it('updates the profile and logs out', async () => {
@@ -46,27 +47,25 @@ describe('profile view', () => {
     await wrapper.get('textarea[name="bio"]').setValue('Hello')
     await wrapper.get('form').trigger('submit')
     await flushPromises()
-    expect(api.PATCH).toHaveBeenCalledWith('/api/v1/profile/', {
-      body: {
-        firstName: 'Updated',
-        lastName: 'Person',
-        gender: 'prefer_not_to_say',
-        birthDate: '1990-05-20',
-        bio: 'Hello'
-      }
+    expect(sessionClient.updateProfile).toHaveBeenCalledWith({
+      firstName: 'Updated',
+      lastName: 'Person',
+      gender: 'prefer_not_to_say',
+      birthDate: '1990-05-20',
+      bio: 'Hello'
     })
-    expect(useQueryCache(pinia).getQueryData(profileQuery.key)?.profile.firstName).toBe('Updated')
+    expect(useQueryCache(pinia).getQueryData<User>(SESSION_KEY)?.profile.firstName).toBe('Updated')
 
     await wrapper.get('button[type="button"]').trigger('click')
     await flushPromises()
-    expect(api.POST).toHaveBeenCalledWith('/api/v1/auth/logout')
+    expect(sessionClient.logout).toHaveBeenCalledOnce()
     expect(router.currentRoute.value.fullPath).toBe('/login')
-    expect(useQueryCache(pinia).getQueryData(profileQuery.key)).toBeNull()
+    expect(useQueryCache(pinia).getQueryData(SESSION_KEY)).toBeNull()
   })
 
   it('shows update and logout failures without redirecting', async () => {
-    api.PATCH.mockResolvedValue({ response: { ok: false, status: 500 } })
-    api.POST.mockResolvedValue({ response: { ok: false, status: 500 } })
+    sessionClient.updateProfile.mockRejectedValue(new Error('Update failed'))
+    sessionClient.logout.mockRejectedValue(new Error('Logout failed'))
     const router = createRouter({
       history: createMemoryHistory(),
       routes: [

@@ -2,17 +2,15 @@
 import type { NavigationMenuItem } from '@nuxt/ui'
 import { AppHeader } from '@monorepo-fastify-vue/ui'
 import { useToast } from '@nuxt/ui/composables'
-import { useQuery } from '@pinia/colada'
 import { computed } from 'vue'
 import { RouterView, useRouter } from 'vue-router'
 
-import { useAuthMutations } from '@/features/auth'
-import { profileQuery } from '@/features/profile'
+import { useCurrentUser, useLogout } from '@/features/session'
 import { siteUrl } from '@/shared/site-url'
 
 const router = useRouter()
-const { logout } = useAuthMutations()
-const profile = useQuery(profileQuery)
+const logout = useLogout()
+const profile = useCurrentUser()
 const toast = useToast()
 
 const links: NavigationMenuItem[] = [

@@ -1,5 +1,7 @@
 import type { LoginUser, PatchProfile, PublicUser, RegisterUser } from './users.schema.js'
+import type { SessionIdentity } from './users.types.js'
 
+import { SESSION_SECONDS } from './users.constants.js'
 import { UnauthorizedError } from './users.errors.js'
 import { hashPassword, verifyPassword } from './users.password.js'
 import * as repository from './users.repository.js'
@@ -29,7 +31,18 @@ export async function login(data: LoginUser) {
   const valid = await verifyPassword(user?.user.passwordHash, data.password)
   if (!user || !valid)
     throw new UnauthorizedError()
-  return publicUser(user)
+  const now = new Date()
+  const session = await repository.createSession(user.user.id, new Date(now.getTime() + SESSION_SECONDS * 1000), now)
+  return { session, user: publicUser(user) }
+}
+
+export async function authenticateSession(identity: SessionIdentity) {
+  if (!await repository.findActiveSession(identity, new Date()))
+    throw new UnauthorizedError()
+}
+
+export function logout(identity: SessionIdentity) {
+  return repository.deleteSession(identity)
 }
 
 export async function getProfile(id: string) {

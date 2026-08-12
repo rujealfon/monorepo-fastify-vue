@@ -9,6 +9,7 @@
     "build": "rm -rf dist && tsc",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
+    "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "types:generate": "openapi-typescript ../../apps/api/openapi.json -o src/schema.d.ts"
   },
@@ -19,6 +20,7 @@
     "@monorepo-fastify-vue/eslint-config": "workspace:^",
     "eslint": "^10.6.0",
     "openapi-typescript": "^7.13.0",
-    "typescript": "~5.9.3"
+    "typescript": "~5.9.3",
+    "vitest": "^4.1.10"
   }
 }

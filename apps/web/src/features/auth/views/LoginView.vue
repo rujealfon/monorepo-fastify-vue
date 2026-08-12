@@ -3,14 +3,14 @@ import { reactive, useTemplateRef } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import { internalRedirect } from '@/features/auth/auth.utils'
-import { useAuthMutations } from '@/features/auth/mutations'
+import { useLogin } from '@/features/session'
 import { apiFormErrors } from '@/shared/api/form-errors'
 
 const state = reactive({ email: '', password: '' })
 const form = useTemplateRef('form')
 const route = useRoute()
 const router = useRouter()
-const { login } = useAuthMutations()
+const login = useLogin()
 
 async function submit() {
   try {

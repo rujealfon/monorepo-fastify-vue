@@ -1,9 +1,6 @@
 import type { FastifyReply, FastifyRequest } from 'fastify'
 import type { LoginUser, PatchProfile, RegisterUser } from './users.schema.js'
 
-import { config } from '#api/config/index.js'
-import { SESSION_COOKIE } from '#api/plugins/auth.js'
-
 import * as service from './users.service.js'
 
 export async function register(request: FastifyRequest<{ Body: RegisterUser }>, reply: FastifyReply) {
@@ -13,17 +10,17 @@ export async function register(request: FastifyRequest<{ Body: RegisterUser }>, 
 }
 
 export async function login(request: FastifyRequest<{ Body: LoginUser }>, reply: FastifyReply) {
-  const user = await service.login(request.body)
-  await request.server.setSession(reply, user.id)
+  const { session, user } = await service.login(request.body)
+  request.server.setSession(reply, session)
   return user
 }
 
 export async function logout(request: FastifyRequest, reply: FastifyReply) {
-  await request.server.revokeSession(request)
-  reply.clearCookie(SESSION_COOKIE, {
-    ...(config.COOKIE_DOMAIN ? { domain: config.COOKIE_DOMAIN } : {}),
-    path: '/'
-  }).code(204)
+  const session = await request.server.sessionIdentity(request)
+  if (session)
+    await service.logout(session)
+  request.server.clearSession(reply)
+  reply.code(204)
 }
 
 export function profile(request: FastifyRequest) {

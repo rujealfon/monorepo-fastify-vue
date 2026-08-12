@@ -1,3 +1,4 @@
+import type { FastifyRequest } from 'fastify'
 import { randomUUID } from 'node:crypto'
 import helmet from '@fastify/helmet'
 import rateLimit from '@fastify/rate-limit'
@@ -7,6 +8,20 @@ import { Redis } from 'ioredis'
 import { config } from '#api/config/index.js'
 
 export default fp(async (fastify) => {
+  fastify.decorate('sameOrigin', async (request: FastifyRequest) => {
+    // Same-site deployments and allowlisted cross-site frontends are trusted;
+    // every other explicit Origin or cross-site browser request is rejected.
+    const origin = request.headers.origin
+    const isAllowedOrigin = origin === `${request.protocol}://${request.host}`
+      || (origin !== undefined && config.CORS_ORIGINS.includes(origin))
+
+    if (request.headers['sec-fetch-site'] === 'cross-site' && !isAllowedOrigin)
+      throw fastify.httpErrors.forbidden('Cross-site request rejected')
+
+    if (origin && !isAllowedOrigin)
+      throw fastify.httpErrors.forbidden('Cross-site request rejected')
+  })
+
   await fastify.register(helmet, {
     contentSecurityPolicy: config.NODE_ENV === 'development'
       ? {
@@ -59,4 +74,11 @@ export default fp(async (fastify) => {
     // users.constants.ts, preventing a limiter outage from admitting Argon2 work.
     skipOnError: true
   })
-}, { name: 'security-plugin' })
+}, { name: 'security-plugin', dependencies: ['sensible-plugin'] })
+
+declare module 'fastify' {
+  // eslint-disable-next-line ts/consistent-type-definitions -- interface required for declaration merging
+  interface FastifyInstance {
+    sameOrigin: (request: FastifyRequest) => Promise<void>
+  }
+}

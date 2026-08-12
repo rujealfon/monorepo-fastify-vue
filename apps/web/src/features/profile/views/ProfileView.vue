@@ -1,19 +1,15 @@
 <script setup lang="ts">
 import type { UpdateProfile } from '@monorepo-fastify-vue/api-client'
-import { useQuery } from '@pinia/colada'
 import { computed, reactive, useTemplateRef, watchEffect } from 'vue'
 import { useRouter } from 'vue-router'
 
-import { useAuthMutations } from '@/features/auth'
-
-import { useProfileMutation } from '@/features/profile/mutations'
-import { profileQuery } from '@/features/profile/queries'
+import { useCurrentUser, useLogout, useUpdateProfile } from '@/features/session'
 import { apiFormErrors } from '@/shared/api/form-errors'
 
 const router = useRouter()
-const profile = useQuery(profileQuery)
-const update = useProfileMutation()
-const { logout } = useAuthMutations()
+const profile = useCurrentUser()
+const logout = useLogout()
+const update = useUpdateProfile()
 const form = useTemplateRef('form')
 const NOT_SPECIFIED = 'not_specified'
 const state = reactive({

@@ -3,17 +3,17 @@ import { createPinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createApp } from 'vue'
 
-import { PROFILE_KEY } from '@/features/profile'
+import { SESSION_KEY } from '@/features/session'
 import router from './index'
 
-const api = vi.hoisted(() => ({ GET: vi.fn() }))
-vi.mock('@/shared/api/client', () => ({ api }))
+const sessionClient = vi.hoisted(() => ({ currentUser: vi.fn() }))
+vi.mock('@/shared/api/client', () => ({ sessionClient }))
 
 describe('authentication router guard', () => {
   beforeEach(() => vi.clearAllMocks())
 
   it('checks the session only for protected and guest-only routes', async () => {
-    api.GET.mockResolvedValue({ response: { ok: false, status: 401 } })
+    sessionClient.currentUser.mockResolvedValue(null)
     const app = createApp({ template: '<div />' })
     const pinia = createPinia()
     app.use(pinia)
@@ -26,10 +26,10 @@ describe('authentication router guard', () => {
 
     await router.push('/register')
     expect(router.currentRoute.value.fullPath).toBe('/register')
-    expect(api.GET).toHaveBeenCalledOnce()
+    expect(sessionClient.currentUser).toHaveBeenCalledOnce()
 
     const cache = useQueryCache(pinia)
-    cache.setQueryData(PROFILE_KEY, {
+    cache.setQueryData(SESSION_KEY, {
       id: '00000000-0000-0000-0000-000000000001',
       email: 'person@example.com'
     })
@@ -47,8 +47,8 @@ describe('authentication router guard', () => {
     expect(router.currentRoute.value.fullPath).toBe('/profile')
 
     await router.push('/health')
-    await cache.invalidateQueries({ key: PROFILE_KEY })
-    api.GET.mockResolvedValue({ response: { ok: false, status: 503 } })
+    await cache.invalidateQueries({ key: SESSION_KEY })
+    sessionClient.currentUser.mockRejectedValue(new Error('Unavailable'))
     await router.push('/profile')
     expect(router.currentRoute.value.fullPath).toBe('/login?redirect=/profile')
   })

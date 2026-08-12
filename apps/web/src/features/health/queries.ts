@@ -1,4 +1,4 @@
-import { RpcError } from '@monorepo-fastify-vue/api-client'
+import { RpcError, rpcRequest } from '@monorepo-fastify-vue/api-client'
 import { defineQueryOptions } from '@pinia/colada'
 
 import { api } from '@/shared/api/client'
@@ -11,7 +11,7 @@ export const HEALTH_KEYS = {
 export const healthLiveQuery = defineQueryOptions({
   key: HEALTH_KEYS.live(),
   query: async () => {
-    const { data, response } = await api.GET('/api/v1/health/live')
+    const { data, response } = await rpcRequest(() => api.GET('/api/v1/health/live'))
     if (!response.ok)
       throw new RpcError(response.status)
 

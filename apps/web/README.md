@@ -30,7 +30,7 @@ src/
 │   └── images/                 # Static images (logo.svg, …)
 │
 ├── features/                   # ⭐ One folder per domain feature
-│   └── <feature>/              # e.g. health/ or profile/
+│   └── <feature>/              # e.g. health/, profile/, or session/
 │       ├── index.ts            # Public feature API
 │       ├── routes.ts           # Exports RouteRecordRaw[]
 │       ├── views/              # Route-level pages (lazy-loaded from routes.ts)
@@ -74,6 +74,7 @@ Per-feature data layer:
   ```
 
 - `mutations.ts` — `useMutation` wrappers that invalidate the feature's keys after successful writes via `useQueryCache()`.
+- `features/session/` — owns the current User query and all cache transitions caused by login, logout, registration, and Profile updates.
 - `composables/` — what components actually import; compose queries/mutations with UI state. Use `defineQuery` here when several mounted components must share the same reactive state (e.g. a shared search ref).
 - `stores/` — Pinia stores only for client-side state (UI prefs, wizard state, session). Server data belongs in the Colada query cache, not stores.
 

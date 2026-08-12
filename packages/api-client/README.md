@@ -2,6 +2,8 @@
 
 Typed Fetch client generated from the Fastify OpenAPI document.
 
+`createSessionClient` adds framework-neutral User/Session outcome semantics on top of the generated transport. Frontends keep their framework state adapters local while sharing status and error handling here.
+
 ## Regenerate
 
 After changing API routes or schemas, run from the repository root:

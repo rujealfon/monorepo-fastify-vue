@@ -4,7 +4,7 @@ import { AppHeader } from '@monorepo-fastify-vue/ui'
 import { computed } from 'vue'
 
 const { public: { webUrl } } = useRuntimeConfig()
-const { profile, logout } = useProfile()
+const { user, logout } = useSession()
 const toast = useToast()
 
 const links: NavigationMenuItem[] = [
@@ -26,7 +26,7 @@ async function signOut() {
 }
 
 const userMenu = computed(() => [[
-  { label: profile.value?.email ?? '', type: 'label' as const },
+  { label: user.value?.email ?? '', type: 'label' as const },
   { label: 'Profile', icon: 'i-lucide-user', to: `${webUrl}/profile` }
 ], [
   { label: 'Logout', icon: 'i-lucide-log-out', onSelect: signOut }
@@ -37,13 +37,13 @@ const userMenu = computed(() => [[
   <div class="min-h-dvh bg-default">
     <AppHeader brand-href="/" :links="links">
       <template #right>
-        <template v-if="profile">
+        <template v-if="user">
           <UDropdownMenu :items="userMenu">
             <UButton
               color="neutral"
               variant="ghost"
               icon="i-lucide-user-circle"
-              :label="profile.email"
+              :label="user.email"
               class="max-w-48"
               :ui="{ label: 'truncate' }"
             />

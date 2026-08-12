@@ -3,8 +3,8 @@ import type { PiniaColadaOptions } from '@pinia/colada'
 
 import { PiniaColadaAutoRefetch } from '@pinia/colada-plugin-auto-refetch'
 
-// Every query error comes from the api-client, which throws RpcError on
-// non-2xx responses — type `error` accordingly across all queries.
+// Every query and mutation normalizes both transport and HTTP failures to
+// RpcError through the api-client — type `error` accordingly across the app.
 declare module '@pinia/colada' {
   // eslint-disable-next-line ts/consistent-type-definitions -- module augmentation requires interface merging
   interface TypesConfig {
