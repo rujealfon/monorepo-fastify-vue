@@ -4,14 +4,14 @@ This project runs entirely in Docker for local development. The setup includes t
 
 ## Services
 
-| Service        | URL                    | Description                      |
-| -------------- | ---------------------- | -------------------------------- |
-| API (Fastify)  | https://localhost:3000 | Backend API with hot reload      |
-| Web (Vue 3)    | https://localhost:5173 | Application with Vite HMR        |
-| Site (Nuxt 4)  | https://localhost:8000 | Public site with Nuxt hot reload |
-| Drizzle Studio | http://localhost:4983  | Visual database browser          |
-| PostgreSQL     | localhost:5433         | Database                         |
-| Redis          | localhost:6380         | Rate-limit store                 |
+| Service        | URL                          | Description                      |
+| -------------- | ---------------------------- | -------------------------------- |
+| API (Fastify)  | https://localhost:3000       | Backend API with hot reload      |
+| Web (Vue 3)    | https://localhost:5173       | Application with Vite HMR        |
+| Site (Nuxt 4)  | https://localhost:8000       | Public site with Nuxt hot reload |
+| Drizzle Studio | https://local.drizzle.studio | Visual database browser.         |
+| PostgreSQL     | localhost:5433               | Database                         |
+| Redis          | localhost:6380               | Rate-limit store                 |
 
 API, web, and site serve HTTPS with a locally-trusted cert — see [Local HTTPS certs](#local-https-certs) below before your first run.
 
