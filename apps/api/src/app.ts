@@ -1,14 +1,13 @@
 import type { FastifyInstance } from 'fastify'
 
-import { existsSync, readFileSync } from 'node:fs'
-import { join } from 'node:path'
 import cors from '@fastify/cors'
+import { localDevelopmentTransport } from '@monorepo-fastify-vue/dev-config'
 import Fastify from 'fastify'
 import { serializerCompiler, validatorCompiler } from 'fastify-type-provider-zod'
 
 import { config } from './config/index.js'
 import { modules } from './modules/index.js'
-import authPlugin from './plugins/auth.js'
+import { sessionPlugin } from './modules/sessions/index.js'
 import compressPlugin from './plugins/compress.js'
 import dbPlugin from './plugins/db.js'
 import errorHandlerPlugin from './plugins/error-handler.js'
@@ -32,18 +31,7 @@ import sensiblePlugin from './plugins/sensible.js'
 function resolveDevHttpsOptions(): { key: Buffer, cert: Buffer } | undefined {
   if (config.NODE_ENV !== 'development')
     return undefined
-
-  const certDir = join(import.meta.dirname, '../../../.certs')
-  const keyPath = join(certDir, 'dev.pem')
-  const certPath = join(certDir, 'cert.pem')
-
-  if (!existsSync(keyPath) || !existsSync(certPath))
-    return undefined
-
-  return {
-    key: readFileSync(keyPath),
-    cert: readFileSync(certPath)
-  }
+  return localDevelopmentTransport(import.meta.dirname).readHttps()
 }
 
 export function buildApp(): FastifyInstance {
@@ -81,11 +69,13 @@ export function buildApp(): FastifyInstance {
   app.register(multipartPlugin)
   app.register(sensiblePlugin)
   app.register(dbPlugin)
-  app.register(authPlugin)
+  app.register(sessionPlugin)
   // web (app.mysite.com) and site (mysite.com) are separate Vercel projects/origins
   // from the API (api.mysite.com), so cross-origin requests need explicit CORS.
   // CORS_ORIGIN is required in production (see config); falls back to reflecting
-  // the request origin in dev/test where it's unset.
+  // the request origin in dev/test where it's unset. This only controls what the
+  // browser is allowed to read back; securityPlugin's sameOrigin decorator
+  // (registered below) does the actual per-route reject.
   app.register(cors, { origin: config.CORS_ORIGINS.length ? config.CORS_ORIGINS : true, credentials: true })
 
   app.register(openapiPlugin)

@@ -35,13 +35,12 @@ src/
 │   ├── migrations/                # Generated migrations
 │   └── schema/index.ts            # Drizzle Kit composition barrel
 ├── plugins/
-│   ├── auth.ts                    # Session cookie auth: authenticate, sameOrigin, setSession
 │   ├── compress.ts
 │   ├── db.ts
 │   ├── error-handler.ts
 │   ├── multipart.ts
 │   ├── openapi.ts
-│   ├── security.ts
+│   ├── security.ts                # Headers, rate limits, and same-origin defense
 │   ├── sensible.ts
 │   └── static.ts
 ├── modules/
@@ -49,6 +48,13 @@ src/
 │   ├── health/
 │   │   ├── index.ts               # Public module API
 │   │   ├── health.routes.ts
+│   │   └── __tests__/
+│   ├── sessions/
+│   │   ├── index.ts               # Public module API
+│   │   ├── sessions.plugin.ts     # Fastify/JWT/cookie adapter
+│   │   ├── sessions.service.ts    # Session lifecycle policy
+│   │   ├── sessions.repository.ts # Drizzle persistence
+│   │   ├── sessions.schema.ts     # Session table and claim validation
 │   │   └── __tests__/
 │   └── users/
 │       ├── index.ts               # Public module API
@@ -80,25 +86,30 @@ Layer responsibilities:
 
 Domains live in `src/modules/<domain>` and expose their public API from `index.ts`; `src/modules/index.ts` is the only route registry. Cross-domain callers use `#api/modules/<domain>`, never internal files. Tables and validators remain module-owned, with `src/db/schema/index.ts` as the only deep-import exception for Drizzle Kit. Tests stay beside their module in `__tests__`.
 
-Add a module by keeping its code local, exporting routes from its `index.ts`, adding its public import mapping to `package.json`, and registering it in `src/modules/index.ts`. Keep code local until it has at least two real consumers.
+Add a module by keeping its code local, exporting its routes or adapters from
+`index.ts`, and adding its public import mapping to `package.json`. Register it
+in `src/modules/index.ts` when it owns routes. Keep code local until it has at
+least two real consumers.
 
 ## Authentication
 
-This starter template ships session-cookie authentication with no role or permission system. `plugins/auth.ts` registers `@fastify/jwt` and exposes:
+This starter template ships session-cookie authentication with no role or permission system. The users module owns credential checks; the sessions module owns Session issuance, expiry, persistence, authentication, revocation, JWT claims, and cookie transport:
 
-- `app.authenticate` — verifies the session cookie, throws `UnauthorizedError` otherwise. Use as an `onRequest` hook on any route that requires a signed-in user.
-- `app.sameOrigin` — rejects cross-site state-changing requests. Use as a `preHandler` on mutating routes.
-- `app.setSession(reply, userId)` — signs and sets the `session` cookie after register/login.
+- `app.session.authenticate` — verifies claims and the persisted Session. Use as an `onRequest` hook on routes requiring a signed-in User.
+- `app.session.establish` — issues a persisted Session and its signed cookie after credential verification.
+- `app.session.end` — idempotently revokes a valid Session and clears its cookie.
+
+`plugins/security.ts` exposes `app.sameOrigin`, which rejects cross-site state-changing requests. Use it as a `preHandler` on mutating routes.
 
 Protect a new route by requiring a session:
 
 ```ts
 app.get('/', {
-  onRequest: [app.authenticate]
+  onRequest: [app.session.authenticate]
 }, handlers.list)
 ```
 
-There is no `app.authorize(...)` or permission-key system in this template. If a future feature needs per-user access control beyond "is signed in," reintroduce a roles/permissions module and extend `plugins/auth.ts` accordingly.
+There is no authorization or permission-key system in this template. If a future feature needs per-User access control beyond “is signed in,” add a roles/permissions module beside the Session module.
 
 ## Environment files
 

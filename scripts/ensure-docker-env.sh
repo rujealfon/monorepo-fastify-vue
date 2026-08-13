@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+repo_root="${MONOREPO_DOCKER_ENV_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
+openssl_bin="${MONOREPO_OPENSSL_BIN:-openssl}"
 docker_env_file="$repo_root/.env"
 api_env_file="$repo_root/apps/api/.env"
 api_test_env_file="$repo_root/apps/api/.env.test"
@@ -77,7 +78,7 @@ ensure_private_jwt_secret() {
   example_secret="$(read_env_value "$example" JWT_SECRET)"
 
   if [[ -z "$current_secret" || "$current_secret" == "$example_secret" ]]; then
-    set_env_value "$file" JWT_SECRET "$(openssl rand -base64 32)"
+    set_env_value "$file" JWT_SECRET "$("$openssl_bin" rand -base64 32)"
     printf 'Generated JWT_SECRET in %s.\n' "${file#"$repo_root/"}"
   fi
 }
@@ -115,41 +116,45 @@ sync_database_url() {
   fi
 }
 
-if [[ ! -f "$docker_env_file" ]]; then
-  umask 077
-  touch "$docker_env_file"
-fi
-
-ensure_env_value "$docker_env_file" POSTGRES_USER app
-if [[ -z "$(read_env_value "$docker_env_file" POSTGRES_PASSWORD)" ]]; then
-  set_env_value "$docker_env_file" POSTGRES_PASSWORD "$(openssl rand -hex 24)"
-fi
-if [[ -z "$(read_env_value "$docker_env_file" POSTGRES_DB)" ]]; then
-  postgres_db_value="${POSTGRES_DB:-}"
-  if [[ -n "$postgres_db_value" && ! "$postgres_db_value" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]]; then
-    printf 'Invalid POSTGRES_DB "%s": use letters, digits, and underscores, starting with a letter or underscore.\n' "$postgres_db_value" >&2
-    exit 1
+main() {
+  if [[ ! -f "$docker_env_file" ]]; then
+    umask 077
+    touch "$docker_env_file"
   fi
-  if [[ -z "$postgres_db_value" && -t 0 ]]; then
-    while true; do
-      read -r -p "Postgres database name [monorepo_fastify_vue]: " postgres_db_value || { postgres_db_value=monorepo_fastify_vue; break; }
-      [[ -z "$postgres_db_value" ]] && { postgres_db_value=monorepo_fastify_vue; break; }
-      [[ "$postgres_db_value" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]] && break
-      printf 'Invalid database name: use letters, digits, and underscores, starting with a letter or underscore.\n'
-    done
+
+  ensure_env_value "$docker_env_file" POSTGRES_USER app
+  if [[ -z "$(read_env_value "$docker_env_file" POSTGRES_PASSWORD)" ]]; then
+    set_env_value "$docker_env_file" POSTGRES_PASSWORD "$("$openssl_bin" rand -hex 24)"
   fi
-  set_env_value "$docker_env_file" POSTGRES_DB "${postgres_db_value:-monorepo_fastify_vue}"
-fi
-chmod 600 "$docker_env_file"
+  if [[ -z "$(read_env_value "$docker_env_file" POSTGRES_DB)" ]]; then
+    postgres_db_value="${POSTGRES_DB:-}"
+    if [[ -n "$postgres_db_value" && ! "$postgres_db_value" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]]; then
+      printf 'Invalid POSTGRES_DB "%s": use letters, digits, and underscores, starting with a letter or underscore.\n' "$postgres_db_value" >&2
+      exit 1
+    fi
+    if [[ -z "$postgres_db_value" && -t 0 ]]; then
+      while true; do
+        read -r -p "Postgres database name [monorepo_fastify_vue]: " postgres_db_value || { postgres_db_value=monorepo_fastify_vue; break; }
+        [[ -z "$postgres_db_value" ]] && { postgres_db_value=monorepo_fastify_vue; break; }
+        [[ "$postgres_db_value" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]] && break
+        printf 'Invalid database name: use letters, digits, and underscores, starting with a letter or underscore.\n'
+      done
+    fi
+    set_env_value "$docker_env_file" POSTGRES_DB "${postgres_db_value:-monorepo_fastify_vue}"
+  fi
+  chmod 600 "$docker_env_file"
 
-postgres_user="$(read_env_value "$docker_env_file" POSTGRES_USER)"
-postgres_password="$(read_env_value "$docker_env_file" POSTGRES_PASSWORD)"
-postgres_database="$(read_env_value "$docker_env_file" POSTGRES_DB)"
+  postgres_user="$(read_env_value "$docker_env_file" POSTGRES_USER)"
+  postgres_password="$(read_env_value "$docker_env_file" POSTGRES_PASSWORD)"
+  postgres_database="$(read_env_value "$docker_env_file" POSTGRES_DB)"
 
-initialize_api_env_file "$api_env_file" "$api_env_example"
-initialize_api_env_file "$api_test_env_file" "$api_test_env_example"
+  initialize_api_env_file "$api_env_file" "$api_env_example"
+  initialize_api_env_file "$api_test_env_file" "$api_test_env_example"
 
-ensure_private_jwt_secret "$api_env_file" "$api_env_example"
-ensure_private_jwt_secret "$api_test_env_file" "$api_test_env_example"
-sync_database_url "$api_env_file" "$api_env_example" "$postgres_database" "$postgres_user" "$postgres_password"
-sync_database_url "$api_test_env_file" "$api_test_env_example" "${postgres_database}_test" "$postgres_user" "$postgres_password"
+  ensure_private_jwt_secret "$api_env_file" "$api_env_example"
+  ensure_private_jwt_secret "$api_test_env_file" "$api_test_env_example"
+  sync_database_url "$api_env_file" "$api_env_example" "$postgres_database" "$postgres_user" "$postgres_password"
+  sync_database_url "$api_test_env_file" "$api_test_env_example" "${postgres_database}_test" "$postgres_user" "$postgres_password"
+}
+
+main "$@"

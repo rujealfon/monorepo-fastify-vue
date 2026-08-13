@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { UnauthorizedError } from '#api/modules/users/users.errors.js'
+import { DuplicateEmailError, UnauthorizedError } from '#api/modules/users/users.errors.js'
 import * as usersPassword from '#api/modules/users/users.password.js'
 import * as usersRepository from '#api/modules/users/users.repository.js'
 import * as usersService from '#api/modules/users/users.service.js'
@@ -28,7 +28,6 @@ const sampleProfile = {
 }
 
 const sampleRow = { user: sampleUser, profile: sampleProfile }
-
 describe('users.service', () => {
   beforeEach(() => {
     vi.resetAllMocks()
@@ -49,7 +48,7 @@ describe('users.service', () => {
 
   it('register treats a duplicate email like an accepted registration request', async () => {
     vi.mocked(usersPassword.hashPassword).mockResolvedValue('hashed')
-    vi.mocked(usersRepository.insert).mockRejectedValue(new Error('duplicate', { cause: { code: '23505' } }))
+    vi.mocked(usersRepository.insert).mockRejectedValue(new DuplicateEmailError())
 
     await expect(usersService.register({ email: 'person@example.com', password: 'correct horse battery staple' }))
       .resolves
@@ -85,7 +84,7 @@ describe('users.service', () => {
       .toThrow(UnauthorizedError)
   })
 
-  it('login returns the public user on success', async () => {
+  it('login verifies credentials and returns the public User on success', async () => {
     vi.mocked(usersRepository.findByEmail).mockResolvedValue(sampleRow)
     vi.mocked(usersPassword.verifyPassword).mockResolvedValue(true)
 

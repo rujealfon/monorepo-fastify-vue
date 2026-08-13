@@ -1,6 +1,6 @@
 <script setup lang="ts">
 const { public: { webUrl } } = useRuntimeConfig()
-const { profile } = useProfile()
+const { user } = useSession()
 </script>
 
 <template>
@@ -10,7 +10,7 @@ const { profile } = useProfile()
     orientation="vertical"
     :ui="{ container: 'py-12 sm:py-16 lg:py-20' }"
   >
-    <template v-if="!profile" #links>
+    <template v-if="!user" #links>
       <UButton :to="`${webUrl}/register`" size="lg" icon="i-lucide-user-plus" label="Get started" />
       <UButton :to="`${webUrl}/login`" size="lg" color="neutral" variant="outline" label="Login" />
     </template>

@@ -1,38 +1,26 @@
-import { PiniaColada, useQueryCache } from '@pinia/colada'
-import { createPinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { createApp } from 'vue'
+import { createMemoryHistory } from 'vue-router'
 
-import { PROFILE_KEY } from '@/features/profile'
-import router from './index'
+import { createAppRouter } from './index'
 
-const api = vi.hoisted(() => ({ GET: vi.fn() }))
-vi.mock('@/shared/api/client', () => ({ api }))
+const checkSessionAccess = vi.hoisted(() => vi.fn())
+vi.mock('@/features/session', () => ({ checkSessionAccess }))
 
 describe('authentication router guard', () => {
   beforeEach(() => vi.clearAllMocks())
 
   it('checks the session only for protected and guest-only routes', async () => {
-    api.GET.mockResolvedValue({ response: { ok: false, status: 401 } })
-    const app = createApp({ template: '<div />' })
-    const pinia = createPinia()
-    app.use(pinia)
-    app.use(PiniaColada)
-    app.use(router)
-    await router.isReady()
-
+    const router = createAppRouter(createMemoryHistory())
+    checkSessionAccess.mockResolvedValue({ status: 'guest', user: null })
     await router.push('/profile')
     expect(router.currentRoute.value.fullPath).toBe('/login?redirect=/profile')
 
     await router.push('/register')
     expect(router.currentRoute.value.fullPath).toBe('/register')
-    expect(api.GET).toHaveBeenCalledOnce()
+    expect(checkSessionAccess).toHaveBeenCalled()
 
-    const cache = useQueryCache(pinia)
-    cache.setQueryData(PROFILE_KEY, {
-      id: '00000000-0000-0000-0000-000000000001',
-      email: 'person@example.com'
-    })
+    checkSessionAccess.mockResolvedValue({ status: 'authenticated', user: { email: 'person@example.com' } })
+    await router.push('/health')
     await router.push('/profile')
     expect(router.currentRoute.value.fullPath).toBe('/profile')
 
@@ -47,9 +35,17 @@ describe('authentication router guard', () => {
     expect(router.currentRoute.value.fullPath).toBe('/profile')
 
     await router.push('/health')
-    await cache.invalidateQueries({ key: PROFILE_KEY })
-    api.GET.mockResolvedValue({ response: { ok: false, status: 503 } })
+    checkSessionAccess.mockResolvedValue({ status: 'unavailable', error: new Error('Unavailable') })
     await router.push('/profile')
-    expect(router.currentRoute.value.fullPath).toBe('/login?redirect=/profile')
+    expect(router.currentRoute.value.fullPath).toBe('/health')
+  })
+
+  it('shows an actionable unavailable route when the initial session check fails', async () => {
+    const router = createAppRouter(createMemoryHistory())
+    checkSessionAccess.mockResolvedValue({ status: 'unavailable', error: new Error('Unavailable') })
+
+    await router.push('/profile')
+
+    expect(router.currentRoute.value.fullPath).toBe('/service-unavailable?redirect=/profile')
   })
 })

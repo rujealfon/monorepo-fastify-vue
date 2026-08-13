@@ -1,5 +1,5 @@
-import { existsSync } from 'node:fs'
 import { join } from 'node:path'
+import { localDevelopmentTransport } from '@monorepo-fastify-vue/dev-config'
 import { brandColorNames } from '@monorepo-fastify-vue/ui/theme'
 import { collectLucideIconNames } from './scripts/collect-icon-names'
 
@@ -9,10 +9,7 @@ import { collectLucideIconNames } from './scripts/collect-icon-names'
 // shared with web and api through the repo-root .certs/ dir (gitignored: it
 // holds a private key). Run that command once first; until then this falls
 // back to HTTP.
-const certDir = join(import.meta.dirname, '../../.certs')
-const certKey = join(certDir, 'dev.pem')
-const certFile = join(certDir, 'cert.pem')
-const hasCert = existsSync(certKey) && existsSync(certFile)
+const devTransport = localDevelopmentTransport(import.meta.dirname)
 
 // Derived from actual `i-lucide-*` usage below rather than hand-maintained,
 // so it can't drift out of sync when a page/layout/component starts
@@ -59,7 +56,9 @@ export default defineNuxtConfig({
       { name: 'Geist Mono Variable', provider: 'none' }
     ]
   },
-  devServer: hasCert ? { https: { key: certKey, cert: certFile } } : undefined,
+  devServer: devTransport.hasCertificate
+    ? { https: { key: devTransport.keyPath, cert: devTransport.certificatePath } }
+    : undefined,
   // @monorepo-fastify-vue/ui ships raw .vue/.ts source (no build step) so both
   // web and site compile it with their own Vue tooling. Without this, Nitro's
   // server bundle would leave the workspace package external and try to
@@ -73,13 +72,13 @@ export default defineNuxtConfig({
       // (e.g. https://app.example.com) in the site's Vercel project. Locally,
       // web serves HTTPS once the shared dev cert exists (same hasCert check
       // as this file's own devServer, above) and HTTP otherwise.
-      webUrl: process.env.NUXT_PUBLIC_WEB_URL ?? `${hasCert ? 'https' : 'http'}://localhost:5173`,
+      webUrl: process.env.NUXT_PUBLIC_WEB_URL ?? `${devTransport.protocol}://localhost:5173`,
       // Unlike web, site has no dev/prod proxy to the API (nuxt generate's
       // static output has no server to proxy through), so this must be the
       // API's real origin and the API's CORS_ORIGIN allowlist must include
       // site's own origin. Set NUXT_PUBLIC_API_URL to the API's deployed
       // origin in the site's Vercel project.
-      apiUrl: process.env.NUXT_PUBLIC_API_URL ?? `${hasCert ? 'https' : 'http'}://localhost:3000`
+      apiUrl: process.env.NUXT_PUBLIC_API_URL ?? `${devTransport.protocol}://localhost:3000`
     }
   }
 })

@@ -1,3 +1,5 @@
-import { createApiClient } from '@monorepo-fastify-vue/api-client'
+import { createApiClient, createHealthClient, createSessionClient } from '@monorepo-fastify-vue/api-client'
 
-export const api = createApiClient('')
+const transport = createApiClient('')
+export const healthClient = createHealthClient(transport)
+export const sessionClient = createSessionClient(transport)

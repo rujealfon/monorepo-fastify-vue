@@ -8,7 +8,18 @@ Components here must not import framework-specific pieces (`NuxtLink`, `useRunti
 
 `@nuxt/ui`'s `to`/`href` props already handle cross-framework links: an internal path (`/health`) renders through whichever router is present (`NuxtLink` in site, `RouterLink` in web), and an absolute URL (`https://...`) always renders a plain `<a>`. This lets one component serve links into the other app (e.g. web's `AuthLayout` linking `Home`/`About` to site) without any conditional logic — pass the right href from the consuming app and the component doesn't need to know which app it's in.
 
-App-specific behavior (auth state, a profile dropdown, sign-out) stays out of this package — it's supplied by the consuming layout through props/slots.
+Session storage, routing, and notifications stay app-specific. `SessionHeader`
+owns the shared signed-in/guest presentation while consumers supply User state,
+hrefs, logout execution, and failure notification through props/events.
+
+## Components
+
+- `AppHeader` owns the responsive header structure and theme control.
+- `SessionHeader` owns signed-in and guest navigation presentation while
+  accepting application-specific hrefs and Session actions.
+
+Run `pnpm --filter @monorepo-fastify-vue/ui test` for component behavior, or
+the package `lint` and `typecheck` scripts for static verification.
 
 ## No build step
 

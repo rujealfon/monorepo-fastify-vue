@@ -1,6 +1,6 @@
 FROM node:24.18.0-alpine AS base
 
-RUN corepack enable && corepack prepare pnpm@latest --activate
+RUN corepack enable
 
 WORKDIR /app
 
@@ -21,7 +21,7 @@ WORKDIR /app/apps/api
 RUN pnpm build
 
 FROM node:24.18.0-alpine AS production
-RUN corepack enable && corepack prepare pnpm@latest --activate
+RUN corepack enable
 WORKDIR /app
 
 COPY --from=build /app/package.json /app/pnpm-workspace.yaml /app/pnpm-lock.yaml ./

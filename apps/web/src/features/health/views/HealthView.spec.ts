@@ -6,19 +6,17 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import HealthView from './HealthView.vue'
 
-const { get } = vi.hoisted(() => ({
-  get: vi.fn()
+const { live } = vi.hoisted(() => ({
+  live: vi.fn()
 }))
 
 vi.mock('@/shared/api/client', () => ({
-  api: {
-    GET: get
-  }
+  healthClient: { live }
 }))
 
 describe('healthView', () => {
   beforeEach(() => {
-    get.mockReset()
+    live.mockReset()
   })
 
   function mountHealthView() {
@@ -33,17 +31,17 @@ describe('healthView', () => {
   }
 
   it('shows live health status', async () => {
-    get.mockResolvedValue({ data: { status: 'ok' }, response: { ok: true } })
+    live.mockResolvedValue({ status: 'ok' })
 
     const wrapper = mountHealthView()
     await flushPromises()
 
-    expect(get).toHaveBeenCalledWith('/api/v1/health/live')
+    expect(live).toHaveBeenCalledOnce()
     expect(wrapper.text()).toContain('ok')
   })
 
   it('shows an error when the health check fails', async () => {
-    get.mockRejectedValue(new Error('down'))
+    live.mockRejectedValue(new Error('down'))
 
     const wrapper = mountHealthView()
     await flushPromises()
@@ -53,7 +51,7 @@ describe('healthView', () => {
   })
 
   it('includes the HTTP status when the health check fails with an RpcError', async () => {
-    get.mockRejectedValue(new RpcError(503))
+    live.mockRejectedValue(new RpcError(503))
 
     const wrapper = mountHealthView()
     await flushPromises()
@@ -63,8 +61,8 @@ describe('healthView', () => {
   })
 
   it('prefers the error state over stale data after a failed refetch', async () => {
-    get.mockResolvedValueOnce({ data: { status: 'ok' }, response: { ok: true } })
-    get.mockRejectedValueOnce(new Error('down'))
+    live.mockResolvedValueOnce({ status: 'ok' })
+    live.mockRejectedValueOnce(new Error('down'))
 
     const wrapper = mountHealthView()
     await flushPromises()

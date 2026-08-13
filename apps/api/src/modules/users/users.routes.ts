@@ -14,7 +14,7 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
   const app = fastify.withTypeProvider<ZodTypeProvider>()
 
   app.post<{ Body: RegisterUser }>('/register', {
-    preHandler: app.sameOrigin,
+    onRequest: app.sameOrigin,
     config: { rateLimit: REGISTER_RATE_LIMIT },
     schema: {
       tags: ['Authentication'],
@@ -30,7 +30,7 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
   }, handlers.register)
 
   app.post<{ Body: LoginUser }>('/login', {
-    preHandler: app.sameOrigin,
+    onRequest: app.sameOrigin,
     config: { rateLimit: LOGIN_RATE_LIMIT },
     schema: {
       tags: ['Authentication'],
@@ -47,7 +47,7 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
   }, handlers.login)
 
   app.post('/logout', {
-    preHandler: app.sameOrigin,
+    onRequest: app.sameOrigin,
     schema: {
       tags: ['Authentication'],
       response: { 204: z.void(), 403: httpErrorSchema, 429: httpErrorSchema, 500: httpErrorSchema }
@@ -59,7 +59,7 @@ export const profileRoutes: FastifyPluginAsync = async (fastify) => {
   const app = fastify.withTypeProvider<ZodTypeProvider>()
 
   app.get('/', {
-    onRequest: [app.authenticate],
+    onRequest: [app.session.authenticate],
     schema: {
       tags: ['Profile'],
       response: { 200: publicUserSchema, 401: httpErrorSchema, 403: httpErrorSchema, 429: httpErrorSchema, 500: httpErrorSchema }
@@ -67,8 +67,7 @@ export const profileRoutes: FastifyPluginAsync = async (fastify) => {
   }, handlers.profile)
 
   app.patch<{ Body: PatchProfile }>('/', {
-    onRequest: [app.authenticate],
-    preHandler: app.sameOrigin,
+    onRequest: [app.sameOrigin, app.session.authenticate],
     schema: {
       tags: ['Profile'],
       body: patchProfileSchema,

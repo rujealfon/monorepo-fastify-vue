@@ -2,6 +2,15 @@
 
 Typed Fetch client generated from the Fastify OpenAPI document.
 
+`createSessionClient` and `createHealthClient` add framework-neutral domain
+semantics on top of the generated transport. Frontends keep framework state
+adapters local while sharing status and error handling here.
+
+The internal request executor owns transport failures, HTTP failures,
+missing-data checks, and empty-success responses. Domain clients return data or
+throw a normalized `RpcError`, so consumers never branch on raw
+`data`/`error`/`response` triples.
+
 ## Regenerate
 
 After changing API routes or schemas, run from the repository root:

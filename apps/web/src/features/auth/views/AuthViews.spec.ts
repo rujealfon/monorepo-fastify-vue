@@ -1,16 +1,16 @@
 import type { Component } from 'vue'
-import { PiniaColada, useQueryCache } from '@pinia/colada'
+import { RpcError } from '@monorepo-fastify-vue/api-client'
+import { PiniaColada } from '@pinia/colada'
 import { flushPromises, mount } from '@vue/test-utils'
 import { createPinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMemoryHistory, createRouter } from 'vue-router'
 
-import { PROFILE_KEY } from '@/features/profile'
 import LoginView from './LoginView.vue'
 import RegisterView from './RegisterView.vue'
 
-const api = vi.hoisted(() => ({ GET: vi.fn(), POST: vi.fn() }))
-vi.mock('@/shared/api/client', () => ({ api }))
+const sessionClient = vi.hoisted(() => ({ login: vi.fn(), register: vi.fn() }))
+vi.mock('@/shared/api/client', () => ({ sessionClient }))
 
 const user = {
   id: '1',
@@ -33,21 +33,20 @@ async function mountAt(component: Component, path: string) {
   await router.push(path)
   await router.isReady()
   const pinia = createPinia()
-  return { pinia, router, wrapper: mount(component, { global: { plugins: [pinia, PiniaColada, router] } }) }
+  return { router, wrapper: mount(component, { global: { plugins: [pinia, PiniaColada, router] } }) }
 }
 
 describe('authentication views', () => {
-  beforeEach(() => vi.clearAllMocks())
+  beforeEach(() => vi.resetAllMocks())
 
   it('logs in and honors only internal redirects', async () => {
-    api.POST.mockResolvedValue({ data: user, response: { ok: true, status: 200 } })
-    const { pinia, router, wrapper } = await mountAt(LoginView, '/login?redirect=/health')
+    sessionClient.login.mockResolvedValue(user)
+    const { router, wrapper } = await mountAt(LoginView, '/login?redirect=/health')
     await wrapper.get('input[name="email"]').setValue(user.email)
     await wrapper.get('input[name="password"]').setValue('correct horse battery staple')
     await wrapper.get('form').trigger('submit')
     await flushPromises()
     expect(router.currentRoute.value.fullPath).toBe('/health')
-    expect(useQueryCache(pinia).getQueryData(PROFILE_KEY)).toEqual(user)
 
     const unsafe = await mountAt(LoginView, '/login?redirect=//evil.example')
     await unsafe.wrapper.get('input[name="email"]').setValue(user.email)
@@ -58,7 +57,7 @@ describe('authentication views', () => {
   })
 
   it('shows login errors and registers a user', async () => {
-    api.POST.mockResolvedValueOnce({ response: { ok: false, status: 401 } })
+    sessionClient.login.mockRejectedValueOnce(new Error('Invalid credentials'))
     const login = await mountAt(LoginView, '/login')
     await login.wrapper.get('input[name="email"]').setValue(user.email)
     await login.wrapper.get('input[name="password"]').setValue('incorrect password')
@@ -66,21 +65,18 @@ describe('authentication views', () => {
     await flushPromises()
     expect(login.wrapper.get('[role="alert"]').text()).toContain('Invalid')
 
-    api.POST.mockResolvedValueOnce({ data: { message: 'Registration request accepted' }, response: { ok: true, status: 202 } })
+    sessionClient.register.mockResolvedValueOnce(undefined)
     const registration = await mountAt(RegisterView, '/register?redirect=/health')
     await registration.wrapper.get('input[name="email"]').setValue(user.email)
     await registration.wrapper.get('input[name="password"]').setValue('correct horse battery staple')
     await registration.wrapper.get('form').trigger('submit')
     await flushPromises()
-    expect(api.POST).toHaveBeenLastCalledWith('/api/v1/auth/register', {
-      body: { email: user.email, password: 'correct horse battery staple' }
-    })
+    expect(sessionClient.register).toHaveBeenLastCalledWith({ email: user.email, password: 'correct horse battery staple' })
     expect(registration.router.currentRoute.value.fullPath).toBe('/login?redirect=/health')
-    expect(useQueryCache(registration.pinia).getQueryData(PROFILE_KEY)).toBeUndefined()
   })
 
   it('shows registration errors without redirecting', async () => {
-    api.POST.mockResolvedValue({ response: { ok: false, status: 409 } })
+    sessionClient.register.mockRejectedValue(new Error('Registration failed'))
     const registration = await mountAt(RegisterView, '/register')
     await registration.wrapper.get('input[name="email"]').setValue(user.email)
     await registration.wrapper.get('input[name="password"]').setValue('correct horse battery staple')
@@ -91,15 +87,12 @@ describe('authentication views', () => {
   })
 
   it('shows API validation errors on their fields', async () => {
-    api.POST.mockResolvedValue({
-      error: {
-        statusCode: 422,
-        error: 'Unprocessable Entity',
-        message: 'Validation failed',
-        details: [{ instancePath: '/email', message: 'Invalid email address' }]
-      },
-      response: { ok: false, status: 422 }
-    })
+    sessionClient.register.mockRejectedValue(new RpcError(422, {
+      statusCode: 422,
+      error: 'Unprocessable Entity',
+      message: 'Validation failed',
+      details: [{ instancePath: '/email', message: 'Invalid email address' }]
+    }))
     const registration = await mountAt(RegisterView, '/register')
     await registration.wrapper.get('input[name="email"]').setValue('invalid')
     await registration.wrapper.get('input[name="password"]').setValue('correct horse battery staple')
