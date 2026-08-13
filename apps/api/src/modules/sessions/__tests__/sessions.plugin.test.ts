@@ -69,4 +69,19 @@ describe('session plugin', () => {
     })
     expect(clearCookie).toHaveBeenCalled()
   })
+
+  it('clears the cookie even when revocation fails', async () => {
+    const request = {
+      jwtVerify: vi.fn().mockResolvedValue({
+        sid: '00000000-0000-4000-8000-000000000001',
+        sub: '00000000-0000-4000-8000-000000000002'
+      })
+    } as unknown as FastifyRequest
+    const clearCookie = vi.fn()
+    const reply = { clearCookie } as never
+    sessionService.revoke.mockRejectedValue(new Error('db unavailable'))
+
+    await expect(app.session.end(request, reply)).rejects.toThrow('db unavailable')
+    expect(clearCookie).toHaveBeenCalled()
+  })
 })

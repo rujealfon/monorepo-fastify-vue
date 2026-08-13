@@ -6,5 +6,5 @@
     "noEmit": true,
     "types": ["node"]
   },
-  "include": ["src/**/*.js", "src/**/*.mjs"]
+  "include": ["src/**/*.js", "src/**/*.mjs", "src/**/*.d.ts"]
 }

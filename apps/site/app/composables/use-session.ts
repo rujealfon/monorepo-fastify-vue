@@ -12,6 +12,7 @@ const staleGuard = createStaleGuard()
 export function useSession() {
   const { public: { apiUrl } } = useRuntimeConfig()
   client ??= createSessionClient(createApiClient(apiUrl))
+  const sessionClient = client
 
   const user = useState<User | null>('session-user', () => null)
   const error = useState<RpcError | null>('session-error', () => null)
@@ -19,7 +20,7 @@ export function useSession() {
   async function refresh() {
     const token = staleGuard.start()
     try {
-      const result = await client!.currentUser()
+      const result = await sessionClient.currentUser()
       if (!staleGuard.isCurrent(token))
         return
       user.value = result
@@ -28,13 +29,13 @@ export function useSession() {
     catch (failure) {
       if (!staleGuard.isCurrent(token))
         return
-      error.value = failure instanceof RpcError ? failure : new RpcError(0)
+      error.value = failure instanceof RpcError ? failure : new RpcError(0, undefined, { cause: failure })
     }
   }
 
   async function logout() {
     staleGuard.invalidate()
-    await client!.logout()
+    await sessionClient.logout()
     user.value = null
     error.value = null
   }
@@ -44,5 +45,5 @@ export function useSession() {
     void refresh()
   }
 
-  return { error, logout, user }
+  return { error, logout, refresh, user }
 }

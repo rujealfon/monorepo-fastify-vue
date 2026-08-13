@@ -37,7 +37,7 @@ async function mountAt(component: Component, path: string) {
 }
 
 describe('authentication views', () => {
-  beforeEach(() => vi.clearAllMocks())
+  beforeEach(() => vi.resetAllMocks())
 
   it('logs in and honors only internal redirects', async () => {
     sessionClient.login.mockResolvedValue(user)

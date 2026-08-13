@@ -1,4 +1,5 @@
 import type { FastifyReply, FastifyRequest } from 'fastify'
+import type { SessionClaims } from './sessions.schema.js'
 import type { SessionIdentity } from './sessions.types.js'
 
 import cookie from '@fastify/cookie'
@@ -69,9 +70,13 @@ export default fp(async (fastify) => {
       }
       catch {}
 
-      if (identity)
-        await sessions.revoke(identity)
-      clearCookie(reply)
+      try {
+        if (identity)
+          await sessions.revoke(identity)
+      }
+      finally {
+        clearCookie(reply)
+      }
     }
   })
 }, { name: 'session-plugin', dependencies: ['db-plugin'] })
@@ -90,7 +95,7 @@ declare module 'fastify' {
 declare module '@fastify/jwt' {
   // eslint-disable-next-line ts/consistent-type-definitions -- interface required for declaration merging
   interface FastifyJWT {
-    payload: { sid: string, sub: string }
-    user: { sid: string, sub: string }
+    payload: SessionClaims
+    user: SessionClaims
   }
 }

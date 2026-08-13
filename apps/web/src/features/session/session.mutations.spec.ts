@@ -3,7 +3,7 @@ import type { User } from '@monorepo-fastify-vue/api-client'
 import { PiniaColada, useQueryCache } from '@pinia/colada'
 import { flushPromises, mount } from '@vue/test-utils'
 import { createPinia } from 'pinia'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { defineComponent, h } from 'vue'
 
 import { useSessionActions } from './session.mutations'
@@ -58,6 +58,8 @@ function mountMutations() {
 }
 
 describe('session mutations', () => {
+  let wrapper: ReturnType<typeof mountMutations>['wrapper'] | undefined
+
   beforeEach(() => {
     vi.resetAllMocks()
     sessionClient.login.mockResolvedValue(newUser)
@@ -65,25 +67,35 @@ describe('session mutations', () => {
     sessionClient.updateProfile.mockResolvedValue(newUser)
   })
 
-  it('cancels the exact current-User query before every identity-changing mutation', async () => {
-    const { cache, mutations, wrapper } = mountMutations()
+  afterEach(() => wrapper?.unmount())
+
+  it('cancels the exact current-User query before every identity-changing mutation, and writes each result to the cache', async () => {
+    const mounted = mountMutations()
+    wrapper = mounted.wrapper
+    const { cache, mutations } = mounted
     const cancel = vi.spyOn(cache, 'cancelQueries')
 
     await mutations.login.mutateAsync({ email: 'new@example.com', password: 'correct horse battery staple' })
+    expect(cache.getQueryData(SESSION_KEY)).toEqual(newUser)
+
     await mutations.logout.mutateAsync()
+    expect(cache.getQueryData(SESSION_KEY)).toBeNull()
+
     await mutations.updateProfile.mutateAsync({ firstName: 'New' })
+    expect(cache.getQueryData(SESSION_KEY)).toEqual(newUser)
 
     expect(cancel).toHaveBeenCalledTimes(3)
     expect(cancel).toHaveBeenNthCalledWith(1, { key: SESSION_KEY, exact: true })
     expect(cancel).toHaveBeenNthCalledWith(2, { key: SESSION_KEY, exact: true })
     expect(cancel).toHaveBeenNthCalledWith(3, { key: SESSION_KEY, exact: true })
-    wrapper.unmount()
   })
 
   it('does not let a stale current-User response overwrite logout', async () => {
     const currentUser = deferred<User | null>()
     sessionClient.currentUser.mockReturnValue(currentUser.promise)
-    const { cache, mutations, wrapper } = mountMutations()
+    const mounted = mountMutations()
+    wrapper = mounted.wrapper
+    const { cache, mutations } = mounted
     const refresh = cache.refresh(cache.ensure(currentUserQuery)).catch(() => undefined)
     await flushPromises()
 
@@ -93,6 +105,5 @@ describe('session mutations', () => {
     await flushPromises()
 
     expect(cache.getQueryData(SESSION_KEY)).toBeNull()
-    wrapper.unmount()
   })
 })

@@ -69,6 +69,17 @@ describe('security plugin — sameOrigin', () => {
     await app.close()
   })
 
+  it('rejects a declared cross-site request even without an Origin header', async () => {
+    const app = await buildTestApp()
+    const response = await app.inject({
+      method: 'GET',
+      url: '/protected',
+      headers: { 'sec-fetch-site': 'cross-site' }
+    })
+    expect(response.statusCode).toBe(403)
+    await app.close()
+  })
+
   it('rejects a mismatched Origin even without a sec-fetch-site header', async () => {
     const app = await buildTestApp()
     const response = await app.inject({

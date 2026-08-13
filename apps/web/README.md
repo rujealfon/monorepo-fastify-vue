@@ -80,8 +80,9 @@ Rules:
 
 - A feature may import another feature only through `@/features/<feature>`; deep imports are private. Shared code cannot import features. ESLint enforces both directions.
 - Parent-relative (`../`) imports are ESLint errors everywhere in `src/` — use the `@/` alias to reach outside the current directory.
-- Components never call the generated transport directly. They consume feature
-  queries/actions and framework-neutral domain clients, which normalize remote
-  failures to `RpcError`.
+- Components never call the generated transport or domain clients directly.
+  Feature `queries.ts`/`mutations.ts` call framework-neutral domain clients,
+  which normalize remote failures to `RpcError`; components consume only
+  feature queries and actions.
 - Every reactive value used inside a `query` function must appear in its `key` (use a getter key: `key: () => [...]`).
 - API types come from `@monorepo-fastify-vue/api-client`; do not hand-write them.
