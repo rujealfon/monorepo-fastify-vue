@@ -3,6 +3,7 @@ import type { NavigationMenuItem } from '@nuxt/ui'
 
 import { computed } from 'vue'
 
+import AppHeader from './AppHeader.vue'
 import GuestActions from './GuestActions.vue'
 
 const props = withDefaults(defineProps<{
