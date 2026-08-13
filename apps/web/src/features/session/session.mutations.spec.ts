@@ -73,7 +73,24 @@ describe('session mutations', () => {
     const mounted = mountMutations()
     wrapper = mounted.wrapper
     const { cache, mutations } = mounted
-    const cancel = vi.spyOn(cache, 'cancelQueries')
+
+    const order: string[] = []
+    const originalCancelQueries = cache.cancelQueries.bind(cache)
+    const cancel = vi.spyOn(cache, 'cancelQueries').mockImplementation((...args) => {
+      order.push('cancel')
+      return originalCancelQueries(...args)
+    })
+    sessionClient.login.mockImplementation(async () => {
+      order.push('login')
+      return newUser
+    })
+    sessionClient.logout.mockImplementation(async () => {
+      order.push('logout')
+    })
+    sessionClient.updateProfile.mockImplementation(async () => {
+      order.push('updateProfile')
+      return newUser
+    })
 
     await mutations.login.mutateAsync({ email: 'new@example.com', password: 'correct horse battery staple' })
     expect(cache.getQueryData(SESSION_KEY)).toEqual(newUser)
@@ -88,6 +105,7 @@ describe('session mutations', () => {
     expect(cancel).toHaveBeenNthCalledWith(1, { key: SESSION_KEY, exact: true })
     expect(cancel).toHaveBeenNthCalledWith(2, { key: SESSION_KEY, exact: true })
     expect(cancel).toHaveBeenNthCalledWith(3, { key: SESSION_KEY, exact: true })
+    expect(order).toEqual(['cancel', 'login', 'cancel', 'logout', 'cancel', 'updateProfile'])
   })
 
   it('does not let a stale current-User response overwrite logout', async () => {
