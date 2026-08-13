@@ -28,13 +28,16 @@ async function execute<T>(request: () => Promise<TransportResult<T>>): Promise<T
   }
 }
 
-export async function expectData<T>(request: () => Promise<TransportResult<T>>): Promise<T> {
-  const result = await execute(request)
+function extractData<T>(result: TransportResult<T>): T {
   if (!result.response.ok)
     throw new RpcError(result.response.status, result.error)
   if (result.data === undefined)
     throw new RpcError(result.response.status, undefined, { cause: new Error('Successful response contained no data') })
   return result.data
+}
+
+export async function expectData<T>(request: () => Promise<TransportResult<T>>): Promise<T> {
+  return extractData(await execute(request))
 }
 
 export async function expectEmpty(request: () => Promise<TransportResult<unknown>>): Promise<void> {
@@ -50,9 +53,5 @@ export async function expectOptional<T>(
   const result = await execute(request)
   if (absentStatuses.includes(result.response.status))
     return null
-  if (!result.response.ok)
-    throw new RpcError(result.response.status, result.error)
-  if (result.data === undefined)
-    throw new RpcError(result.response.status, undefined, { cause: new Error('Successful response contained no data') })
-  return result.data
+  return extractData(result)
 }
