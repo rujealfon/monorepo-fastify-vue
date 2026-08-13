@@ -15,3 +15,9 @@ For pull requests, include a short summary, linked issue when relevant, test res
 ## Security & Configuration Tips
 
 Do not commit `.env` or `.env.test`. Start from `apps/api/.env.example` and `apps/api/.env.test.example`, keep dev and test databases separate, and generate strong JWT secrets with `openssl rand -base64 32`.
+
+## Agent skills
+
+### Domain docs
+
+Single-context: root `CONTEXT.md` + `docs/adr/`. See `docs/agents/domain.md`.
