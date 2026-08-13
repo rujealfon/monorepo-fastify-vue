@@ -35,9 +35,13 @@ export function useSession() {
 
   async function logout() {
     staleGuard.invalidate()
-    await sessionClient.logout()
-    user.value = null
-    error.value = null
+    try {
+      await sessionClient.logout()
+      error.value = null
+    }
+    finally {
+      user.value = null
+    }
   }
 
   if (import.meta.client && !fetched) {

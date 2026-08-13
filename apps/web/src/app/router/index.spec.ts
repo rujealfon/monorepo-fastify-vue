@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { createApp } from 'vue'
+import { createMemoryHistory } from 'vue-router'
 
-import router from './index'
+import { createAppRouter } from './index'
 
 const checkSessionAccess = vi.hoisted(() => vi.fn())
 vi.mock('@/features/session', () => ({ checkSessionAccess }))
@@ -10,11 +10,8 @@ describe('authentication router guard', () => {
   beforeEach(() => vi.clearAllMocks())
 
   it('checks the session only for protected and guest-only routes', async () => {
+    const router = createAppRouter(createMemoryHistory())
     checkSessionAccess.mockResolvedValue({ status: 'guest', user: null })
-    const app = createApp({ template: '<div />' })
-    app.use(router)
-    await router.isReady()
-
     await router.push('/profile')
     expect(router.currentRoute.value.fullPath).toBe('/login?redirect=/profile')
 
@@ -41,5 +38,14 @@ describe('authentication router guard', () => {
     checkSessionAccess.mockResolvedValue({ status: 'unavailable', error: new Error('Unavailable') })
     await router.push('/profile')
     expect(router.currentRoute.value.fullPath).toBe('/health')
+  })
+
+  it('shows an actionable unavailable route when the initial session check fails', async () => {
+    const router = createAppRouter(createMemoryHistory())
+    checkSessionAccess.mockResolvedValue({ status: 'unavailable', error: new Error('Unavailable') })
+
+    await router.push('/profile')
+
+    expect(router.currentRoute.value.fullPath).toBe('/service-unavailable?redirect=/profile')
   })
 })
