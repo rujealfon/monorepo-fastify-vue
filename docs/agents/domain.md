@@ -13,7 +13,7 @@ If `docs/adr/` doesn't exist yet, **proceed silently**. Don't flag its absence; 
 
 Single-context repo (this repo, despite being a pnpm workspace — `apps/*` and `packages/*` share one domain vocabulary in one `CONTEXT.md`):
 
-```
+```text
 /
 ├── CONTEXT.md
 ├── docs/adr/
