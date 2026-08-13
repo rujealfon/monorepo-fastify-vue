@@ -58,6 +58,19 @@ test('preserves custom database URLs and private secrets', async () => {
   assert.equal(await readFile(join(files.api, '.env.test'), 'utf8'), custom)
 })
 
+test('resynchronizes a docker-host DATABASE_URL when Postgres credentials rotate', async () => {
+  const files = await fixture()
+  await writeFile(join(files.root, '.env'), 'POSTGRES_USER=app\nPOSTGRES_PASSWORD=new-password\nPOSTGRES_DB=starter\n')
+  const staleSecret = 'JWT_SECRET=a-private-secret-that-is-at-least-32-characters\n'
+  await writeFile(join(files.api, '.env'), `DATABASE_URL=postgresql://app:old-password@localhost:5433/starter\n${staleSecret}`)
+  await writeFile(join(files.api, '.env.test'), `DATABASE_URL=postgresql://app:old-password@localhost:5433/starter_test\n${staleSecret}`)
+
+  const result = run(files)
+  assert.equal(result.status, 0, result.stderr)
+  assert.match(await readFile(join(files.api, '.env'), 'utf8'), /DATABASE_URL=postgresql:\/\/app:new-password@localhost:5433\/starter$/m)
+  assert.match(await readFile(join(files.api, '.env.test'), 'utf8'), /DATABASE_URL=postgresql:\/\/app:new-password@localhost:5433\/starter_test$/m)
+})
+
 test('rejects an invalid database name before writing it', async () => {
   const files = await fixture()
   const result = run(files, { POSTGRES_DB: 'invalid-name' })

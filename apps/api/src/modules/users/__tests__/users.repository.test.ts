@@ -2,10 +2,19 @@ import { eq, sql } from 'drizzle-orm'
 import { describe, expect, it } from 'vitest'
 
 import { db } from '#api/db/index.js'
+import { DuplicateEmailError } from '#api/modules/users/users.errors.js'
 import * as repository from '#api/modules/users/users.repository.js'
 import { users } from '#api/modules/users/users.schema.js'
 
 describe('users repository', () => {
+  it('translates a duplicate email into a DuplicateEmailError', async () => {
+    await repository.insert({ email: 'duplicate@example.com', passwordHash: 'hash' })
+
+    await expect(repository.insert({ email: 'duplicate@example.com', passwordHash: 'hash' }))
+      .rejects
+      .toThrow(DuplicateEmailError)
+  })
+
   it('rolls back the user when profile creation fails', async () => {
     await db.execute(sql`
       create or replace function reject_rollback_profile() returns trigger as $$

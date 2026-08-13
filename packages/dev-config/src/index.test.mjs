@@ -23,6 +23,11 @@ test('uses HTTP until both certificate files exist', async () => {
   assert.equal(transport.readHttps(), undefined)
 })
 
+test('throws when no pnpm workspace is found above start', async () => {
+  const outside = await mkdtemp(join(tmpdir(), 'dev-transport-outside-'))
+  assert.throws(() => localDevelopmentTransport(outside), /Could not find pnpm workspace above/)
+})
+
 test('discovers and reads the workspace certificate pair', async () => {
   const fixture = await workspace()
   const certificates = join(fixture.root, '.certs')

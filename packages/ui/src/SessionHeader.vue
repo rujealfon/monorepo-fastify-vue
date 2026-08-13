@@ -3,6 +3,8 @@ import type { NavigationMenuItem } from '@nuxt/ui'
 
 import { computed } from 'vue'
 
+import GuestActions from './GuestActions.vue'
+
 const props = withDefaults(defineProps<{
   brandHref: string
   brandLabel?: string
@@ -52,8 +54,7 @@ const userMenu = computed(() => [[
         </UDropdownMenu>
       </template>
       <template v-else>
-        <UButton :to="loginHref" color="neutral" variant="ghost" label="Login" />
-        <UButton :to="registerHref" color="primary" label="Register" />
+        <GuestActions :login-href="loginHref" :register-href="registerHref" />
       </template>
     </template>
   </AppHeader>

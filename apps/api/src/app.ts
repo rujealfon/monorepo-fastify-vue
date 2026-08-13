@@ -73,7 +73,9 @@ export function buildApp(): FastifyInstance {
   // web (app.mysite.com) and site (mysite.com) are separate Vercel projects/origins
   // from the API (api.mysite.com), so cross-origin requests need explicit CORS.
   // CORS_ORIGIN is required in production (see config); falls back to reflecting
-  // the request origin in dev/test where it's unset.
+  // the request origin in dev/test where it's unset. This only controls what the
+  // browser is allowed to read back; securityPlugin's sameOrigin decorator
+  // (registered below) does the actual per-route reject.
   app.register(cors, { origin: config.CORS_ORIGINS.length ? config.CORS_ORIGINS : true, credentials: true })
 
   app.register(openapiPlugin)

@@ -1,9 +1,13 @@
 import type { User } from '@monorepo-fastify-vue/api-client'
 
-import { createApiClient, createSessionClient, RpcError } from '@monorepo-fastify-vue/api-client'
+import { createApiClient, createSessionClient, createStaleGuard, RpcError } from '@monorepo-fastify-vue/api-client'
 
 let client: ReturnType<typeof createSessionClient> | undefined
 let fetched = false
+// Logout can resolve before an in-flight refresh() does. The guard makes that
+// refresh a no-op instead of overwriting the just-cleared User — see
+// apps/web/src/features/session's cancelCurrentUser for the same invariant.
+const staleGuard = createStaleGuard()
 
 export function useSession() {
   const { public: { apiUrl } } = useRuntimeConfig()
@@ -13,16 +17,23 @@ export function useSession() {
   const error = useState<RpcError | null>('session-error', () => null)
 
   async function refresh() {
+    const token = staleGuard.start()
     try {
-      user.value = await client!.currentUser()
+      const result = await client!.currentUser()
+      if (!staleGuard.isCurrent(token))
+        return
+      user.value = result
       error.value = null
     }
     catch (failure) {
+      if (!staleGuard.isCurrent(token))
+        return
       error.value = failure instanceof RpcError ? failure : new RpcError(0)
     }
   }
 
   async function logout() {
+    staleGuard.invalidate()
     await client!.logout()
     user.value = null
     error.value = null

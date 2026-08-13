@@ -2,7 +2,6 @@
 import { reactive, useTemplateRef } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
-import { internalRedirect } from '@/features/auth/auth.utils'
 import { useSessionActions } from '@/features/session'
 import { apiFormErrors } from '@/shared/api/form-errors'
 
@@ -11,6 +10,10 @@ const form = useTemplateRef('form')
 const route = useRoute()
 const router = useRouter()
 const { login } = useSessionActions()
+
+function internalRedirect(value: unknown) {
+  return typeof value === 'string' && value.startsWith('/') && !value.startsWith('//') ? value : '/profile'
+}
 
 async function submit() {
   try {

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { NavigationMenuItem } from '@nuxt/ui'
-import { AppHeader } from '@monorepo-fastify-vue/ui'
+import { AppHeader, GuestActions } from '@monorepo-fastify-vue/ui'
 import { RouterView, useRoute } from 'vue-router'
 
 import { siteUrl } from '@/shared/site-url'
@@ -18,8 +18,7 @@ const links: NavigationMenuItem[] = [
   <div class="flex min-h-dvh flex-col bg-default">
     <AppHeader :brand-href="siteUrl" :links="links">
       <template #right>
-        <UButton v-if="route.path !== '/login'" to="/login" color="neutral" variant="ghost" label="Login" />
-        <UButton v-if="route.path !== '/register'" to="/register" color="primary" label="Register" />
+        <GuestActions :active-path="route.path" login-href="/login" register-href="/register" />
       </template>
     </AppHeader>
 
