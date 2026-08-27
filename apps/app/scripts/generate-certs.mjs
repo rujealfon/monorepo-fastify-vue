@@ -13,7 +13,7 @@
 //                           as well as macOS/Linux -- unlike a literal "~", which
 //                           only a POSIX shell expands.
 //   <repo>/.certs/          Leaf key + cert only (localhost). This is the dir
-//                           docker-compose bind-mounts read-only into web, site
+//                           docker-compose bind-mounts read-only into app, web
 //                           and api, so it must never hold CA material: a
 //                           container that could read rootCA-key.pem could mint
 //                           certs your browser trusts for any domain.
@@ -26,8 +26,8 @@ import { fileURLToPath } from 'node:url'
 import { createServer } from 'vite'
 import mkcert from 'vite-plugin-mkcert'
 
-const webRoot = path.dirname(path.dirname(fileURLToPath(import.meta.url)))
-const certDir = path.resolve(webRoot, '../../.certs')
+const appRoot = path.dirname(path.dirname(fileURLToPath(import.meta.url)))
+const certDir = path.resolve(appRoot, '../../.certs')
 // Same value as vite-plugin-mkcert's own default (PLUGIN_DATA_DIR), passed
 // explicitly so this script and the plugin can't drift apart.
 const caDir = path.join(os.homedir(), '.vite-plugin-mkcert')
@@ -129,11 +129,11 @@ function assertWritableTarget() {
 assertWritableTarget()
 relocateStrayCaMaterial()
 
-// configFile: false keeps this independent of apps/web/vite.config.ts, which
+// configFile: false keeps this independent of apps/app/vite.config.ts, which
 // only ever reads .certs/ and no longer registers the plugin itself.
 const server = await createServer({
   configFile: false,
-  root: webRoot,
+  root: appRoot,
   logLevel: 'warn',
   plugins: [mkcert({ savePath: caDir })]
 })

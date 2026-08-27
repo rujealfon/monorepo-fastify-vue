@@ -13,7 +13,7 @@ const router = createRouter({
     {
       path: '/',
       component: AppLayout,
-      // Home and About are public marketing pages served by apps/site; web
+      // Home and About are public marketing pages served by apps/web; app
       // only hosts authenticated app routes, so '/' redirects into the app.
       children: [{ path: '/', name: 'root', redirect: '/profile' }, ...healthRoutes, ...profileRoutes]
     },

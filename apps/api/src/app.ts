@@ -18,10 +18,10 @@ import securityPlugin from './plugins/security.js'
 import sensiblePlugin from './plugins/sensible.js'
 
 // `pnpm generate:certificates` mints a locally-trusted cert into the repo-root
-// .certs/ dir (gitignored: it holds a private key), shared with web and site
-// (apps/web/vite.config.ts, apps/site/nuxt.config.ts). Reusing that cert here
+// .certs/ dir (gitignored: it holds a private key), shared with app and web
+// (apps/app/vite.config.ts, apps/web/nuxt.config.ts). Reusing that cert here
 // avoids trusting a second CA just for the API. Enabling automatically once
-// the cert exists (rather than an opt-in env flag) matches web/site, and keeps
+// the cert exists (rather than an opt-in env flag) matches app/web, and keeps
 // docker/host in sync without separate config.
 //
 // Development only, deliberately: in production TLS terminates upstream and a
@@ -82,7 +82,7 @@ export function buildApp(): FastifyInstance {
   app.register(sensiblePlugin)
   app.register(dbPlugin)
   app.register(authPlugin)
-  // web (app.mysite.com) and site (mysite.com) are separate Vercel projects/origins
+  // app (app.mysite.com) and web (mysite.com) are separate Vercel projects/origins
   // from the API (api.mysite.com), so cross-origin requests need explicit CORS.
   // CORS_ORIGIN is required in production (see config); falls back to reflecting
   // the request origin in dev/test where it's unset.

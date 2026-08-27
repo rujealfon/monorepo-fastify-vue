@@ -1,28 +1,20 @@
 <script setup lang="ts">
 import type { NavigationMenuItem } from '@nuxt/ui'
 import { AppHeader } from '@monorepo-fastify-vue/ui'
-import { useToast } from '@nuxt/ui/composables'
-import { useQuery } from '@pinia/colada'
 import { computed } from 'vue'
-import { RouterView, useRouter } from 'vue-router'
 
-import { useAuthMutations } from '@/features/auth'
-import { profileQuery } from '@/features/profile'
-import { siteUrl } from '@/shared/site-url'
-
-const router = useRouter()
-const { logout } = useAuthMutations()
-const profile = useQuery(profileQuery)
+const { public: { appUrl } } = useRuntimeConfig()
+const { profile, logout } = useProfile()
 const toast = useToast()
 
 const links: NavigationMenuItem[] = [
-  { label: 'Health', to: '/health', icon: 'i-lucide-activity' }
+  { label: 'Home', to: '/', icon: 'i-lucide-house' },
+  { label: 'About', to: '/about', icon: 'i-lucide-info' }
 ]
 
 async function signOut() {
   try {
-    await logout.mutateAsync()
-    await router.push('/login')
+    await logout()
   }
   catch {
     toast.add({
@@ -34,8 +26,8 @@ async function signOut() {
 }
 
 const userMenu = computed(() => [[
-  { label: profile.data.value?.email ?? '', type: 'label' as const },
-  { label: 'Profile', icon: 'i-lucide-user', to: '/profile' }
+  { label: profile.value?.email ?? '', type: 'label' as const },
+  { label: 'Profile', icon: 'i-lucide-user', to: `${appUrl}/profile` }
 ], [
   { label: 'Logout', icon: 'i-lucide-log-out', onSelect: signOut }
 ]])
@@ -43,30 +35,30 @@ const userMenu = computed(() => [[
 
 <template>
   <div class="min-h-dvh bg-default">
-    <AppHeader :brand-href="siteUrl" :links="links">
+    <AppHeader brand-href="/" :links="links">
       <template #right>
-        <template v-if="profile.data.value">
+        <template v-if="profile">
           <UDropdownMenu :items="userMenu">
             <UButton
               color="neutral"
               variant="ghost"
               icon="i-lucide-user-circle"
-              :label="profile.data.value.email"
+              :label="profile.email"
               class="max-w-48"
               :ui="{ label: 'truncate' }"
             />
           </UDropdownMenu>
         </template>
         <template v-else>
-          <UButton to="/login" color="neutral" variant="ghost" label="Login" />
-          <UButton to="/register" color="primary" label="Register" />
+          <UButton :to="`${appUrl}/login`" color="neutral" variant="ghost" label="Login" />
+          <UButton :to="`${appUrl}/register`" color="primary" label="Register" />
         </template>
       </template>
     </AppHeader>
 
     <UMain>
       <UContainer class="py-10">
-        <RouterView />
+        <slot />
       </UContainer>
     </UMain>
   </div>

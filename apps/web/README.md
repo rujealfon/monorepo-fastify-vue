@@ -1,86 +1,65 @@
-# Web App
+# Nuxt Web
 
-Vue 3 + Vite frontend for the monorepo.
+Nuxt 4 public site for the monorepo. It uses Vue 3 and Nuxt UI and is generated as static files for deployment.
 
 ## Development
 
-Run from the repo root:
+Install dependencies from the repository root:
 
 ```sh
-pnpm dev
+pnpm install
 ```
 
-The Vite dev server proxies `/api` to `http://localhost:3000`.
+Run the web app by itself on port 8000:
+
+```sh
+pnpm --filter @monorepo-fastify-vue/web dev -- --port 8000
+```
+
+Visit [http://localhost:8000](http://localhost:8000). To start every workspace together without conflicting with the API on port 3000, run this from the repository root:
+
+```sh
+NITRO_PORT=8000 pnpm dev
+```
+
+With Docker, the web app is always available at [http://localhost:8000](http://localhost:8000).
 
 ## Project Structure
 
-Feature-based layout under `src/`. Data fetching uses [Pinia Colada](https://pinia-colada.esm.dev/) (`useQuery` / `useMutation`) on top of Pinia:
-
-```
-src/
-├── app/                        # App-level setup & config
-│   ├── layouts/                # App shells (AppLayout.vue, AuthLayout.vue)
-│   ├── router/                 # Root router; imports feature public entries
-│   └── plugins/                # Vue plugin registration (Pinia and Pinia Colada)
-│       ├── index.ts            # registerPlugins(app) — installs Pinia + PiniaColada
-│       └── pinia-colada.ts     # Global PiniaColada query/mutation defaults
-│
-├── assets/
-│   ├── styles/                 # Global CSS (main.css, base.css)
-│   └── images/                 # Static images (logo.svg, …)
-│
-├── features/                   # ⭐ One folder per domain feature
-│   └── <feature>/              # e.g. health/ or profile/
-│       ├── index.ts            # Public feature API
-│       ├── routes.ts           # Exports RouteRecordRaw[]
-│       ├── views/              # Route-level pages (lazy-loaded from routes.ts)
-│       ├── components/         # Optional feature-private UI
-│       ├── composables/        # Optional UI-facing feature behavior
-│       ├── queries.ts          # Optional reads and query keys
-│       ├── mutations.ts        # Optional writes and cache invalidation
-│       └── stores/             # Optional client-only Pinia state
-│
-├── shared/                     # Cross-feature code (no feature imports here)
-│   ├── api/
-│   │   └── client.ts           # api-client singleton
-│   ├── components/             # Reusable UI components
-│   ├── composables/            # Reusable composables (useDebounce, useToast, …)
-│   └── utils/                  # Pure helpers (formatters, guards)
-│
-├── App.vue
-└── main.ts
+```text
+apps/web/
+├── app/
+│   ├── app.vue           # Nuxt application root
+│   ├── layouts/          # App shells (default.vue)
+│   └── pages/            # File-based routes (index.vue, about.vue)
+├── public/               # Files copied to the site root unchanged
+├── nuxt.config.ts        # Nuxt and module configuration (appUrl runtime config)
+├── Dockerfile            # Development and static-production images
+└── vercel.json           # Static Vercel build settings
 ```
 
-Per-feature data layer:
+The web app hosts only public pages — Home and About. Its `default` layout's Login and Register buttons link out to the app (`runtimeConfig.public.appUrl`, set via `NUXT_PUBLIC_APP_URL`) rather than to internal routes, since authenticated routes live in `apps/app`. Follow Nuxt conventions as the web app grows: add file-based routes under `app/pages`, layouts under `app/layouts`, and web-owned components and composables under their corresponding `app` directories.
 
-- `queries.ts` — the only place query keys are written. Export a key factory and `defineQueryOptions` bundles:
+## Scripts
 
-  ```ts
-  export const HEALTH_KEYS = {
-    root: ['health'] as const,
-    live: () => [...HEALTH_KEYS.root, 'live'] as const
-  }
+Run scripts from the repository root with `pnpm --filter @monorepo-fastify-vue/web <script>`.
 
-  export const healthLiveQuery = defineQueryOptions({
-    key: HEALTH_KEYS.live(),
-    query: async () => {
-      const { data, response } = await api.GET('/api/v1/health/live')
-      if (!response.ok)
-        throw new RpcError(response.status)
+| Script     | Description                                  |
+| ---------- | -------------------------------------------- |
+| `dev`      | Start the Nuxt development server            |
+| `build`    | Generate the static site in `.output/public` |
+| `preview`  | Preview the generated build locally          |
+| `lint`     | Check the web app with ESLint                |
+| `lint:fix` | Apply safe ESLint fixes                      |
 
-      return data
-    }
-  })
-  ```
+## Deployment
 
-- `mutations.ts` — `useMutation` wrappers that invalidate the feature's keys after successful writes via `useQueryCache()`.
-- `composables/` — what components actually import; compose queries/mutations with UI state. Use `defineQuery` here when several mounted components must share the same reactive state (e.g. a shared search ref).
-- `stores/` — Pinia stores only for client-side state (UI prefs, wizard state, session). Server data belongs in the Colada query cache, not stores.
+For Vercel, create a project with `apps/web` as its Root Directory. The checked-in `vercel.json` runs `pnpm build` and publishes `.output/public`.
 
-Rules:
+To build the production Docker image from the repository root:
 
-- A feature may import another feature only through `@/features/<feature>`; deep imports are private. Shared code cannot import features. ESLint enforces both directions.
-- Parent-relative (`../`) imports are ESLint errors everywhere in `src/` — use the `@/` alias to reach outside the current directory.
-- Components never call `api` directly — API calls live in feature queries/mutations, consumed through composables.
-- Every reactive value used inside a `query` function must appear in its `key` (use a getter key: `key: () => [...]`).
-- API types come from `@monorepo-fastify-vue/api-client`; do not hand-write them.
+```sh
+docker build -f apps/web/Dockerfile --target production -t monorepo-fastify-vue-web .
+```
+
+The production image serves the generated static files with nginx on container port 80.

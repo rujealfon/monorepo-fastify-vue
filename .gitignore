@@ -50,7 +50,7 @@ components.d.ts
 .vercel
 
 # Locally-trusted dev HTTPS leaf cert (contains a private key -- never commit).
-# Minted by `pnpm generate:certificates`; shared by web/site/api, see
-# apps/web/scripts/generate-certs.mjs. The CA that signs it lives outside the
+# Minted by `pnpm generate:certificates`; shared by app/site/api, see
+# apps/app/scripts/generate-certs.mjs. The CA that signs it lives outside the
 # repo, in ~/.vite-plugin-mkcert.
 /.certs/

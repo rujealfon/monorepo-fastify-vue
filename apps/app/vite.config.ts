@@ -6,12 +6,12 @@ import vue from '@vitejs/plugin-vue'
 import { defineConfig } from 'vite'
 
 // Only ever *reads* the leaf cert; minting is `pnpm generate:certificates`
-// (apps/web/scripts/generate-certs.mjs), which keeps the CA root out of this
+// (apps/app/scripts/generate-certs.mjs), which keeps the CA root out of this
 // dir. Nothing here may provision a cert on the fly: vite-plugin-mkcert folds
 // every locally-detected network IP into its host list, so in a container --
 // whose bridge IP changes on every restart -- it would regenerate on each
 // start, and the CA it installs is only trusted inside that ephemeral
-// container anyway. The leaf pair is shared with site (apps/site/nuxt.config.ts)
+// container anyway. The leaf pair is shared with web (apps/web/nuxt.config.ts)
 // and api (apps/api/src/app.ts) through the repo-root .certs/ dir (gitignored:
 // it holds a private key; repo-relative because docker-compose bind-mounts it,
 // and compose does not expand "~"). Falls back to HTTP until the cert exists.
@@ -27,12 +27,12 @@ export default defineConfig({
     emptyOutDir: true
   },
   define: {
-    // AuthLayout's Home/About links point at the public site, which doesn't
-    // exist in web anymore (moved out — see apps/site). Locally it serves
-    // HTTPS once the shared dev cert exists (same hasCert check as this
-    // file's own server.https, below) and HTTP otherwise.
-    'import.meta.env.VITE_SITE_URL': JSON.stringify(
-      process.env.VITE_SITE_URL ?? `${hasCert ? 'https' : 'http'}://localhost:8000`
+    // AuthLayout's Home/About links point at the public web site, which
+    // doesn't exist in app anymore (moved out — see apps/web). Locally it
+    // serves HTTPS once the shared dev cert exists (same hasCert check as
+    // this file's own server.https, below) and HTTP otherwise.
+    'import.meta.env.VITE_WEB_URL': JSON.stringify(
+      process.env.VITE_WEB_URL ?? `${hasCert ? 'https' : 'http'}://localhost:8000`
     )
   },
   resolve: {

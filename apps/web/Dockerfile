@@ -1,18 +1,27 @@
 FROM node:24.18.0-alpine AS base
 
-RUN corepack enable && corepack prepare pnpm@latest --activate
+RUN corepack enable && corepack prepare pnpm@11.18.0 --activate
 
 WORKDIR /app
 
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
 COPY tsconfig.json ./
 COPY packages/ ./packages/
-COPY apps/api/package.json ./apps/api/package.json
 COPY apps/web/package.json ./apps/web/package.json
 
 RUN pnpm install --frozen-lockfile
 
-COPY apps/api/src/ ./apps/api/src/
+# Unlike app (which aliases @monorepo-fastify-vue/api-client straight to its
+# TS source via vite.config.ts), web resolves it through normal node module
+# resolution -> package.json's "main": "./dist/index.js", so the package must
+# be built here. .dockerignore excludes **/dist from the build context, so a
+# dist built on the host never reaches the image. Required specifically for
+# the development target below, whose CMD runs `nuxt dev` directly rather
+# than through apps/web/package.json's own build script (which also builds
+# this as its first step) -- the production build stage re-runs it via that
+# script, redundant but harmless there since it's already fresh.
+RUN pnpm --filter @monorepo-fastify-vue/api-client build
+
 COPY apps/web/ ./apps/web/
 
 # --- Production build ---
@@ -20,14 +29,10 @@ FROM base AS build
 RUN pnpm --filter @monorepo-fastify-vue/web build
 
 FROM nginx:alpine AS production
-COPY --from=build /app/apps/web/dist /usr/share/nginx/html
+COPY --from=build /app/apps/web/.output/public /usr/share/nginx/html
 EXPOSE 80
 
 # --- Development ---
 FROM base AS development
-EXPOSE 5173
-# api (see apps/api/src/app.ts) serves HTTPS only once the cert exists at its
-# own startup -- the exact same bind-mounted files checked here -- so mirror
-# that check to pick a scheme that always matches what api is actually
-# serving instead of hardcoding one (see docker-compose.yml).
-CMD ["sh", "-c", "if [ -f /app/.certs/dev.pem ] && [ -f /app/.certs/cert.pem ]; then export API_PROXY_URL=https://api:3000; else export API_PROXY_URL=http://api:3000; fi; exec pnpm --filter @monorepo-fastify-vue/web exec vite --host 0.0.0.0"]
+EXPOSE 3000
+CMD ["pnpm", "--filter", "@monorepo-fastify-vue/web", "exec", "nuxt", "dev", "--host", "0.0.0.0"]

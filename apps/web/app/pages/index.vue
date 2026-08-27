@@ -1,5 +1,5 @@
 <script setup lang="ts">
-const { public: { webUrl } } = useRuntimeConfig()
+const { public: { appUrl } } = useRuntimeConfig()
 const { profile } = useProfile()
 </script>
 
@@ -11,8 +11,8 @@ const { profile } = useProfile()
     :ui="{ container: 'py-12 sm:py-16 lg:py-20' }"
   >
     <template v-if="!profile" #links>
-      <UButton :to="`${webUrl}/register`" size="lg" icon="i-lucide-user-plus" label="Get started" />
-      <UButton :to="`${webUrl}/login`" size="lg" color="neutral" variant="outline" label="Login" />
+      <UButton :to="`${appUrl}/register`" size="lg" icon="i-lucide-user-plus" label="Get started" />
+      <UButton :to="`${appUrl}/login`" size="lg" color="neutral" variant="outline" label="Login" />
     </template>
   </UPageHero>
 
