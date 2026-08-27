@@ -7,13 +7,13 @@ This project runs entirely in Docker for local development. The setup includes t
 | Service        | URL                          | Description                      |
 | -------------- | ---------------------------- | -------------------------------- |
 | API (Fastify)  | https://localhost:3000       | Backend API with hot reload      |
-| Web (Vue 3)    | https://localhost:5173       | Application with Vite HMR        |
+| App (Vue 3)    | https://localhost:5173       | Application with Vite HMR        |
 | Site (Nuxt 4)  | https://localhost:8000       | Public site with Nuxt hot reload |
 | Drizzle Studio | https://local.drizzle.studio | Visual database browser.         |
 | PostgreSQL     | localhost:5433               | Database                         |
 | Redis          | localhost:6380               | Rate-limit store                 |
 
-API, web, and site serve HTTPS with a locally-trusted cert — see [Local HTTPS certs](#local-https-certs) below before your first run.
+API, app, and site serve HTTPS with a locally-trusted cert — see [Local HTTPS certs](#local-https-certs) below before your first run.
 
 ## Prerequisites
 
@@ -22,7 +22,7 @@ API, web, and site serve HTTPS with a locally-trusted cert — see [Local HTTPS 
 
 ## Local HTTPS certs
 
-API, web, and site all serve HTTPS using one locally-trusted certificate. Mint it once, on the host, before your first `docker compose up`:
+API, app, and site all serve HTTPS using one locally-trusted certificate. Mint it once, on the host, before your first `docker compose up`:
 
 ```bash
 pnpm generate:certificates
@@ -111,7 +111,7 @@ See [Database migrations](#database-migrations) below for when to use these Dock
 ### 3. Access the services
 
 - **API docs (Scalar, development only):** https://localhost:3000
-- **Vue application:** https://localhost:5173
+- **App (Vue application):** https://localhost:5173
 - **Nuxt site:** https://localhost:8000
 - **Drizzle Studio:** http://localhost:4983
 
@@ -199,7 +199,7 @@ docker compose up --build
 
 # Rebuild a single service
 docker compose build api
-docker compose build web
+docker compose build app
 docker compose build site
 ```
 
@@ -259,14 +259,14 @@ One named volume persists data between container restarts:
 | --------------- | ---------- | ----------------- |
 | `postgres_data` | `postgres` | All database data |
 
-Source code is mounted directly from the host, so edits to `apps/api/src`, `apps/web/src`, and `apps/site/app` are reflected immediately without rebuilding.
+Source code is mounted directly from the host, so edits to `apps/api/src`, `apps/app/src`, and `apps/site/app` are reflected immediately without rebuilding.
 
 ## Hot Reload
 
 | Service | Mechanism                                                            |
 | ------- | -------------------------------------------------------------------- |
 | API     | `tsx watch` — restarts on any `.ts` file change under `apps/api/src` |
-| Web     | Vite HMR — updates the browser instantly on save                     |
+| App     | Vite HMR — updates the browser instantly on save                     |
 | Site    | Nuxt HMR — updates the browser for changes under `apps/site/app`     |
 
 ## Production Build
@@ -277,8 +277,8 @@ The Dockerfiles include a `production` target. To build production images locall
 # API production image
 docker build -f apps/api/Dockerfile --target production -t monorepo-fastify-vue-api .
 
-# Web production image (outputs static files served by nginx)
-docker build -f apps/web/Dockerfile --target production -t monorepo-fastify-vue-web .
+# App production image (outputs static files served by nginx)
+docker build -f apps/app/Dockerfile --target production -t monorepo-fastify-vue-app .
 
 # Nuxt site production image (outputs static files served by nginx)
 docker build -f apps/site/Dockerfile --target production -t monorepo-fastify-vue-site .
@@ -308,7 +308,7 @@ These are baked into the image at build time. Rebuild the affected service:
 
 ```bash
 docker compose build api
-docker compose build web
+docker compose build app
 docker compose build site
 ```
 

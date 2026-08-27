@@ -3,7 +3,7 @@ import type { NavigationMenuItem } from '@nuxt/ui'
 import { AppHeader } from '@monorepo-fastify-vue/ui'
 import { computed } from 'vue'
 
-const { public: { webUrl } } = useRuntimeConfig()
+const { public: { appUrl } } = useRuntimeConfig()
 const { profile, logout } = useProfile()
 const toast = useToast()
 
@@ -27,7 +27,7 @@ async function signOut() {
 
 const userMenu = computed(() => [[
   { label: profile.value?.email ?? '', type: 'label' as const },
-  { label: 'Profile', icon: 'i-lucide-user', to: `${webUrl}/profile` }
+  { label: 'Profile', icon: 'i-lucide-user', to: `${appUrl}/profile` }
 ], [
   { label: 'Logout', icon: 'i-lucide-log-out', onSelect: signOut }
 ]])
@@ -50,8 +50,8 @@ const userMenu = computed(() => [[
           </UDropdownMenu>
         </template>
         <template v-else>
-          <UButton :to="`${webUrl}/login`" color="neutral" variant="ghost" label="Login" />
-          <UButton :to="`${webUrl}/register`" color="primary" label="Register" />
+          <UButton :to="`${appUrl}/login`" color="neutral" variant="ghost" label="Login" />
+          <UButton :to="`${appUrl}/register`" color="primary" label="Register" />
         </template>
       </template>
     </AppHeader>

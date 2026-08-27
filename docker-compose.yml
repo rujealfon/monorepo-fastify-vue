@@ -1,11 +1,11 @@
 services:
-  web:
+  app:
     build:
       context: .
-      dockerfile: apps/web/Dockerfile
+      dockerfile: apps/app/Dockerfile
       target: development
     restart: unless-stopped
-    # API_PROXY_URL is set at container startup (see apps/web/Dockerfile's
+    # API_PROXY_URL is set at container startup (see apps/app/Dockerfile's
     # development CMD), not hardcoded here -- it must match whether api is
     # actually serving HTTPS or HTTP at that moment (see apps/api/src/app.ts),
     # which depends on whether the cert was minted before the containers were
@@ -14,7 +14,7 @@ services:
     ports:
       - '5173:5173'
     volumes:
-      - ./apps/web/src:/app/apps/web/src
+      - ./apps/app/src:/app/apps/app/src
       # Leaf cert only, read-only, mounted file-by-file rather than as a
       # directory: the CA root that signs it (rootCA-key.pem) lives outside the
       # repo in ~/.vite-plugin-mkcert and must never reach a container -- it can
@@ -45,7 +45,7 @@ services:
       - '3000:3000'
     volumes:
       - ./apps/api/src:/app/apps/api/src
-      # Same leaf-only, read-only pair as web/site (see apps/api/src/app.ts).
+      # Same leaf-only, read-only pair as app/site (see apps/api/src/app.ts).
       - ./.certs/dev.pem:/app/.certs/dev.pem:ro
       - ./.certs/cert.pem:/app/.certs/cert.pem:ro
     depends_on:
@@ -66,7 +66,7 @@ services:
       - '8000:8000'
     volumes:
       - ./apps/site/app:/app/apps/site/app
-      # Same leaf-only, read-only pair as web (see apps/site/nuxt.config.ts).
+      # Same leaf-only, read-only pair as app (see apps/site/nuxt.config.ts).
       - ./.certs/dev.pem:/app/.certs/dev.pem:ro
       - ./.certs/cert.pem:/app/.certs/cert.pem:ro
 

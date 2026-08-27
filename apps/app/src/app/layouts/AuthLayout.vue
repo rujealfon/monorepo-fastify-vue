@@ -7,7 +7,7 @@ import { siteUrl } from '@/shared/site-url'
 
 const route = useRoute()
 
-// Home and About live on the public site, not web — see apps/site.
+// Home and About live on the public site, not app — see apps/site.
 const links: NavigationMenuItem[] = [
   { label: 'Home', to: siteUrl, icon: 'i-lucide-house' },
   { label: 'About', to: `${siteUrl}/about`, icon: 'i-lucide-info' }

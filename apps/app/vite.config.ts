@@ -6,7 +6,7 @@ import vue from '@vitejs/plugin-vue'
 import { defineConfig } from 'vite'
 
 // Only ever *reads* the leaf cert; minting is `pnpm generate:certificates`
-// (apps/web/scripts/generate-certs.mjs), which keeps the CA root out of this
+// (apps/app/scripts/generate-certs.mjs), which keeps the CA root out of this
 // dir. Nothing here may provision a cert on the fly: vite-plugin-mkcert folds
 // every locally-detected network IP into its host list, so in a container --
 // whose bridge IP changes on every restart -- it would regenerate on each
@@ -28,7 +28,7 @@ export default defineConfig({
   },
   define: {
     // AuthLayout's Home/About links point at the public site, which doesn't
-    // exist in web anymore (moved out — see apps/site). Locally it serves
+    // exist in app anymore (moved out — see apps/site). Locally it serves
     // HTTPS once the shared dev cert exists (same hasCert check as this
     // file's own server.https, below) and HTTP otherwise.
     'import.meta.env.VITE_SITE_URL': JSON.stringify(
