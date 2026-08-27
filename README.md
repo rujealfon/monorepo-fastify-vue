@@ -7,7 +7,7 @@ A pnpm workspace with a Fastify API backed by PostgreSQL and Redis, a Vue / Vite
 - Run tasks in parallel across apps / packages with pnpm
 - Fastify API [proxied with Vite](./apps/app/vite.config.ts) during development
 - Separate Nuxt 4 site generated as static files with Nuxt UI
-- Three independent Vercel projects (API, app, site), each on its own subdomain, communicating cross-origin
+- Three independent Vercel projects (API, app, web), each on its own subdomain, communicating cross-origin
 - OpenAPI spec generated from the same Zod schemas via `fastify-type-provider-zod`, with Scalar at `/` in development
 - Module-owned Zod validators with drizzle-zod
 - Shared ESLint config
@@ -31,7 +31,7 @@ A pnpm workspace with a Fastify API backed by PostgreSQL and Redis, a Vue / Vite
 - Pinia + Pinia Colada
 - `@nuxt/ui` (component library, not the Nuxt framework)
 
-**site**
+**web**
 
 - Nuxt 4
 - Vue 3
@@ -59,18 +59,18 @@ Not yet integrated; noted here so future work builds toward these choices instea
 ├── api/             # Vercel serverless entry for the API project
 ├── apps/
 │   ├── api/          # Fastify REST API (Node.js)
-│   ├── site/         # Nuxt public site (statically generated)
+│   ├── web/          # Nuxt public site (statically generated)
 │   └── app/          # Vue / Vite application
 └── packages/
     ├── api-client/   # Typed API client generated from the OpenAPI spec (openapi-fetch)
     ├── eslint-config/ # Shared ESLint config
-    └── ui/           # Shared Vue components (AppHeader) used by both app and site
+    └── ui/           # Shared Vue components (AppHeader) used by both app and web
 ```
 
 Detailed structure and dependency rules live with each workspace:
 
 - [Fastify API](./apps/api/README.md)
-- [Nuxt site](./apps/site/README.md)
+- [Nuxt web](./apps/web/README.md)
 - [Vue app](./apps/app/README.md)
 - [Generated API client](./packages/api-client/README.md)
 - [Shared ESLint config](./packages/eslint-config/README.md)
@@ -154,16 +154,16 @@ pnpm db:migrate:test
 NITRO_PORT=8000 pnpm dev
 ```
 
-The root command starts the API, Vue app, and Nuxt site in parallel. `NITRO_PORT` keeps Nuxt from conflicting with the API's default port.
+The root command starts the API, Vue app, and Nuxt web app in parallel. `NITRO_PORT` keeps Nuxt from conflicting with the API's default port.
 
 - Vue application: [http://localhost:5173](http://localhost:5173)
-- Nuxt site: [http://localhost:8000](http://localhost:8000)
+- Nuxt web app: [http://localhost:8000](http://localhost:8000)
 - Fastify API and Scalar: [http://localhost:3000](http://localhost:3000)
 
-To run the Nuxt site by itself on a fixed port:
+To run the Nuxt web app by itself on a fixed port:
 
 ```sh
-pnpm --filter @monorepo-fastify-vue/site dev -- --port 8000
+pnpm --filter @monorepo-fastify-vue/web dev -- --port 8000
 ```
 
 All requests to `/api` are proxied to the Fastify server running on [http://localhost:3000](http://localhost:3000).
@@ -187,7 +187,7 @@ In development, Scalar is available at [http://localhost:3000](http://localhost:
 pnpm lint
 ```
 
-`pnpm install` enables the Husky pre-commit hook. It runs lint-staged and applies existing ESLint fixes only to staged API, app, site, and package files.
+`pnpm install` enables the Husky pre-commit hook. It runs lint-staged and applies existing ESLint fixes only to staged API, app, web, and package files.
 
 ### Test
 
@@ -203,7 +203,7 @@ Tests run against a real PostgreSQL database — make sure `DATABASE_URL` in `ap
 pnpm build
 ```
 
-This builds the API and Vue application and generates the Nuxt site in `apps/site/.output/public`.
+This builds the API and Vue application and generates the Nuxt web app in `apps/web/.output/public`.
 
 ## Vercel Deployment
 
@@ -212,7 +212,7 @@ Each app deploys as its own Vercel project, typically on subdomains of one regis
 ```text
 https://app.example.com   -> app  (apps/app)
 https://api.example.com   -> api  (repository root)
-https://example.com       -> site (apps/site)
+https://example.com       -> web  (apps/web)
 ```
 
 Because `app.example.com` and `api.example.com` share the registrable domain `example.com`, browsers treat them as **same-site** (not cross-site) even though they're different origins — the session cookie's `SameSite=Strict` still gets sent between them. Cross-origin (different-origin) browser requests still need explicit CORS.
@@ -262,9 +262,9 @@ DATABASE_URL_UNPOOLED=postgresql://USER:PASSWORD@HOST:5432/DATABASE?sslmode=veri
 
 `pnpm db:migrate` (part of `build:vercel`) takes a session-scoped Postgres advisory lock, which transaction-mode PgBouncer doesn't support — `apps/api/drizzle.config.ts` uses `DATABASE_URL_UNPOOLED` for migrations when it's set, falling back to `DATABASE_URL` otherwise. Runtime queries always use `DATABASE_URL` (pooled is preferred there — Vercel's serverless functions open many short-lived concurrent connections, which a direct Postgres connection limit can't absorb). Get both connection strings from Neon's connection dialog by toggling "Connection pooling" on/off.
 
-`CORS_ORIGIN` is required in production (validated in `apps/api/src/config`) — it's both the `@fastify/cors` allowlist and the extra origins the `sameOrigin` decorator (`apps/api/src/plugins/auth.ts`) accepts alongside same-host requests. It's comma-separated and must include **both** the app's and site's origins: unlike the app (which reaches the API through a same-origin rewrite proxy, see below), site's header calls the API's real origin directly (`apps/site/app/composables/use-profile.ts`) to check login state and to log out, so its origin needs to be in the allowlist too.
+`CORS_ORIGIN` is required in production (validated in `apps/api/src/config`) — it's both the `@fastify/cors` allowlist and the extra origins the `sameOrigin` decorator (`apps/api/src/plugins/auth.ts`) accepts alongside same-host requests. It's comma-separated and must include **both** the app's and web's origins: unlike the app (which reaches the API through a same-origin rewrite proxy, see below), web's header calls the API's real origin directly (`apps/web/app/composables/use-profile.ts`) to check login state and to log out, so its origin needs to be in the allowlist too.
 
-`COOKIE_DOMAIN` is required for the login session to be visible on site as well as the app. Without it, the session cookie is host-only — scoped to whichever origin issued it, which in practice is the app's own origin (since the app reaches the API through its own rewrite proxy), so site would never see the user as logged in even though it calls the same API. Set it to the shared parent domain (e.g. `.example.com`) so both `app.example.com` and `example.com` receive the cookie. Leave it unset only when the app and site don't share a registrable domain — e.g. `*.vercel.app` project URLs, which are each their own entry on the Public Suffix List (see [Bare `*.vercel.app` project URLs](#direct-requests-between-unrelated-domains) below) — where setting an explicit `Domain` would just make the cookie invalid.
+`COOKIE_DOMAIN` is required for the login session to be visible on web as well as the app. Without it, the session cookie is host-only — scoped to whichever origin issued it, which in practice is the app's own origin (since the app reaches the API through its own rewrite proxy), so web would never see the user as logged in even though it calls the same API. Set it to the shared parent domain (e.g. `.example.com`) so both `app.example.com` and `example.com` receive the cookie. Leave it unset only when the app and web don't share a registrable domain — e.g. `*.vercel.app` project URLs, which are each their own entry on the Public Suffix List (see [Bare `*.vercel.app` project URLs](#direct-requests-between-unrelated-domains) below) — where setting an explicit `Domain` would just make the cookie invalid.
 
 Use `rediss://` (TLS), not `redis://`, with Upstash — its endpoints enforce TLS ("TLS/SSL: Enabled" in the Upstash console), and `redis://` will fail to connect.
 
@@ -285,17 +285,17 @@ Enable "Include files outside the Root Directory in the Build Step" — the app 
 
 No `VITE_API_BASE_URL` (or any API URL env var) is needed. `apps/app/vercel.json` rewrites `/api/*` to the API project's URL, so the browser always calls the app's own origin — matching what `vite.config.ts`'s dev server proxy already does locally. This keeps every request same-origin regardless of whether the app and API end up on unrelated domains, so update the `destination` in `apps/app/vercel.json` if the API project's URL changes.
 
-Set `VITE_SITE_URL` to the site project's URL (e.g. `https://example.com`) — `AuthLayout`'s Home/About links point there since those pages live on site, not the app (see `apps/app/src/app/layouts/AuthLayout.vue`). Like `VITE_API_BASE_URL` above, this is inlined at build time (`vite.config.ts`'s `define`), so redeploy the app whenever site's URL changes. Defaults to `http://localhost:8000` for local development.
+Set `VITE_WEB_URL` to the web project's URL (e.g. `https://example.com`) — `AuthLayout`'s Home/About links point there since those pages live on web, not the app (see `apps/app/src/app/layouts/AuthLayout.vue`). Like `VITE_API_BASE_URL` above, this is inlined at build time (`vite.config.ts`'s `define`), so redeploy the app whenever web's URL changes. Defaults to `http://localhost:8000` for local development.
 
-### Site project
+### Web project
 
-Create a Vercel project with `apps/site` as its Root Directory; its checked-in `vercel.json` runs `pnpm build` and publishes `.output/public`.
+Create a Vercel project with `apps/web` as its Root Directory; its checked-in `vercel.json` runs `pnpm build` and publishes `.output/public`.
 
-Enable "Include files outside the Root Directory in the Build Step" here too — site depends on the shared header component in `packages/ui` (see [Shared UI components](./packages/ui/README.md)) and on `packages/api-client` to call the API directly for login state, the first workspace packages it's needed since site previously had no `packages/*` dependencies. Unlike the app (which aliases `api-client` straight to its TypeScript source in `vite.config.ts`), site resolves it through normal Node module resolution, so `apps/site/package.json`'s `build` script builds `packages/api-client`'s `dist/` first before `nuxt generate`.
+Enable "Include files outside the Root Directory in the Build Step" here too — web depends on the shared header component in `packages/ui` (see [Shared UI components](./packages/ui/README.md)) and on `packages/api-client` to call the API directly for login state, the first workspace packages it's needed since web previously had no `packages/*` dependencies. Unlike the app (which aliases `api-client` straight to its TypeScript source in `vite.config.ts`), web resolves it through normal Node module resolution, so `apps/web/package.json`'s `build` script builds `packages/api-client`'s `dist/` first before `nuxt generate`.
 
-The site hosts only public pages (Home, About); Login and Register live on the app, so its header links out to it when signed out, and shows a profile dropdown (with a link back to the app's `/profile`) when the shared session is signed in. Set `NUXT_PUBLIC_APP_URL` to the app project's URL (e.g. `https://app.example.com`) — it's read at build time since `nuxt generate` produces static output with no server to read env vars per-request, so redeploy the site whenever the app's URL changes. Defaults to `http://localhost:5173` for local development.
+The web app hosts only public pages (Home, About); Login and Register live on the app, so its header links out to it when signed out, and shows a profile dropdown (with a link back to the app's `/profile`) when the shared session is signed in. Set `NUXT_PUBLIC_APP_URL` to the app project's URL (e.g. `https://app.example.com`) — it's read at build time since `nuxt generate` produces static output with no server to read env vars per-request, so redeploy web whenever the app's URL changes. Defaults to `http://localhost:5173` for local development.
 
-Also set `NUXT_PUBLIC_API_URL` to the API project's URL (e.g. `https://api.example.com`) — unlike the app, site has no build/dev-time proxy to the API (`nuxt generate`'s static output has no server to proxy through), so the site's header calls this origin directly client-side to check login state and to log out (`apps/site/app/composables/use-profile.ts`). This only works once `CORS_ORIGIN` and `COOKIE_DOMAIN` are set on the API project as described above. Defaults to `http://localhost:3000` for local development.
+Also set `NUXT_PUBLIC_API_URL` to the API project's URL (e.g. `https://api.example.com`) — unlike the app, web has no build/dev-time proxy to the API (`nuxt generate`'s static output has no server to proxy through), so web's header calls this origin directly client-side to check login state and to log out (`apps/web/app/composables/use-profile.ts`). This only works once `CORS_ORIGIN` and `COOKIE_DOMAIN` are set on the API project as described above. Defaults to `http://localhost:3000` for local development.
 
 ### Direct requests between unrelated domains
 

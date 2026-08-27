@@ -45,7 +45,7 @@ services:
       - '3000:3000'
     volumes:
       - ./apps/api/src:/app/apps/api/src
-      # Same leaf-only, read-only pair as app/site (see apps/api/src/app.ts).
+      # Same leaf-only, read-only pair as app/web (see apps/api/src/app.ts).
       - ./.certs/dev.pem:/app/.certs/dev.pem:ro
       - ./.certs/cert.pem:/app/.certs/cert.pem:ro
     depends_on:
@@ -54,10 +54,10 @@ services:
       redis:
         condition: service_healthy
 
-  site:
+  web:
     build:
       context: .
-      dockerfile: apps/site/Dockerfile
+      dockerfile: apps/web/Dockerfile
       target: development
     restart: unless-stopped
     environment:
@@ -65,8 +65,8 @@ services:
     ports:
       - '8000:8000'
     volumes:
-      - ./apps/site/app:/app/apps/site/app
-      # Same leaf-only, read-only pair as app (see apps/site/nuxt.config.ts).
+      - ./apps/web/app:/app/apps/web/app
+      # Same leaf-only, read-only pair as app (see apps/web/nuxt.config.ts).
       - ./.certs/dev.pem:/app/.certs/dev.pem:ro
       - ./.certs/cert.pem:/app/.certs/cert.pem:ro
 

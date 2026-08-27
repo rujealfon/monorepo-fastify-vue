@@ -1,6 +1,6 @@
 # Docker
 
-This project runs entirely in Docker for local development. The setup includes the API, Vue application, Nuxt site, PostgreSQL database, Redis, and Drizzle Studio.
+This project runs entirely in Docker for local development. The setup includes the API, Vue application, Nuxt web app, PostgreSQL database, Redis, and Drizzle Studio.
 
 ## Services
 
@@ -8,12 +8,12 @@ This project runs entirely in Docker for local development. The setup includes t
 | -------------- | ---------------------------- | -------------------------------- |
 | API (Fastify)  | https://localhost:3000       | Backend API with hot reload      |
 | App (Vue 3)    | https://localhost:5173       | Application with Vite HMR        |
-| Site (Nuxt 4)  | https://localhost:8000       | Public site with Nuxt hot reload |
+| Web (Nuxt 4)   | https://localhost:8000       | Public site with Nuxt hot reload |
 | Drizzle Studio | https://local.drizzle.studio | Visual database browser.         |
 | PostgreSQL     | localhost:5433               | Database                         |
 | Redis          | localhost:6380               | Rate-limit store                 |
 
-API, app, and site serve HTTPS with a locally-trusted cert — see [Local HTTPS certs](#local-https-certs) below before your first run.
+API, app, and web serve HTTPS with a locally-trusted cert — see [Local HTTPS certs](#local-https-certs) below before your first run.
 
 ## Prerequisites
 
@@ -22,7 +22,7 @@ API, app, and site serve HTTPS with a locally-trusted cert — see [Local HTTPS 
 
 ## Local HTTPS certs
 
-API, app, and site all serve HTTPS using one locally-trusted certificate. Mint it once, on the host, before your first `docker compose up`:
+API, app, and web all serve HTTPS using one locally-trusted certificate. Mint it once, on the host, before your first `docker compose up`:
 
 ```bash
 pnpm generate:certificates
@@ -112,7 +112,7 @@ See [Database migrations](#database-migrations) below for when to use these Dock
 
 - **API docs (Scalar, development only):** https://localhost:3000
 - **App (Vue application):** https://localhost:5173
-- **Nuxt site:** https://localhost:8000
+- **Web (Nuxt site):** https://localhost:8000
 - **Drizzle Studio:** http://localhost:4983
 
 ## pgAdmin 4
@@ -169,7 +169,7 @@ Values under `environment` take precedence over matching values from `env_file`.
 
 Drizzle Studio receives only its Docker-specific `DATABASE_URL`; it does not load the API's `.env` or application secrets. PostgreSQL, Redis, and Studio host ports are all loopback-only.
 
-The Nuxt development service sets `NITRO_PORT=8000` so it does not conflict with the API on port 3000. The site currently requires no application secrets.
+The Nuxt development service sets `NITRO_PORT=8000` so it does not conflict with the API on port 3000. The web app currently requires no application secrets.
 
 Keep `apps/api/.env` and `apps/api/.env.test` uncommitted. Maintain non-secret development defaults in their checked-in example files, and use the deployment platform's secret management for production.
 
@@ -200,7 +200,7 @@ docker compose up --build
 # Rebuild a single service
 docker compose build api
 docker compose build app
-docker compose build site
+docker compose build web
 ```
 
 ### Running commands inside a container
@@ -228,7 +228,7 @@ docker compose logs -f
 
 # Follow logs for a specific service
 docker compose logs -f api
-docker compose logs -f site
+docker compose logs -f web
 docker compose logs -f postgres
 ```
 
@@ -241,8 +241,8 @@ docker compose up postgres
 # Start only the API and its dependencies
 docker compose up api
 
-# Start only the Nuxt site
-docker compose up site
+# Start only the Nuxt web app
+docker compose up web
 ```
 
 ## Database migrations
@@ -259,7 +259,7 @@ One named volume persists data between container restarts:
 | --------------- | ---------- | ----------------- |
 | `postgres_data` | `postgres` | All database data |
 
-Source code is mounted directly from the host, so edits to `apps/api/src`, `apps/app/src`, and `apps/site/app` are reflected immediately without rebuilding.
+Source code is mounted directly from the host, so edits to `apps/api/src`, `apps/app/src`, and `apps/web/app` are reflected immediately without rebuilding.
 
 ## Hot Reload
 
@@ -267,7 +267,7 @@ Source code is mounted directly from the host, so edits to `apps/api/src`, `apps
 | ------- | -------------------------------------------------------------------- |
 | API     | `tsx watch` — restarts on any `.ts` file change under `apps/api/src` |
 | App     | Vite HMR — updates the browser instantly on save                     |
-| Site    | Nuxt HMR — updates the browser for changes under `apps/site/app`     |
+| Web     | Nuxt HMR — updates the browser for changes under `apps/web/app`      |
 
 ## Production Build
 
@@ -280,8 +280,8 @@ docker build -f apps/api/Dockerfile --target production -t monorepo-fastify-vue-
 # App production image (outputs static files served by nginx)
 docker build -f apps/app/Dockerfile --target production -t monorepo-fastify-vue-app .
 
-# Nuxt site production image (outputs static files served by nginx)
-docker build -f apps/site/Dockerfile --target production -t monorepo-fastify-vue-site .
+# Nuxt web production image (outputs static files served by nginx)
+docker build -f apps/web/Dockerfile --target production -t monorepo-fastify-vue-web .
 ```
 
 ## Troubleshooting
@@ -309,7 +309,7 @@ These are baked into the image at build time. Rebuild the affected service:
 ```bash
 docker compose build api
 docker compose build app
-docker compose build site
+docker compose build web
 ```
 
 **Browser shows "Not Secure" / privacy error on https://localhost:5173 (or :8000, :3000)**

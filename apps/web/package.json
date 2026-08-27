@@ -1,5 +1,5 @@
 {
-  "name": "@monorepo-fastify-vue/site",
+  "name": "@monorepo-fastify-vue/web",
   "type": "module",
   "private": true,
   "scripts": {

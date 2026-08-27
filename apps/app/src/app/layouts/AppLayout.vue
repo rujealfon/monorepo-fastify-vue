@@ -8,7 +8,7 @@ import { RouterView, useRouter } from 'vue-router'
 
 import { useAuthMutations } from '@/features/auth'
 import { profileQuery } from '@/features/profile'
-import { siteUrl } from '@/shared/site-url'
+import { webUrl } from '@/shared/web-url'
 
 const router = useRouter()
 const { logout } = useAuthMutations()
@@ -43,7 +43,7 @@ const userMenu = computed(() => [[
 
 <template>
   <div class="min-h-dvh bg-default">
-    <AppHeader :brand-href="siteUrl" :links="links">
+    <AppHeader :brand-href="webUrl" :links="links">
       <template #right>
         <template v-if="profile.data.value">
           <UDropdownMenu :items="userMenu">

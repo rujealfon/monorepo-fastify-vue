@@ -13,7 +13,7 @@
 //                           as well as macOS/Linux -- unlike a literal "~", which
 //                           only a POSIX shell expands.
 //   <repo>/.certs/          Leaf key + cert only (localhost). This is the dir
-//                           docker-compose bind-mounts read-only into app, site
+//                           docker-compose bind-mounts read-only into app, web
 //                           and api, so it must never hold CA material: a
 //                           container that could read rootCA-key.pem could mint
 //                           certs your browser trusts for any domain.

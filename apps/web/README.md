@@ -1,4 +1,4 @@
-# Nuxt Site
+# Nuxt Web
 
 Nuxt 4 public site for the monorepo. It uses Vue 3 and Nuxt UI and is generated as static files for deployment.
 
@@ -10,10 +10,10 @@ Install dependencies from the repository root:
 pnpm install
 ```
 
-Run the site by itself on port 8000:
+Run the web app by itself on port 8000:
 
 ```sh
-pnpm --filter @monorepo-fastify-vue/site dev -- --port 8000
+pnpm --filter @monorepo-fastify-vue/web dev -- --port 8000
 ```
 
 Visit [http://localhost:8000](http://localhost:8000). To start every workspace together without conflicting with the API on port 3000, run this from the repository root:
@@ -22,12 +22,12 @@ Visit [http://localhost:8000](http://localhost:8000). To start every workspace t
 NITRO_PORT=8000 pnpm dev
 ```
 
-With Docker, the site is always available at [http://localhost:8000](http://localhost:8000).
+With Docker, the web app is always available at [http://localhost:8000](http://localhost:8000).
 
 ## Project Structure
 
 ```text
-apps/site/
+apps/web/
 ├── app/
 │   ├── app.vue           # Nuxt application root
 │   ├── layouts/          # App shells (default.vue)
@@ -38,28 +38,28 @@ apps/site/
 └── vercel.json           # Static Vercel build settings
 ```
 
-The site hosts only public pages — Home and About. Its `default` layout's Login and Register buttons link out to the app (`runtimeConfig.public.appUrl`, set via `NUXT_PUBLIC_APP_URL`) rather than to internal routes, since authenticated routes live in `apps/app`. Follow Nuxt conventions as the site grows: add file-based routes under `app/pages`, layouts under `app/layouts`, and site-owned components and composables under their corresponding `app` directories.
+The web app hosts only public pages — Home and About. Its `default` layout's Login and Register buttons link out to the app (`runtimeConfig.public.appUrl`, set via `NUXT_PUBLIC_APP_URL`) rather than to internal routes, since authenticated routes live in `apps/app`. Follow Nuxt conventions as the web app grows: add file-based routes under `app/pages`, layouts under `app/layouts`, and web-owned components and composables under their corresponding `app` directories.
 
 ## Scripts
 
-Run scripts from the repository root with `pnpm --filter @monorepo-fastify-vue/site <script>`.
+Run scripts from the repository root with `pnpm --filter @monorepo-fastify-vue/web <script>`.
 
 | Script     | Description                                  |
 | ---------- | -------------------------------------------- |
 | `dev`      | Start the Nuxt development server            |
 | `build`    | Generate the static site in `.output/public` |
 | `preview`  | Preview the generated build locally          |
-| `lint`     | Check the site with ESLint                   |
+| `lint`     | Check the web app with ESLint                |
 | `lint:fix` | Apply safe ESLint fixes                      |
 
 ## Deployment
 
-For Vercel, create a project with `apps/site` as its Root Directory. The checked-in `vercel.json` runs `pnpm build` and publishes `.output/public`.
+For Vercel, create a project with `apps/web` as its Root Directory. The checked-in `vercel.json` runs `pnpm build` and publishes `.output/public`.
 
 To build the production Docker image from the repository root:
 
 ```sh
-docker build -f apps/site/Dockerfile --target production -t monorepo-fastify-vue-site .
+docker build -f apps/web/Dockerfile --target production -t monorepo-fastify-vue-web .
 ```
 
 The production image serves the generated static files with nginx on container port 80.
